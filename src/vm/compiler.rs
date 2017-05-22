@@ -5,5 +5,6 @@ use ast::Expr;
 pub fn compile_expression(expr: Expr) -> Vec<Instruction> {
     match expr {
         Expr::Int(n) => vec![Instruction::PushInt(n)],
+        Expr::Add(_, _) => unimplemented!(),
     }
 }
