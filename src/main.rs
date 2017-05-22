@@ -1,4 +1,4 @@
-#![feature(box_syntax, box_pattern)]
+#![feature(box_syntax)]
 
 #[macro_use]
 extern crate combine;
