@@ -1,5 +1,6 @@
 #![feature(box_syntax, box_pattern)]
 
+#[macro_use]
 extern crate combine;
 extern crate combine_language;
 #[macro_use]

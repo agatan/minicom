@@ -2,4 +2,5 @@
 pub enum Expr {
     Int(i64),
     Add(Box<Expr>, Box<Expr>),
+    Sub(Box<Expr>, Box<Expr>),
 }

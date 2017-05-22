@@ -8,9 +8,16 @@ pub fn compile_expression(expr: &Expr) -> Vec<Instruction> {
         Expr::Add(ref l, ref r) => {
             let mut l_instrs = compile_expression(l);
             let mut r_instrs = compile_expression(r);
-            l_instrs.append(&mut r_instrs);
-            l_instrs.push(Instruction::AddInt);
-            l_instrs
+            r_instrs.append(&mut l_instrs);
+            r_instrs.push(Instruction::AddInt);
+            r_instrs
+        }
+        Expr::Sub(ref l, ref r) => {
+            let mut l_instrs = compile_expression(l);
+            let mut r_instrs = compile_expression(r);
+            r_instrs.append(&mut l_instrs);
+            r_instrs.push(Instruction::SubInt);
+            r_instrs
         }
     }
 }

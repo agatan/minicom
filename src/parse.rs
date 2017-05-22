@@ -28,7 +28,7 @@ impl<'input, I> ParserEnv<'input, I>
                 op: Identifier {
                     start: unexpected("cannot use user defined operator").map(|_| ' '),
                     rest: unexpected("cannot use user defined operator").map(|_| ' '),
-                    reserved: vec!["+"].iter().map(|x| (*x).into()).collect(),
+                    reserved: ["+", "-"].iter().map(|x| (*x).into()).collect(),
                 },
                 comment_start: string("/*").map(|_| ()),
                 comment_end: string("*/").map(|_| ()),
@@ -49,10 +49,11 @@ impl<'input, I> ParserEnv<'input, I>
         fn op<'a>(l: Expr, o: &'a str, r: Expr) -> Expr {
             match o {
                 "+" => Expr::Add(box l, box r),
+                "-" => Expr::Sub(box l, box r),
                 _ => unreachable!(),
             }
         }
-        let op_parser = self.env.reserved_op_("+").map(|op| {
+        let op_parser = choice!(self.env.reserved_op_("+"), self.env.reserved_op_("-")).map(|op| {
             (op,
              Assoc {
                  precedence: 6,
