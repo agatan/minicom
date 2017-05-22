@@ -13,18 +13,18 @@ pub enum ExprKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
     pub kind: ExprKind,
-    pub typ: ArcTyp,
+    pub typ: Type,
 }
 
 impl Expr {
     pub fn new(kind: ExprKind) -> Self {
         Expr {
             kind: kind,
-            typ: ArcTyp::hole(),
+            typ: Type::hole(),
         }
     }
 
-    pub fn with_typ(kind: ExprKind, typ: ArcTyp) -> Self {
+    pub fn with_typ(kind: ExprKind, typ: Type) -> Self {
         Expr {
             kind: kind,
             typ: typ,

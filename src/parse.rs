@@ -4,7 +4,7 @@ use combine::char::{spaces, alpha_num, letter, string};
 use combine::combinator::EnvParser;
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
-use ast::{Expr, ExprKind, Typ};
+use ast::{Expr, ExprKind, Type};
 
 type LanguageParser<'input: 'parser, 'parser, I, T> = EnvParser<&'parser ParserEnv<'input, I>,
                                                                 I,
@@ -40,7 +40,7 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_integer(&self, input: I) -> ParseResult<Expr, I> {
         self.env
             .lex(self.env.integer_())
-            .map(|n| Expr::with_typ(ExprKind::Int(n), Typ::Int.into()))
+            .map(|n| Expr::with_typ(ExprKind::Int(n), Type::int()))
             .parse_stream(input)
     }
 
