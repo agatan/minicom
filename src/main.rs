@@ -3,6 +3,7 @@ extern crate combine_language;
 
 mod ast;
 mod parse;
+mod vm;
 
 use std::io::Write;
 
@@ -23,4 +24,7 @@ fn main() {
     };
 
     println!("expression: {:?}", expr);
+
+    let instrs = vm::compiler::compile_expression(expr);
+    println!("compiled: {:?}", instrs);
 }
