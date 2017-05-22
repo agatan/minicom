@@ -1,4 +1,4 @@
-#![feature(box_syntax)]
+#![feature(box_syntax, box_patterns)]
 
 #[macro_use]
 extern crate combine;
@@ -9,6 +9,7 @@ extern crate env_logger;
 
 mod ast;
 mod parse;
+mod check;
 mod vm;
 
 use std::io::Write;
@@ -33,9 +34,12 @@ fn main() {
 
     println!("expression: {:?}", expr);
 
-    let instrs = vm::compiler::compile_expression(&expr);
+    let checked = check::transform(expr);
+    println!("checked: {:?}", checked);
+
+    let instrs = vm::compiler::compile_expression(&checked);
     println!("compiled: {:?}", instrs);
 
-    let v = vm::eval_expression(&expr);
+    let v = vm::eval_expression(&checked);
     println!("evaluated: {:?}", v);
 }

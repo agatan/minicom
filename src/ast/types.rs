@@ -9,7 +9,7 @@ pub enum TypeKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Type {
-    kind: Rc<TypeKind>,
+    pub kind: Rc<TypeKind>,
 }
 
 impl Type {
@@ -19,6 +19,10 @@ impl Type {
 
     pub fn hole() -> Self {
         TypeKind::Hole.into()
+    }
+
+    pub fn is(&self, kind: &TypeKind) -> bool {
+        *self.kind == *kind
     }
 }
 
