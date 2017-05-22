@@ -1,6 +1,6 @@
-use combine::{State, Parser, ParseResult, Stream, satisfy, env_parser};
+use combine::{State, Parser, ParseResult, Stream, satisfy, env_parser, eof};
 use combine::primitives::ParseError;
-use combine::char::{alpha_num, letter, string};
+use combine::char::{spaces, alpha_num, letter, string};
 use combine::combinator::EnvParser;
 use combine_language::{LanguageEnv, LanguageDef, Identifier};
 
@@ -36,7 +36,7 @@ impl<'input, I> ParserEnv<'input, I>
     }
 
     fn parse_integer(&self, input: I) -> ParseResult<Expr, I> {
-        self.env.integer_().map(Expr::Int).
+        self.env.lex(self.env.integer_()).map(Expr::Int).
             parse_stream(input)
     }
 
@@ -47,7 +47,7 @@ impl<'input, I> ParserEnv<'input, I>
 
 pub fn parse_expression(input: &str) -> Result<Expr, ParseError<State<&str>>> {
     let env = ParserEnv::new();
-    match env.integer().parse_stream(State::new(input)) {
+    match spaces().with(env.integer()).skip(eof()).parse_stream(State::new(input)) {
         Ok((expr, _)) => Ok(expr),
         Err(err) =>  Err(err.into_inner()),
     }
