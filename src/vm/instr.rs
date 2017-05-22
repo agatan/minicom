@@ -3,4 +3,6 @@ pub enum Instruction {
     PushInt(i64),
     AddInt,
     SubInt,
+    MulInt,
+    DivInt,
 }

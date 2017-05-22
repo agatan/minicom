@@ -56,6 +56,26 @@ impl<'a> VM<'a> {
                     }
                 }
             }
+            MulInt => {
+                let v1 = self.stack.pop();
+                let v2 = self.stack.pop();
+                match (v1, v2) {
+                    (Value::Int(v1), Value::Int(v2)) => {
+                        let v = Value::Int(v1 * v2);
+                        self.stack.push(v);
+                    }
+                }
+            }
+            DivInt => {
+                let v1 = self.stack.pop();
+                let v2 = self.stack.pop();
+                match (v1, v2) {
+                    (Value::Int(v1), Value::Int(v2)) => {
+                        let v = Value::Int(v1 / v2);
+                        self.stack.push(v);
+                    }
+                }
+            }
         }
     }
 

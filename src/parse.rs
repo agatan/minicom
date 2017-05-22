@@ -28,7 +28,7 @@ impl<'input, I> ParserEnv<'input, I>
                 op: Identifier {
                     start: unexpected("cannot use user defined operator").map(|_| ' '),
                     rest: unexpected("cannot use user defined operator").map(|_| ' '),
-                    reserved: ["+", "-"].iter().map(|x| (*x).into()).collect(),
+                    reserved: ["+", "-", "*", "/"].iter().map(|x| (*x).into()).collect(),
                 },
                 comment_start: string("/*").map(|_| ()),
                 comment_end: string("*/").map(|_| ()),
@@ -50,16 +50,26 @@ impl<'input, I> ParserEnv<'input, I>
             match o {
                 "+" => Expr::Add(box l, box r),
                 "-" => Expr::Sub(box l, box r),
+                "*" => Expr::Mul(box l, box r),
+                "/" => Expr::Div(box l, box r),
                 _ => unreachable!(),
             }
         }
-        let op_parser = choice!(self.env.reserved_op_("+"), self.env.reserved_op_("-")).map(|op| {
+        let addsub_parser = choice!(self.env.reserved_op_("+"), self.env.reserved_op_("-")).map(|op| {
             (op,
              Assoc {
                  precedence: 6,
                  fixity: Fixity::Left,
              })
         });
+        let muldiv_parser = choice!(self.env.reserved_op_("*"), self.env.reserved_op_("/")).map(|op| {
+            (op,
+             Assoc {
+                 precedence: 7,
+                 fixity: Fixity::Left,
+             })
+        });
+        let op_parser = choice!(addsub_parser, muldiv_parser);
         expression_parser(self.integer(), op_parser, op).parse_stream(input)
     }
 

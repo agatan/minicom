@@ -19,5 +19,19 @@ pub fn compile_expression(expr: &Expr) -> Vec<Instruction> {
             r_instrs.push(Instruction::SubInt);
             r_instrs
         }
+        Expr::Mul(ref l, ref r) => {
+            let mut l_instrs = compile_expression(l);
+            let mut r_instrs = compile_expression(r);
+            r_instrs.append(&mut l_instrs);
+            r_instrs.push(Instruction::MulInt);
+            r_instrs
+        }
+        Expr::Div(ref l, ref r) => {
+            let mut l_instrs = compile_expression(l);
+            let mut r_instrs = compile_expression(r);
+            r_instrs.append(&mut l_instrs);
+            r_instrs.push(Instruction::DivInt);
+            r_instrs
+        }
     }
 }
