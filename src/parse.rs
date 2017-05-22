@@ -45,6 +45,25 @@ impl<'input, I> ParserEnv<'input, I>
         env_parser(self, ParserEnv::parse_integer)
     }
 
+    fn parse_parens_expr(&self, input: I) -> ParseResult<Expr, I> {
+        self.env
+            .lex(self.env.parens(self.expression()))
+            .map(|e| Expr::Parens(Box::new(e)))
+            .parse_stream(input)
+    }
+
+    fn parens_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
+        env_parser(self, ParserEnv::parse_parens_expr)
+    }
+
+    fn parse_term_expr(&self, input: I) -> ParseResult<Expr, I> {
+        choice!(self.parens_expr(), self.integer()).parse_stream(input)
+    }
+
+    fn term_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
+        env_parser(self, ParserEnv::parse_term_expr)
+    }
+
     fn parse_expression(&self, input: I) -> ParseResult<Expr, I> {
         fn op<'a>(l: Expr, o: &'a str, r: Expr) -> Expr {
             match o {
@@ -55,22 +74,24 @@ impl<'input, I> ParserEnv<'input, I>
                 _ => unreachable!(),
             }
         }
-        let addsub_parser = choice!(self.env.reserved_op_("+"), self.env.reserved_op_("-")).map(|op| {
-            (op,
-             Assoc {
-                 precedence: 6,
-                 fixity: Fixity::Left,
-             })
-        });
-        let muldiv_parser = choice!(self.env.reserved_op_("*"), self.env.reserved_op_("/")).map(|op| {
-            (op,
-             Assoc {
-                 precedence: 7,
-                 fixity: Fixity::Left,
-             })
-        });
+        let addsub_parser = choice!(self.env.reserved_op_("+"), self.env.reserved_op_("-"))
+            .map(|op| {
+                (op,
+                 Assoc {
+                     precedence: 6,
+                     fixity: Fixity::Left,
+                 })
+            });
+        let muldiv_parser = choice!(self.env.reserved_op_("*"), self.env.reserved_op_("/"))
+            .map(|op| {
+                (op,
+                 Assoc {
+                     precedence: 7,
+                     fixity: Fixity::Left,
+                 })
+            });
         let op_parser = choice!(addsub_parser, muldiv_parser);
-        expression_parser(self.integer(), op_parser, op).parse_stream(input)
+        expression_parser(self.term_expr(), op_parser, op).parse_stream(input)
     }
 
     fn expression<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {

@@ -33,5 +33,6 @@ pub fn compile_expression(expr: &Expr) -> Vec<Instruction> {
             r_instrs.push(Instruction::DivInt);
             r_instrs
         }
+        Expr::Parens(ref e) => compile_expression(e),
     }
 }
