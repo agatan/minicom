@@ -36,6 +36,16 @@ impl<'a> VM<'a> {
                 let v = Value::Int(n);
                 self.stack.push(v);
             }
+            AddInt => {
+                let v1 = self.stack.pop();
+                let v2 = self.stack.pop();
+                match (v1, v2) {
+                    (Value::Int(v1), Value::Int(v2)) => {
+                        let v = Value::Int(v1 + v2);
+                        self.stack.push(v);
+                    }
+                }
+            }
         }
     }
 
@@ -56,7 +66,7 @@ impl<'a> VM<'a> {
     }
 }
 
-pub fn eval_expression(expr: ast::Expr) -> Value {
+pub fn eval_expression(expr: &ast::Expr) -> Value {
     let instrs = compiler::compile_expression(expr);
     let mut vm = VM::new(&instrs);
     vm.run();

@@ -32,9 +32,9 @@ fn main() {
 
     println!("expression: {:?}", expr);
 
-    let instrs = vm::compiler::compile_expression(expr.clone());
+    let instrs = vm::compiler::compile_expression(&expr);
     println!("compiled: {:?}", instrs);
 
-    let v = vm::eval_expression(expr);
+    let v = vm::eval_expression(&expr);
     println!("evaluated: {:?}", v);
 }
