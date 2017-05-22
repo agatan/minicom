@@ -4,7 +4,7 @@ use combine::char::{spaces, alpha_num, letter, string};
 use combine::combinator::EnvParser;
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
-use ast::Expr;
+use ast::{Expr, ExprKind, Typ};
 
 type LanguageParser<'input: 'parser, 'parser, I, T> = EnvParser<&'parser ParserEnv<'input, I>,
                                                                 I,
@@ -38,7 +38,10 @@ impl<'input, I> ParserEnv<'input, I>
     }
 
     fn parse_integer(&self, input: I) -> ParseResult<Expr, I> {
-        self.env.lex(self.env.integer_()).map(Expr::Int).parse_stream(input)
+        self.env
+            .lex(self.env.integer_())
+            .map(|n| Expr::with_typ(ExprKind::Int(n), Typ::Int.into()))
+            .parse_stream(input)
     }
 
     fn integer<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
@@ -48,7 +51,10 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_parens_expr(&self, input: I) -> ParseResult<Expr, I> {
         self.env
             .lex(self.env.parens(self.expression()))
-            .map(|e| Expr::Parens(Box::new(e)))
+            .map(|e| {
+                let typ = e.typ.clone();
+                Expr::with_typ(ExprKind::Parens(Box::new(e)), typ)
+            })
             .parse_stream(input)
     }
 
@@ -66,13 +72,14 @@ impl<'input, I> ParserEnv<'input, I>
 
     fn parse_expression(&self, input: I) -> ParseResult<Expr, I> {
         fn op<'a>(l: Expr, o: &'a str, r: Expr) -> Expr {
-            match o {
-                "+" => Expr::Add(box l, box r),
-                "-" => Expr::Sub(box l, box r),
-                "*" => Expr::Mul(box l, box r),
-                "/" => Expr::Div(box l, box r),
+            let kind = match o {
+                "+" => ExprKind::Add(box l, box r),
+                "-" => ExprKind::Sub(box l, box r),
+                "*" => ExprKind::Mul(box l, box r),
+                "/" => ExprKind::Div(box l, box r),
                 _ => unreachable!(),
-            }
+            };
+            Expr::new(kind)
         }
         let addsub_parser = choice!(self.env.reserved_op_("+"), self.env.reserved_op_("-"))
             .map(|op| {
