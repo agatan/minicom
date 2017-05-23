@@ -39,3 +39,12 @@ pub struct Expr {
     pub kind: ExprKind,
     pub typ: Type,
 }
+
+impl Expr {
+    pub fn new(kind: ExprKind, typ: Type) -> Self {
+        Expr {
+            kind: kind,
+            typ: typ,
+        }
+    }
+}
