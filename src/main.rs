@@ -6,6 +6,8 @@ extern crate combine_language;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+#[macro_use]
+extern crate error_chain;
 
 mod ast;
 mod parse;
