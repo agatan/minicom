@@ -7,9 +7,7 @@ pub struct Stack {
 
 impl Stack {
     pub fn new() -> Self {
-        Stack {
-            values: Vec::new(),
-        }
+        Stack { values: Vec::new() }
     }
 
     pub fn push(&mut self, value: Value) {
@@ -20,7 +18,7 @@ impl Stack {
         self.values.pop().expect("pop on empty stack")
     }
 
-     pub fn len(&self) -> usize {
-         self.values.len()
-     }
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
 }

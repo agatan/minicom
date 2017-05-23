@@ -14,9 +14,7 @@ pub struct TypeVariable {
 
 impl TypeVariable {
     pub fn new(id: u32) -> Self {
-        TypeVariable {
-            id: id,
-        }
+        TypeVariable { id: id }
     }
 }
 
