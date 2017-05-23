@@ -23,7 +23,7 @@ fn main() {
         None => {
             writeln!(&mut std::io::stderr(), "no input given").unwrap();
             ::std::process::exit(1);
-        },
+        }
         Some(input) => input,
     };
     let expr = match parse::parse_expression(&input) {
@@ -35,6 +35,10 @@ fn main() {
     };
 
     println!("expression: {:?}", expr);
+
+    let mut ctx = sem::typing2::Context::new();
+    let mut subst = sem::typing2::Substitution::new();
+    ctx.forward_expr(&mut subst, &expr).unwrap();
 
     let checked = match sem::transform(expr) {
         Ok(checked) => checked,

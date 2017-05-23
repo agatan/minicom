@@ -1,5 +1,6 @@
 pub mod ir;
 pub mod typing;
+pub mod typing2;
 
 pub use self::typing::transform;
 
@@ -23,4 +24,3 @@ error_chain! {
         }
     }
 }
-
