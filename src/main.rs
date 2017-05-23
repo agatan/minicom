@@ -11,7 +11,6 @@ extern crate error_chain;
 
 mod ast;
 mod parse;
-mod check;
 mod sem;
 mod vm;
 
