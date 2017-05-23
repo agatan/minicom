@@ -30,10 +30,10 @@ impl From<TypeVariable> for Type {
 pub enum ExprKind {
     Int(i64),
     Float(f64),
-    AddInt(Box<Expr>, Box<Expr>),
-    SubInt(Box<Expr>, Box<Expr>),
-    MulInt(Box<Expr>, Box<Expr>),
-    DivInt(Box<Expr>, Box<Expr>),
+    Add(Box<Expr>, Box<Expr>),
+    Sub(Box<Expr>, Box<Expr>),
+    Mul(Box<Expr>, Box<Expr>),
+    Div(Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

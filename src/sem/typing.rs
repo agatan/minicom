@@ -28,38 +28,78 @@ impl Typer {
             AExprKind::Add(box l, box r) => {
                 let l = self.transform_expr(subst, l)?;
                 let mut r = self.transform_expr(subst, r)?;
-                if l.typ == Type::Int {
-                    r.typ = self.unify_type(subst, r.typ, Type::Int)?;
-                    ty = self.unify_type(subst, ty, Type::Int)?;
+                match l.typ {
+                    Type::Int => {
+                        r.typ = self.unify_type(subst, r.typ, Type::Int)?;
+                        ty = self.unify_type(subst, ty, Type::Int)?;
+                    }
+                    Type::Float => {
+                        r.typ = self.unify_type(subst, r.typ, Type::Float)?;
+                        ty = self.unify_type(subst, ty, Type::Float)?;
+                    }
+                    _ => {
+                        r.typ = self.unify_type(subst, l.typ.clone(), r.typ)?;
+                        ty = self.unify_type(subst, ty, r.typ.clone())?;
+                    }
                 }
-                ExprKind::AddInt(box l, box r)
+                ExprKind::Add(box l, box r)
             }
             AExprKind::Sub(box l, box r) => {
                 let l = self.transform_expr(subst, l)?;
                 let mut r = self.transform_expr(subst, r)?;
-                if l.typ == Type::Int {
-                    r.typ = self.unify_type(subst, r.typ, Type::Int)?;
-                    ty = self.unify_type(subst, ty, Type::Int)?;
+                match l.typ {
+                    Type::Int => {
+                        r.typ = self.unify_type(subst, r.typ, Type::Int)?;
+                        ty = self.unify_type(subst, ty, Type::Int)?;
+                    }
+                    Type::Float => {
+                        r.typ = self.unify_type(subst, r.typ, Type::Float)?;
+                        ty = self.unify_type(subst, ty, Type::Float)?;
+                    }
+                    _ => {
+                        r.typ = self.unify_type(subst, l.typ.clone(), r.typ)?;
+                        ty = self.unify_type(subst, ty, r.typ.clone())?;
+                    }
                 }
-                ExprKind::SubInt(box l, box r)
+                ExprKind::Sub(box l, box r)
             }
             AExprKind::Mul(box l, box r) => {
                 let l = self.transform_expr(subst, l)?;
                 let mut r = self.transform_expr(subst, r)?;
-                if l.typ == Type::Int {
-                    r.typ = self.unify_type(subst, r.typ, Type::Int)?;
-                    ty = self.unify_type(subst, ty, Type::Int)?;
+                match l.typ {
+                    Type::Int => {
+                        r.typ = self.unify_type(subst, r.typ, Type::Int)?;
+                        ty = self.unify_type(subst, ty, Type::Int)?;
+                    }
+                    Type::Float => {
+                        r.typ = self.unify_type(subst, r.typ, Type::Float)?;
+                        ty = self.unify_type(subst, ty, Type::Float)?;
+                    }
+                    _ => {
+                        r.typ = self.unify_type(subst, l.typ.clone(), r.typ)?;
+                        ty = self.unify_type(subst, ty, r.typ.clone())?;
+                    }
                 }
-                ExprKind::MulInt(box l, box r)
+                ExprKind::Mul(box l, box r)
             }
             AExprKind::Div(box l, box r) => {
                 let l = self.transform_expr(subst, l)?;
                 let mut r = self.transform_expr(subst, r)?;
-                if l.typ == Type::Int {
-                    r.typ = self.unify_type(subst, r.typ, Type::Int)?;
-                    ty = self.unify_type(subst, ty, Type::Int)?;
+                match l.typ {
+                    Type::Int => {
+                        r.typ = self.unify_type(subst, r.typ, Type::Int)?;
+                        ty = self.unify_type(subst, ty, Type::Int)?;
+                    }
+                    Type::Float => {
+                        r.typ = self.unify_type(subst, r.typ, Type::Float)?;
+                        ty = self.unify_type(subst, ty, Type::Float)?;
+                    }
+                    _ => {
+                        r.typ = self.unify_type(subst, l.typ.clone(), r.typ)?;
+                        ty = self.unify_type(subst, ty, r.typ.clone())?;
+                    }
                 }
-                ExprKind::DivInt(box l, box r)
+                ExprKind::Div(box l, box r)
             }
             AExprKind::Parens(box e) => return self.transform_expr(subst, e),
         };
@@ -154,9 +194,7 @@ impl<'a> Substitution<'a> {
         match ty {
             Type::Int => Ok(Type::Int),
             Type::Float => Ok(Type::Float),
-            Type::Variable(x) => {
-                self.lookup(x).and_then(|ty| self.deref(ty))
-            }
+            Type::Variable(x) => self.lookup(x).and_then(|ty| self.deref(ty)),
         }
     }
 }
@@ -166,13 +204,16 @@ fn test_subst() {
     let mut parent = Substitution::new();
     parent.insert(TypeVariable::new(0), Type::Int);
     parent.insert(TypeVariable::new(1), Type::from(TypeVariable::new(0)));
-    assert_eq!(parent.deref(Type::from(TypeVariable::new(1))).unwrap(), Type::Int);
+    assert_eq!(parent.deref(Type::from(TypeVariable::new(1))).unwrap(),
+               Type::Int);
     {
         let mut child = parent.scoped();
         child.insert(TypeVariable::new(3), Type::Int);
         child.insert(TypeVariable::new(4), Type::from(TypeVariable::new(1)));
-        assert_eq!(child.deref(Type::from(TypeVariable::new(3))).unwrap(), Type::Int);
-        assert_eq!(child.deref(Type::from(TypeVariable::new(4))).unwrap(), Type::Int);
+        assert_eq!(child.deref(Type::from(TypeVariable::new(3))).unwrap(),
+                   Type::Int);
+        assert_eq!(child.deref(Type::from(TypeVariable::new(4))).unwrap(),
+                   Type::Int);
     }
 }
 
@@ -199,4 +240,3 @@ mod tests {
         }
     }
 }
-
