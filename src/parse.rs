@@ -61,7 +61,7 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_float(&self, input: I) -> ParseResult<Expr, I> {
         self.env
             .lex(self.env.float_())
-            .map(|n| Expr::new(self.new_expr_id(), ExprKind::Float(n)))
+            .map(|n| Expr::with_typ(self.new_expr_id(), ExprKind::Float(n), Type::float()))
             .parse_stream(input)
     }
 
