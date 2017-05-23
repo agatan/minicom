@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::convert::From;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -10,7 +9,7 @@ pub enum TypeKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Type {
-    pub kind: Rc<TypeKind>,
+    pub kind: TypeKind,
 }
 
 impl Type {
@@ -27,14 +26,14 @@ impl Type {
     }
 
     pub fn is(&self, kind: &TypeKind) -> bool {
-        *self.kind == *kind
+        self.kind == *kind
     }
 }
 
 impl From<TypeKind> for Type {
     fn from(typ: TypeKind) -> Self {
         Type {
-            kind: Rc::new(typ),
+            kind: typ,
         }
     }
 }

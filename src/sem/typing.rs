@@ -107,7 +107,7 @@ impl Typer {
     }
 
     fn transform_type(&self, subst: &mut Substitution, ty: AType) -> Type {
-        match &*ty.kind {
+        match &ty.kind {
             &ATypeKind::Int => Type::Int,
             &ATypeKind::Float => Type::Float,
             &ATypeKind::Hole => subst.new_var(),
