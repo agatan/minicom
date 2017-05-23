@@ -32,8 +32,6 @@ impl Type {
 
 impl From<TypeKind> for Type {
     fn from(typ: TypeKind) -> Self {
-        Type {
-            kind: typ,
-        }
+        Type { kind: typ }
     }
 }

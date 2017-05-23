@@ -1,4 +1,5 @@
 use ast::types::*;
+use ast::NodeId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
@@ -13,13 +14,13 @@ pub enum ExprKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
-    pub id: ExprId,
+    pub id: NodeId,
     pub kind: ExprKind,
     pub typ: Type,
 }
 
 impl Expr {
-    pub fn new(id: ExprId, kind: ExprKind) -> Self {
+    pub fn new(id: NodeId, kind: ExprKind) -> Self {
         Expr {
             id: id,
             kind: kind,
@@ -27,24 +28,11 @@ impl Expr {
         }
     }
 
-    pub fn with_typ(id: ExprId, kind: ExprKind, typ: Type) -> Self {
+    pub fn with_typ(id: NodeId, kind: ExprKind, typ: Type) -> Self {
         Expr {
             id: id,
             kind: kind,
             typ: typ,
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExprId(u32);
-
-impl ExprId {
-    pub fn new(id: u32) -> Self {
-        ExprId(id)
-    }
-
-    pub fn to_u32(self) -> u32 {
-        self.0
     }
 }
