@@ -1,7 +1,7 @@
 use combine::{State, Parser, ParseResult, Stream, unexpected, env_parser, eof};
 use combine::primitives::ParseError;
 use combine::char::{spaces, alpha_num, letter, string};
-use combine::combinator::EnvParser;
+use combine::combinator::{EnvParser, try};
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
 use ast::{Expr, ExprKind, Type};
@@ -48,6 +48,14 @@ impl<'input, I> ParserEnv<'input, I>
         env_parser(self, ParserEnv::parse_integer)
     }
 
+    fn parse_float(&self, input: I) -> ParseResult<Expr, I> {
+        self.env.lex(self.env.float_()).map(|n| Expr::new(ExprKind::Float(n))).parse_stream(input)
+    }
+
+    fn float<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
+        env_parser(self, ParserEnv::parse_float)
+    }
+
     fn parse_parens_expr(&self, input: I) -> ParseResult<Expr, I> {
         self.env
             .lex(self.env.parens(self.expression()))
@@ -63,7 +71,7 @@ impl<'input, I> ParserEnv<'input, I>
     }
 
     fn parse_term_expr(&self, input: I) -> ParseResult<Expr, I> {
-        choice!(self.parens_expr(), self.integer()).parse_stream(input)
+        choice!(self.parens_expr(), try(self.float()), self.integer()).parse_stream(input)
     }
 
     fn term_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {

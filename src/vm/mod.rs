@@ -45,6 +45,7 @@ impl<'a> VM<'a> {
                         let v = Value::Int(v1 + v2);
                         self.stack.push(v);
                     }
+                    _ => panic!("typed expression should be always valid"),
                 }
             }
             SubInt => {
@@ -55,6 +56,7 @@ impl<'a> VM<'a> {
                         let v = Value::Int(v1 - v2);
                         self.stack.push(v);
                     }
+                    _ => panic!("typed expression should be always valid"),
                 }
             }
             MulInt => {
@@ -65,6 +67,7 @@ impl<'a> VM<'a> {
                         let v = Value::Int(v1 * v2);
                         self.stack.push(v);
                     }
+                    _ => panic!("typed expression should be always valid"),
                 }
             }
             DivInt => {
@@ -75,6 +78,55 @@ impl<'a> VM<'a> {
                         let v = Value::Int(v1 / v2);
                         self.stack.push(v);
                     }
+                    _ => panic!("typed expression should be always valid"),
+                }
+            }
+            PushFloat(n) => {
+                let v = Value::Float(n);
+                self.stack.push(v);
+            }
+            AddFloat => {
+                let v1 = self.stack.pop();
+                let v2 = self.stack.pop();
+                match (v1, v2) {
+                    (Value::Float(v1), Value::Float(v2)) => {
+                        let v = Value::Float(v1 + v2);
+                        self.stack.push(v);
+                    }
+                    _ => panic!("typed expression should be always valid"),
+                }
+            }
+            SubFloat => {
+                let v1 = self.stack.pop();
+                let v2 = self.stack.pop();
+                match (v1, v2) {
+                    (Value::Float(v1), Value::Float(v2)) => {
+                        let v = Value::Float(v1 - v2);
+                        self.stack.push(v);
+                    }
+                    _ => panic!("typed expression should be always valid"),
+                }
+            }
+            MulFloat => {
+                let v1 = self.stack.pop();
+                let v2 = self.stack.pop();
+                match (v1, v2) {
+                    (Value::Float(v1), Value::Float(v2)) => {
+                        let v = Value::Float(v1 * v2);
+                        self.stack.push(v);
+                    }
+                    _ => panic!("typed expression should be always valid"),
+                }
+            }
+            DivFloat => {
+                let v1 = self.stack.pop();
+                let v2 = self.stack.pop();
+                match (v1, v2) {
+                    (Value::Float(v1), Value::Float(v2)) => {
+                        let v = Value::Float(v1 / v2);
+                        self.stack.push(v);
+                    }
+                    _ => panic!("typed expression should be always valid"),
                 }
             }
         }

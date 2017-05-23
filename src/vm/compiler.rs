@@ -5,6 +5,7 @@ use sem::ir::{Expr, ExprKind};
 pub fn compile_expression(expr: &Expr) -> Vec<Instruction> {
     match expr.kind {
         ExprKind::Int(n) => vec![Instruction::PushInt(n)],
+        ExprKind::Float(n) => vec![Instruction::PushFloat(n)],
         ExprKind::Add(ref l, ref r) => {
             let mut l_instrs = compile_expression(l);
             let mut r_instrs = compile_expression(r);

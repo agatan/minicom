@@ -3,6 +3,7 @@ use std::convert::From;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,
+    Float,
     Variable(TypeVariable),
 }
 
@@ -28,6 +29,7 @@ impl From<TypeVariable> for Type {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
     Int(i64),
+    Float(f64),
     Add(Box<Expr>, Box<Expr>),
     Sub(Box<Expr>, Box<Expr>),
     Mul(Box<Expr>, Box<Expr>),

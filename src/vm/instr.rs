@@ -5,4 +5,10 @@ pub enum Instruction {
     SubInt,
     MulInt,
     DivInt,
+
+    PushFloat(f64),
+    AddFloat,
+    SubFloat,
+    MulFloat,
+    DivFloat,
 }

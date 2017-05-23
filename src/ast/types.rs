@@ -4,6 +4,7 @@ use std::convert::From;
 #[derive(Debug, Clone, PartialEq)]
 pub enum TypeKind {
     Int,
+    Float,
     Hole,
 }
 
@@ -15,6 +16,10 @@ pub struct Type {
 impl Type {
     pub fn int() -> Self {
         TypeKind::Int.into()
+    }
+
+    pub fn float() -> Self {
+        TypeKind::Float.into()
     }
 
     pub fn hole() -> Self {

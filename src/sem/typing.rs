@@ -21,6 +21,10 @@ impl Typer {
                 ty = self.unify_type(subst, ty, Type::Int)?;
                 ExprKind::Int(n)
             }
+            AExprKind::Float(n) => {
+                ty = self.unify_type(subst, ty, Type::Float)?;
+                ExprKind::Float(n)
+            }
             AExprKind::Add(box l, box r) => {
                 let l = self.transform_expr(subst, l)?;
                 let mut r = self.transform_expr(subst, r)?;
@@ -65,6 +69,7 @@ impl Typer {
     fn transform_type(&self, subst: &mut Substitution, ty: AType) -> Type {
         match &*ty.kind {
             &ATypeKind::Int => Type::Int,
+            &ATypeKind::Float => Type::Float,
             &ATypeKind::Hole => subst.new_var(),
         }
     }
@@ -73,6 +78,7 @@ impl Typer {
         let (t1, t2) = (subst.apply(t1), subst.apply(t2));
         match (t1, t2) {
             (Type::Int, Type::Int) => Ok(Type::Int),
+            (Type::Float, Type::Float) => Ok(Type::Int),
             (Type::Variable(x), t2) => {
                 subst.insert(x, t2.clone());
                 Ok(t2)
@@ -81,6 +87,7 @@ impl Typer {
                 subst.insert(x, t1.clone());
                 Ok(t1)
             }
+            (t1, t2) => Err(ErrorKind::InvalidTypeUnification(t1, t2).into()),
         }
     }
 }
@@ -133,6 +140,7 @@ impl<'a> Substitution<'a> {
     fn apply(&self, ty: Type) -> Type {
         match ty {
             Type::Int => Type::Int,
+            Type::Float => Type::Float,
             Type::Variable(x) => {
                 match self.lookup(x) {
                     Ok(ty) => self.apply(ty),
@@ -145,6 +153,7 @@ impl<'a> Substitution<'a> {
     fn deref(&self, ty: Type) -> Result<Type> {
         match ty {
             Type::Int => Ok(Type::Int),
+            Type::Float => Ok(Type::Float),
             Type::Variable(x) => {
                 self.lookup(x).and_then(|ty| self.deref(ty))
             }
