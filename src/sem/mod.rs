@@ -1,7 +1,10 @@
 pub mod ir;
 pub mod typing;
 
+pub use self::typing::transform;
+
 use self::ir::{Type, TypeVariable};
+use ast::Expr;
 
 error_chain! {
     types {
@@ -20,3 +23,4 @@ error_chain! {
         }
     }
 }
+

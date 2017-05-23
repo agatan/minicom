@@ -5,10 +5,16 @@ use sem::{Error, ErrorKind, Result};
 
 use ast::{Expr as AExpr, ExprKind as AExprKind, Type as AType, TypeKind as ATypeKind};
 
-pub struct Typer;
+pub fn transform(e: AExpr) -> Result<Expr> {
+    let typer = Typer;
+    let mut subst = Substitution::new();
+    typer.transform_expr(&mut subst, e)
+}
+
+struct Typer;
 
 impl Typer {
-    pub fn transform_expr(&self, subst: &mut Substitution, e: AExpr) -> Result<Expr> {
+    fn transform_expr(&self, subst: &mut Substitution, e: AExpr) -> Result<Expr> {
         let mut ty = self.transform_type(subst, e.typ);
         let kind = match e.kind {
             AExprKind::Int(n) => {
@@ -80,14 +86,14 @@ impl Typer {
 }
 
 #[derive(Debug)]
-pub struct Substitution<'a> {
+struct Substitution<'a> {
     parent: Option<&'a Substitution<'a>>,
     table: HashMap<TypeVariable, Type>,
     next_id: u32,
 }
 
 impl<'a> Substitution<'a> {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Substitution {
             parent: None,
             table: HashMap::new(),
@@ -95,7 +101,7 @@ impl<'a> Substitution<'a> {
         }
     }
 
-    pub fn scoped(&'a self) -> Substitution<'a> {
+    fn scoped(&'a self) -> Substitution<'a> {
         Substitution {
             parent: Some(self),
             table: HashMap::new(),
@@ -103,17 +109,17 @@ impl<'a> Substitution<'a> {
         }
     }
 
-    pub fn new_var(&mut self) -> Type {
+    fn new_var(&mut self) -> Type {
         let ty = Type::from(TypeVariable::new(self.next_id));
         self.next_id += 1;
         ty
     }
 
-    pub fn insert(&mut self, x: TypeVariable, ty: Type) {
+    fn insert(&mut self, x: TypeVariable, ty: Type) {
         self.table.insert(x, ty);
     }
 
-    pub fn lookup(&self, x: TypeVariable) -> Result<Type> {
+    fn lookup(&self, x: TypeVariable) -> Result<Type> {
         if let Some(ty) = self.table.get(&x) {
             return Ok(ty.clone());
         }
@@ -124,7 +130,7 @@ impl<'a> Substitution<'a> {
         }
     }
 
-    pub fn apply(&self, ty: Type) -> Type {
+    fn apply(&self, ty: Type) -> Type {
         match ty {
             Type::Int => Type::Int,
             Type::Variable(x) => {
@@ -136,7 +142,7 @@ impl<'a> Substitution<'a> {
         }
     }
 
-    pub fn deref(&self, ty: Type) -> Result<Type> {
+    fn deref(&self, ty: Type) -> Result<Type> {
         match ty {
             Type::Int => Ok(Type::Int),
             Type::Variable(x) => {
@@ -174,17 +180,14 @@ mod tests {
         let e2 = AExpr::new(AExprKind::Int(2));
         let e_add = AExpr::new(AExprKind::Add(box e1, box e2));
         {
-            let typer = Typer;
-            let mut subst = Substitution::new();
-            let e = typer.transform_expr(&mut subst, e_add.clone()).unwrap();
+            let e = transform(e_add.clone()).unwrap();
             assert_eq!(e.typ, Type::Int);
         }
         {
-            let typer = Typer;
-            let mut subst = Substitution::new();
             let e = AExpr::new(AExprKind::Sub(box e_add.clone(), box e_add.clone()));
-            let e = typer.transform_expr(&mut subst, e).unwrap();
+            let e = tranform(e).unwrap();
             assert_eq!(e.typ, Type::Int);
         }
     }
 }
+

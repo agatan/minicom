@@ -3,10 +3,11 @@ pub mod compiler;
 pub mod value;
 pub mod stack;
 
-use ast;
 pub use self::value::Value;
 use self::instr::Instruction;
 use self::instr::Instruction::*;
+
+use sem::ir::Expr;
 
 struct VM<'a> {
     instrs: &'a [Instruction],
@@ -96,7 +97,7 @@ impl<'a> VM<'a> {
     }
 }
 
-pub fn eval_expression(expr: &ast::Expr) -> Value {
+pub fn eval_expression(expr: &Expr) -> Value {
     let instrs = compiler::compile_expression(expr);
     let mut vm = VM::new(&instrs);
     vm.run();

@@ -37,7 +37,7 @@ fn main() {
 
     println!("expression: {:?}", expr);
 
-    let checked = check::transform(expr);
+    let checked = sem::transform(expr).unwrap();
     println!("checked: {:?}", checked);
 
     let instrs = vm::compiler::compile_expression(&checked);

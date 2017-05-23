@@ -1,6 +1,6 @@
 use super::instr::Instruction;
 
-use ast::{Expr, ExprKind};
+use sem::ir::{Expr, ExprKind};
 
 pub fn compile_expression(expr: &Expr) -> Vec<Instruction> {
     match expr.kind {
@@ -33,6 +33,5 @@ pub fn compile_expression(expr: &Expr) -> Vec<Instruction> {
             r_instrs.push(Instruction::DivInt);
             r_instrs
         }
-        ExprKind::Parens(ref e) => compile_expression(e),
     }
 }
