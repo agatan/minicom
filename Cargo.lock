@@ -1,5 +1,5 @@
 [root]
-name = "mimic"
+name = "minivm"
 version = "0.1.0"
 dependencies = [
  "combine 2.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
