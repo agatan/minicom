@@ -48,22 +48,17 @@ impl<'a> Substitution<'a> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_new_subst() {
-        let mut parent = Substitution::new();
-        parent.insert(TypeVariable::new(0), Type::Int);
-        parent.insert(TypeVariable::new(1), Type::from(TypeVariable::new(0)));
-        assert_eq!(parent.apply(Type::from(TypeVariable::new(1))), Type::Int);
-        {
-            let mut child = parent.scoped();
-            child.insert(TypeVariable::new(3), Type::Int);
-            child.insert(TypeVariable::new(4), Type::from(TypeVariable::new(1)));
-            assert_eq!(child.apply(Type::from(TypeVariable::new(3))), Type::Int);
-            assert_eq!(child.apply(Type::from(TypeVariable::new(4))), Type::Int);
-        }
+#[test]
+fn test_subst() {
+    let mut parent = Substitution::new();
+    parent.insert(TypeVariable::new(0), Type::Int);
+    parent.insert(TypeVariable::new(1), Type::from(TypeVariable::new(0)));
+    assert_eq!(parent.apply(Type::from(TypeVariable::new(1))), Type::Int);
+    {
+        let mut child = parent.scoped();
+        child.insert(TypeVariable::new(3), Type::Int);
+        child.insert(TypeVariable::new(4), Type::from(TypeVariable::new(1)));
+        assert_eq!(child.apply(Type::from(TypeVariable::new(3))), Type::Int);
+        assert_eq!(child.apply(Type::from(TypeVariable::new(4))), Type::Int);
     }
 }
