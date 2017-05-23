@@ -1,16 +1,19 @@
+use std::cell::Cell;
+
 use combine::{State, Parser, ParseResult, Stream, unexpected, env_parser, eof};
 use combine::primitives::ParseError;
 use combine::char::{spaces, alpha_num, letter, string};
 use combine::combinator::{EnvParser, try};
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
-use ast::{Expr, ExprKind, Type};
+use ast::{Expr, ExprKind, ExprId, Type};
 
 type LanguageParser<'input: 'parser, 'parser, I, T> = EnvParser<&'parser ParserEnv<'input, I>,
                                                                 I,
                                                                 T>;
 
 struct ParserEnv<'input, I> {
+    next_expr_id: Cell<u32>,
     env: LanguageEnv<'input, I>,
 }
 
@@ -19,6 +22,7 @@ impl<'input, I> ParserEnv<'input, I>
 {
     fn new() -> Self {
         ParserEnv {
+            next_expr_id: Cell::new(0),
             env: LanguageEnv::new(LanguageDef {
                 ident: Identifier {
                     start: letter(),
@@ -37,10 +41,16 @@ impl<'input, I> ParserEnv<'input, I>
         }
     }
 
+    fn new_expr_id(&self) -> ExprId {
+        let x = self.next_expr_id.get();
+        self.next_expr_id.set(x + 1);
+        ExprId::new(x)
+    }
+
     fn parse_integer(&self, input: I) -> ParseResult<Expr, I> {
         self.env
             .lex(self.env.integer_())
-            .map(|n| Expr::with_typ(ExprKind::Int(n), Type::int()))
+            .map(|n| Expr::with_typ(self.new_expr_id(), ExprKind::Int(n), Type::int()))
             .parse_stream(input)
     }
 
@@ -49,7 +59,10 @@ impl<'input, I> ParserEnv<'input, I>
     }
 
     fn parse_float(&self, input: I) -> ParseResult<Expr, I> {
-        self.env.lex(self.env.float_()).map(|n| Expr::new(ExprKind::Float(n))).parse_stream(input)
+        self.env
+            .lex(self.env.float_())
+            .map(|n| Expr::new(self.new_expr_id(), ExprKind::Float(n)))
+            .parse_stream(input)
     }
 
     fn float<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
@@ -61,7 +74,7 @@ impl<'input, I> ParserEnv<'input, I>
             .lex(self.env.parens(self.expression()))
             .map(|e| {
                 let typ = e.typ.clone();
-                Expr::with_typ(ExprKind::Parens(Box::new(e)), typ)
+                Expr::with_typ(self.new_expr_id(), ExprKind::Parens(Box::new(e)), typ)
             })
             .parse_stream(input)
     }
@@ -79,7 +92,7 @@ impl<'input, I> ParserEnv<'input, I>
     }
 
     fn parse_expression(&self, input: I) -> ParseResult<Expr, I> {
-        fn op<'a>(l: Expr, o: &'a str, r: Expr) -> Expr {
+        let new_binop = |l: Expr, o: &str, r: Expr| -> Expr {
             let kind = match o {
                 "+" => ExprKind::Add(box l, box r),
                 "-" => ExprKind::Sub(box l, box r),
@@ -87,8 +100,9 @@ impl<'input, I> ParserEnv<'input, I>
                 "/" => ExprKind::Div(box l, box r),
                 _ => unreachable!(),
             };
-            Expr::new(kind)
-        }
+            Expr::new(self.new_expr_id(), kind)
+        };
+
         let addsub_parser = choice!(self.env.reserved_op_("+"), self.env.reserved_op_("-"))
             .map(|op| {
                 (op,
@@ -106,7 +120,7 @@ impl<'input, I> ParserEnv<'input, I>
                  })
             });
         let op_parser = choice!(addsub_parser, muldiv_parser);
-        expression_parser(self.term_expr(), op_parser, op).parse_stream(input)
+        expression_parser(self.term_expr(), op_parser, new_binop).parse_stream(input)
     }
 
     fn expression<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
