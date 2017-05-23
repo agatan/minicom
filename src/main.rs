@@ -10,6 +10,7 @@ extern crate env_logger;
 mod ast;
 mod parse;
 mod check;
+mod sem;
 mod vm;
 
 use std::io::Write;
