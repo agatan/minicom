@@ -32,7 +32,7 @@ impl Typer {
                     r.typ = self.unify_type(subst, r.typ, Type::Int)?;
                     ty = self.unify_type(subst, ty, Type::Int)?;
                 }
-                ExprKind::Add(box l, box r)
+                ExprKind::AddInt(box l, box r)
             }
             AExprKind::Sub(box l, box r) => {
                 let l = self.transform_expr(subst, l)?;
@@ -41,7 +41,7 @@ impl Typer {
                     r.typ = self.unify_type(subst, r.typ, Type::Int)?;
                     ty = self.unify_type(subst, ty, Type::Int)?;
                 }
-                ExprKind::Sub(box l, box r)
+                ExprKind::SubInt(box l, box r)
             }
             AExprKind::Mul(box l, box r) => {
                 let l = self.transform_expr(subst, l)?;
@@ -50,7 +50,7 @@ impl Typer {
                     r.typ = self.unify_type(subst, r.typ, Type::Int)?;
                     ty = self.unify_type(subst, ty, Type::Int)?;
                 }
-                ExprKind::Mul(box l, box r)
+                ExprKind::MulInt(box l, box r)
             }
             AExprKind::Div(box l, box r) => {
                 let l = self.transform_expr(subst, l)?;
@@ -59,7 +59,7 @@ impl Typer {
                     r.typ = self.unify_type(subst, r.typ, Type::Int)?;
                     ty = self.unify_type(subst, ty, Type::Int)?;
                 }
-                ExprKind::Div(box l, box r)
+                ExprKind::DivInt(box l, box r)
             }
             AExprKind::Parens(box e) => return self.transform_expr(subst, e),
         };
