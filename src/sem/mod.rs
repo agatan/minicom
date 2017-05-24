@@ -1,9 +1,9 @@
 pub mod ir;
-mod typing2;
+mod typing;
 
 use self::ir::{Expr, ExprKind, Type};
 use ast::{NodeId, Expr as AstExpr, ExprKind as AstExprKind};
-pub use self::typing2::TypeMap;
+pub use self::typing::TypeMap;
 
 error_chain! {
     types {
@@ -24,8 +24,8 @@ error_chain! {
 }
 
 pub fn type_check(expr: &AstExpr) -> Result<TypeMap<Type>> {
-    let mut ctx = typing2::Context::new();
-    let mut subst = typing2::Substitution::new();
+    let mut ctx = typing::Context::new();
+    let mut subst = typing::Substitution::new();
     ctx.forward_expr(&mut subst, expr)?;
     ctx.determine_types(&subst)
 }
