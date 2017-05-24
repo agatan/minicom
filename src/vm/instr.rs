@@ -11,4 +11,6 @@ pub enum Instruction {
     SubFloat,
     MulFloat,
     DivFloat,
+
+    Print,
 }

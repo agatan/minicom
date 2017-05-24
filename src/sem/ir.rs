@@ -16,6 +16,7 @@ pub enum ExprKind {
     SubFloat(Box<Expr>, Box<Expr>),
     MulFloat(Box<Expr>, Box<Expr>),
     DivFloat(Box<Expr>, Box<Expr>),
+    Print(Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

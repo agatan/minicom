@@ -2,7 +2,7 @@ use std::cell::Cell;
 
 use combine::{State, Parser, ParseResult, Stream, unexpected, env_parser, eof};
 use combine::primitives::ParseError;
-use combine::char::{spaces, alpha_num, letter, string};
+use combine::char::{spaces, alpha_num, letter, string, char};
 use combine::combinator::{EnvParser, try};
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
@@ -27,7 +27,7 @@ impl<'input, I> ParserEnv<'input, I>
                 ident: Identifier {
                     start: letter(),
                     rest: alpha_num(),
-                    reserved: ["let"].iter().map(|x| (*x).into()).collect(),
+                    reserved: ["print", "let"].iter().map(|x| (*x).into()).collect(),
                 },
                 op: Identifier {
                     start: unexpected("cannot use user defined operator").map(|_| ' '),
@@ -117,8 +117,25 @@ impl<'input, I> ParserEnv<'input, I>
         env_parser(self, ParserEnv::parse_parens_expr)
     }
 
+    fn parse_print_expr(&self, input: I) -> ParseResult<Expr, I> {
+        (self.env.reserved("print"),
+         self.env.lex(char('(')),
+         self.expression(),
+         self.env.lex(char(')')))
+            .map(|(_, _, e, _)| Expr::new(self.new_node_id(), ExprKind::Print(Box::new(e))))
+            .parse_stream(input)
+    }
+
+    fn print_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
+        env_parser(self, ParserEnv::parse_print_expr)
+    }
+
     fn parse_term_expr(&self, input: I) -> ParseResult<Expr, I> {
-        choice!(self.parens_expr(), try(self.float()), self.integer()).parse_stream(input)
+        choice!(self.parens_expr(),
+                self.print_expr(),
+                try(self.float()),
+                self.integer())
+            .parse_stream(input)
     }
 
     fn term_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {

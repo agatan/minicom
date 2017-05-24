@@ -56,6 +56,5 @@ fn main() {
     let instrs = vm::compiler::compile_expression(&checked);
     debug!("compiled: {:?}", instrs);
 
-    let v = vm::eval_expression(&checked);
-    println!("evaluated: {:?}", v);
+    vm::eval_expression(&checked);
 }

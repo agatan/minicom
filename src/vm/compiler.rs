@@ -62,5 +62,10 @@ pub fn compile_expression(expr: &Expr) -> Vec<Instruction> {
             r_instrs.push(Instruction::DivFloat);
             r_instrs
         }
+        ExprKind::Print(ref e) => {
+            let mut instrs = compile_expression(e);
+            instrs.push(Instruction::Print);
+            instrs
+        }
     }
 }

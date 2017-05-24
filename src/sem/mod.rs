@@ -78,6 +78,11 @@ pub fn transform(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
                 }
             }
         }
-        _ => unimplemented!(),
+        AstExprKind::Parens(ref e) => transform(e, typemap),
+        AstExprKind::Print(ref e) => {
+            let e = transform(e, typemap)?;
+            let ty = e.typ.clone();
+            Ok(Expr::new(ExprKind::Print(Box::new(e)), ty))
+        }
     }
 }

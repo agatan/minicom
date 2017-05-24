@@ -156,6 +156,11 @@ impl Context {
                 let inner_ty = self.map.get(e.id);
                 subst.unify(ty, inner_ty)
             }
+            ExprKind::Print(ref e) => {
+                self.forward_expr(subst, e)?;
+                let inner_ty = self.map.get(e.id);
+                subst.unify(ty, inner_ty)
+            }
         }
     }
 

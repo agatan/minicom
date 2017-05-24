@@ -129,6 +129,11 @@ impl<'a> VM<'a> {
                     _ => panic!("typed expression should be always valid"),
                 }
             }
+            Print => {
+                let v = self.stack.pop();
+                println!("{:?}", v);
+                self.stack.push(v);
+            }
         }
     }
 

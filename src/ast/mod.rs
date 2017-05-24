@@ -63,6 +63,8 @@ pub enum ExprKind {
     Mul(Box<Expr>, Box<Expr>),
     Div(Box<Expr>, Box<Expr>),
     Parens(Box<Expr>),
+    // FIXME(agatan): temporary builtin command
+    Print(Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
