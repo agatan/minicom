@@ -24,6 +24,10 @@ impl<T> TypeMap<T> {
         self.table.insert(id, v);
     }
 
+    pub fn get<N: Node>(&self, node: &N) -> &T {
+        self.table.get(&node.get_id()).expect("all ast node should be define in type map")
+    }
+
     pub fn iter(&self) -> Iter<NodeId, T> {
         self.table.iter()
     }

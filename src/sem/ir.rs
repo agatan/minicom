@@ -10,10 +10,14 @@ pub enum Type {
 pub enum ExprKind {
     Int(i64),
     Float(f64),
-    Add(Box<Expr>, Box<Expr>),
-    Sub(Box<Expr>, Box<Expr>),
-    Mul(Box<Expr>, Box<Expr>),
-    Div(Box<Expr>, Box<Expr>),
+    AddInt(Box<Expr>, Box<Expr>),
+    SubInt(Box<Expr>, Box<Expr>),
+    MulInt(Box<Expr>, Box<Expr>),
+    DivInt(Box<Expr>, Box<Expr>),
+    AddFloat(Box<Expr>, Box<Expr>),
+    SubFloat(Box<Expr>, Box<Expr>),
+    MulFloat(Box<Expr>, Box<Expr>),
+    DivFloat(Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
