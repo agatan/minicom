@@ -2,7 +2,7 @@ pub mod ir;
 mod typing;
 
 use self::ir::{Expr, ExprKind, Type};
-use ast::{NodeId, Expr as AstExpr, ExprKind as AstExprKind};
+use ast::{NodeId, Node, Expr as AstExpr, ExprKind as AstExprKind};
 pub use self::typing::TypeMap;
 
 error_chain! {
@@ -23,20 +23,25 @@ error_chain! {
     }
 }
 
-pub fn type_check(expr: &AstExpr) -> Result<TypeMap<Type>> {
+pub fn type_check(nodes: &[Node]) -> Result<TypeMap<Type>> {
     let mut ctx = typing::Context::new();
     let mut subst = typing::Substitution::new();
-    ctx.forward_expr(&mut subst, expr)?;
+    for node in nodes {
+        match *node {
+            Node::Expr(ref e) => ctx.forward_expr(&mut subst, e)?,
+            Node::Stmt(_) => unimplemented!(),
+        }
+    }
     ctx.determine_types(&subst)
 }
 
-pub fn transform(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
+fn transform_expr(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
     match expr.kind {
         AstExprKind::Int(n) => Ok(Expr::new(ExprKind::Int(n), Type::Int)),
         AstExprKind::Float(n) => Ok(Expr::new(ExprKind::Float(n), Type::Float)),
         AstExprKind::Add(ref l, ref r) => {
-            let l = transform(l, typemap)?;
-            let r = transform(r, typemap)?;
+            let l = transform_expr(l, typemap)?;
+            let r = transform_expr(r, typemap)?;
             let ty = typemap.get(expr.id);
             match ty {
                 Type::Int => Ok(Expr::new(ExprKind::AddInt(Box::new(l), Box::new(r)), Type::Int)),
@@ -46,8 +51,8 @@ pub fn transform(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
             }
         }
         AstExprKind::Sub(ref l, ref r) => {
-            let l = transform(l, typemap)?;
-            let r = transform(r, typemap)?;
+            let l = transform_expr(l, typemap)?;
+            let r = transform_expr(r, typemap)?;
             let ty = typemap.get(expr.id);
             match ty {
                 Type::Int => Ok(Expr::new(ExprKind::SubInt(Box::new(l), Box::new(r)), Type::Int)),
@@ -57,8 +62,8 @@ pub fn transform(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
             }
         }
         AstExprKind::Mul(ref l, ref r) => {
-            let l = transform(l, typemap)?;
-            let r = transform(r, typemap)?;
+            let l = transform_expr(l, typemap)?;
+            let r = transform_expr(r, typemap)?;
             let ty = typemap.get(expr.id);
             match ty {
                 Type::Int => Ok(Expr::new(ExprKind::MulInt(Box::new(l), Box::new(r)), Type::Int)),
@@ -68,8 +73,8 @@ pub fn transform(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
             }
         }
         AstExprKind::Div(ref l, ref r) => {
-            let l = transform(l, typemap)?;
-            let r = transform(r, typemap)?;
+            let l = transform_expr(l, typemap)?;
+            let r = transform_expr(r, typemap)?;
             let ty = typemap.get(expr.id);
             match ty {
                 Type::Int => Ok(Expr::new(ExprKind::DivInt(Box::new(l), Box::new(r)), Type::Int)),
@@ -78,11 +83,22 @@ pub fn transform(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
                 }
             }
         }
-        AstExprKind::Parens(ref e) => transform(e, typemap),
+        AstExprKind::Parens(ref e) => transform_expr(e, typemap),
         AstExprKind::Print(ref e) => {
-            let e = transform(e, typemap)?;
+            let e = transform_expr(e, typemap)?;
             let ty = e.typ.clone();
             Ok(Expr::new(ExprKind::Print(Box::new(e)), ty))
         }
     }
+}
+
+pub fn transform(nodes: &[Node], typemap: &TypeMap<Type>) -> Result<Vec<Expr>> {
+    let mut result = Vec::with_capacity(nodes.len());
+    for node in nodes {
+        match *node {
+            Node::Expr(ref e) => result.push(transform_expr(e, typemap)?),
+            Node::Stmt(_) => unimplemented!(),
+        }
+    }
+    Ok(result)
 }
