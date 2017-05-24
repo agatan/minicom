@@ -6,7 +6,7 @@ use combine::char::{spaces, alpha_num, letter, string};
 use combine::combinator::{EnvParser, try};
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
-use ast::{Expr, ExprKind, NodeId, Type};
+use ast::{Expr, ExprKind, NodeId, Type, TypeKind};
 
 type LanguageParser<'input: 'parser, 'parser, I, T> = EnvParser<&'parser ParserEnv<'input, I>,
                                                                 I,
@@ -50,7 +50,11 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_integer(&self, input: I) -> ParseResult<Expr, I> {
         self.env
             .lex(self.env.integer_())
-            .map(|n| Expr::with_typ(self.new_node_id(), ExprKind::Int(n), Type::int()))
+            .map(|n| {
+                Expr::with_typ(self.new_node_id(),
+                               ExprKind::Int(n),
+                               Type::new(TypeKind::Int))
+            })
             .parse_stream(input)
     }
 
@@ -61,7 +65,11 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_float(&self, input: I) -> ParseResult<Expr, I> {
         self.env
             .lex(self.env.float_())
-            .map(|n| Expr::with_typ(self.new_node_id(), ExprKind::Float(n), Type::float()))
+            .map(|n| {
+                Expr::with_typ(self.new_node_id(),
+                               ExprKind::Float(n),
+                               Type::new(TypeKind::Float))
+            })
             .parse_stream(input)
     }
 

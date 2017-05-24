@@ -1,8 +1,5 @@
 use std::convert::From;
 
-mod types;
-pub use self::types::*;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId(u32);
 
@@ -54,7 +51,7 @@ impl Expr {
         Expr {
             id: id,
             kind: kind,
-            typ: Type::hole(),
+            typ: Type::new(TypeKind::Hole),
         }
     }
 
@@ -64,5 +61,23 @@ impl Expr {
             kind: kind,
             typ: typ,
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TypeKind {
+    Int,
+    Float,
+    Hole,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Type {
+    pub kind: TypeKind,
+}
+
+impl Type {
+    pub fn new(kind: TypeKind) -> Self {
+        Type { kind: kind }
     }
 }
