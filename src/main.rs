@@ -26,15 +26,20 @@ fn main() {
         }
         Some(input) => input,
     };
-    let expr = match parse::parse_expression(&input) {
-        Ok(expr) => expr,
+    let node = match parse::parse_toplevel_node(&input) {
+        Ok(node) => node,
         Err(err) => {
             write!(&mut std::io::stderr(), "{}", err).unwrap();
             ::std::process::exit(1);
         }
     };
 
-    debug!("expression: {:?}", expr);
+    debug!("parsed: {:?}", node);
+
+    let expr = match node {
+        ast::Node::Expr(e) => e,
+        _ => unimplemented!(),
+    };
 
     let typemap = sem::type_check(&expr).unwrap();
     debug!("typemap: {:?}", typemap);
