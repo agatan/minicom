@@ -43,7 +43,6 @@ pub enum ExprKind {
 pub struct Expr {
     pub id: NodeId,
     pub kind: ExprKind,
-    pub typ: Type,
 }
 
 impl Expr {
@@ -51,15 +50,6 @@ impl Expr {
         Expr {
             id: id,
             kind: kind,
-            typ: Type::new(TypeKind::Hole),
-        }
-    }
-
-    pub fn with_typ(id: NodeId, kind: ExprKind, typ: Type) -> Self {
-        Expr {
-            id: id,
-            kind: kind,
-            typ: typ,
         }
     }
 }

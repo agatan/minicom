@@ -11,7 +11,7 @@ pub struct TypeMap<T> {
     table: HashMap<NodeId, T>,
 }
 
-impl<T> TypeMap<T> {
+impl<T: Clone> TypeMap<T> {
     pub fn new() -> Self {
         TypeMap { table: HashMap::new() }
     }
@@ -20,8 +20,8 @@ impl<T> TypeMap<T> {
         self.table.insert(id, v);
     }
 
-    pub fn get(&self, id: NodeId) -> &T {
-        self.table.get(&id).expect("all ast node should be define in type map")
+    pub fn get(&self, id: NodeId) -> T {
+        self.table.get(&id).cloned().expect("all ast node should be define in type map")
     }
 
     pub fn iter(&self) -> Iter<NodeId, T> {
@@ -135,7 +135,7 @@ impl Context {
     }
 
     pub fn forward_expr(&mut self, subst: &mut Substitution, e: &Expr) -> Result<()> {
-        let ty = self.transform_type(subst, &e.typ);
+        let ty = TypeOrVar::from(subst.new_var());
         self.map.insert(e.id, ty.clone());
         match e.kind {
             ExprKind::Int(_) => subst.unify(ty, Type::Int.into()),
@@ -146,15 +146,15 @@ impl Context {
             ExprKind::Div(ref l, ref r) => {
                 self.forward_expr(subst, l)?;
                 self.forward_expr(subst, r)?;
-                let lty = self.transform_type(subst, &l.typ);
-                let rty = self.transform_type(subst, &r.typ);
+                let lty = self.map.get(l.id);
+                let rty = self.map.get(r.id);
                 subst.unify(lty.clone(), rty)?;
                 subst.unify(ty, lty)
             }
             ExprKind::Parens(ref e) => {
-                let inner_ty = self.transform_type(subst, &e.typ);
-                subst.unify(ty, inner_ty)?;
-                self.forward_expr(subst, e)
+                self.forward_expr(subst, e)?;
+                let inner_ty = self.map.get(e.id);
+                subst.unify(ty, inner_ty)
             }
         }
     }

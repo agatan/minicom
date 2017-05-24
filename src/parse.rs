@@ -50,11 +50,7 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_integer(&self, input: I) -> ParseResult<Expr, I> {
         self.env
             .lex(self.env.integer_())
-            .map(|n| {
-                Expr::with_typ(self.new_node_id(),
-                               ExprKind::Int(n),
-                               Type::new(TypeKind::Int))
-            })
+            .map(|n| Expr::new(self.new_node_id(), ExprKind::Int(n)))
             .parse_stream(input)
     }
 
@@ -65,11 +61,7 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_float(&self, input: I) -> ParseResult<Expr, I> {
         self.env
             .lex(self.env.float_())
-            .map(|n| {
-                Expr::with_typ(self.new_node_id(),
-                               ExprKind::Float(n),
-                               Type::new(TypeKind::Float))
-            })
+            .map(|n| Expr::new(self.new_node_id(), ExprKind::Float(n)))
             .parse_stream(input)
     }
 
@@ -80,10 +72,7 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_parens_expr(&self, input: I) -> ParseResult<Expr, I> {
         self.env
             .lex(self.env.parens(self.expression()))
-            .map(|e| {
-                let typ = e.typ.clone();
-                Expr::with_typ(self.new_node_id(), ExprKind::Parens(Box::new(e)), typ)
-            })
+            .map(|e| Expr::new(self.new_node_id(), ExprKind::Parens(Box::new(e))))
             .parse_stream(input)
     }
 

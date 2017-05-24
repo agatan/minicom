@@ -38,7 +38,7 @@ pub fn transform(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
             let l = transform(l, typemap)?;
             let r = transform(r, typemap)?;
             let ty = typemap.get(expr.id);
-            match *ty {
+            match ty {
                 Type::Int => Ok(Expr::new(ExprKind::AddInt(Box::new(l), Box::new(r)), Type::Int)),
                 Type::Float => {
                     Ok(Expr::new(ExprKind::AddFloat(Box::new(l), Box::new(r)), Type::Float))
@@ -49,7 +49,7 @@ pub fn transform(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
             let l = transform(l, typemap)?;
             let r = transform(r, typemap)?;
             let ty = typemap.get(expr.id);
-            match *ty {
+            match ty {
                 Type::Int => Ok(Expr::new(ExprKind::SubInt(Box::new(l), Box::new(r)), Type::Int)),
                 Type::Float => {
                     Ok(Expr::new(ExprKind::SubFloat(Box::new(l), Box::new(r)), Type::Float))
@@ -60,7 +60,7 @@ pub fn transform(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
             let l = transform(l, typemap)?;
             let r = transform(r, typemap)?;
             let ty = typemap.get(expr.id);
-            match *ty {
+            match ty {
                 Type::Int => Ok(Expr::new(ExprKind::MulInt(Box::new(l), Box::new(r)), Type::Int)),
                 Type::Float => {
                     Ok(Expr::new(ExprKind::MulFloat(Box::new(l), Box::new(r)), Type::Float))
@@ -71,7 +71,7 @@ pub fn transform(expr: &AstExpr, typemap: &TypeMap<Type>) -> Result<Expr> {
             let l = transform(l, typemap)?;
             let r = transform(r, typemap)?;
             let ty = typemap.get(expr.id);
-            match *ty {
+            match ty {
                 Type::Int => Ok(Expr::new(ExprKind::DivInt(Box::new(l), Box::new(r)), Type::Int)),
                 Type::Float => {
                     Ok(Expr::new(ExprKind::DivFloat(Box::new(l), Box::new(r)), Type::Float))
