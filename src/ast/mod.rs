@@ -10,10 +10,6 @@ impl NodeId {
     pub fn new(id: u32) -> Self {
         NodeId(id)
     }
-
-    pub fn to_u32(self) -> u32 {
-        self.0
-    }
 }
 
 pub trait Node {

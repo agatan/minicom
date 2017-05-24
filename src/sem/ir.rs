@@ -1,5 +1,3 @@
-use std::convert::From;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,

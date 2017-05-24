@@ -24,10 +24,6 @@ impl Type {
     pub fn hole() -> Self {
         TypeKind::Hole.into()
     }
-
-    pub fn is(&self, kind: &TypeKind) -> bool {
-        self.kind == *kind
-    }
 }
 
 impl From<TypeKind> for Type {

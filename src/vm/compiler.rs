@@ -1,10 +1,9 @@
 use super::instr::Instruction;
 
-use sem::ir::{Expr, ExprKind, Type};
+use sem::ir::{Expr, ExprKind};
 
 pub fn compile_expression(expr: &Expr) -> Vec<Instruction> {
-    let Expr { ref kind, ref typ } = *expr;
-    match *kind {
+    match expr.kind {
         ExprKind::Int(n) => vec![Instruction::PushInt(n)],
         ExprKind::Float(n) => vec![Instruction::PushFloat(n)],
         ExprKind::AddInt(ref l, ref r) => {
