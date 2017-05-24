@@ -34,10 +34,10 @@ fn main() {
         }
     };
 
-    println!("expression: {:?}", expr);
+    debug!("expression: {:?}", expr);
 
     let typemap = sem::type_check(&expr).unwrap();
-    println!("typemap: {:?}", typemap);
+    debug!("typemap: {:?}", typemap);
 
     let checked = match sem::transform(&expr, &typemap) {
         Ok(checked) => checked,
@@ -46,10 +46,10 @@ fn main() {
             ::std::process::exit(1);
         }
     };
-    println!("checked: {:?}", checked);
+    debug!("checked: {:?}", checked);
 
     let instrs = vm::compiler::compile_expression(&checked);
-    println!("compiled: {:?}", instrs);
+    debug!("compiled: {:?}", instrs);
 
     let v = vm::eval_expression(&checked);
     println!("evaluated: {:?}", v);
