@@ -12,12 +12,14 @@ impl NodeId {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Node {
     Expr(Expr),
+    Stmt(Stmt),
 }
 
 impl Node {
     pub fn get_id(&self) -> NodeId {
         match *self {
             Node::Expr(ref e) => e.id,
+            Node::Stmt(ref s) => s.id,
         }
     }
 }
@@ -26,6 +28,30 @@ impl From<Expr> for Node {
     fn from(e: Expr) -> Node {
         Node::Expr(e)
     }
+}
+
+impl From<Stmt> for Node {
+    fn from(e: Stmt) -> Node {
+        Node::Stmt(e)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum StmtKind {
+    Let(Box<Let>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Let {
+    pub name: String,
+    pub typ: Option<Type>,
+    pub value: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Stmt {
+    pub id: NodeId,
+    pub kind: StmtKind,
 }
 
 #[derive(Debug, Clone, PartialEq)]
