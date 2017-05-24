@@ -15,3 +15,7 @@ impl NodeId {
         self.0
     }
 }
+
+pub trait Node {
+    fn get_id(&self) -> NodeId;
+}

@@ -1,5 +1,5 @@
 use ast::types::*;
-use ast::NodeId;
+use ast::{NodeId, Node};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
@@ -34,5 +34,11 @@ impl Expr {
             kind: kind,
             typ: typ,
         }
+    }
+}
+
+impl Node for Expr {
+    fn get_id(&self) -> NodeId {
+        self.id
     }
 }

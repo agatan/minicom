@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::convert::From;
 
 use sem::{ErrorKind, Result};
-use ast::{NodeId, Expr, ExprKind, Type as AstType, TypeKind};
+use ast::{NodeId, Node, Expr, ExprKind, Type as AstType, TypeKind};
 
 #[derive(Debug)]
 pub struct TypeMap<T> {
@@ -14,8 +14,8 @@ impl<T> TypeMap<T> {
         TypeMap { table: HashMap::new() }
     }
 
-    pub fn insert(&mut self, id: NodeId, v: T) {
-        self.table.insert(id, v);
+    pub fn insert<N: Node>(&mut self, node: &N, v: T) {
+        self.table.insert(node.get_id(), v);
     }
 }
 
@@ -150,7 +150,7 @@ impl Context {
 
     pub fn forward_expr(&mut self, subst: &mut Substitution, e: &Expr) -> Result<()> {
         let ty = self.transform_type(subst, &e.typ);
-        self.map.insert(e.id, ty.clone());
+        self.map.insert(e, ty.clone());
         match e.kind {
             ExprKind::Int(_) => subst.unify(ty, Type::Int.into()),
             ExprKind::Float(_) => subst.unify(ty, Type::Float.into()),
