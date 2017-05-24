@@ -26,7 +26,7 @@ fn main() {
         }
         Some(input) => input,
     };
-    let node = match parse::parse_toplevel_node(&input) {
+    let node = match parse::parse(&input) {
         Ok(node) => node,
         Err(err) => {
             write!(&mut std::io::stderr(), "{}", err).unwrap();
@@ -36,15 +36,15 @@ fn main() {
 
     debug!("parsed: {:?}", node);
 
-    let expr = match node {
-        ast::Node::Expr(e) => e,
+    let expr = match node[0] {
+        ast::Node::Expr(ref e) => e,
         _ => unimplemented!(),
     };
 
-    let typemap = sem::type_check(&expr).unwrap();
+    let typemap = sem::type_check(expr).unwrap();
     debug!("typemap: {:?}", typemap);
 
-    let checked = match sem::transform(&expr, &typemap) {
+    let checked = match sem::transform(expr, &typemap) {
         Ok(checked) => checked,
         Err(err) => {
             writeln!(&mut std::io::stderr(), "{}", err).unwrap();

@@ -3,7 +3,7 @@ use std::cell::Cell;
 use combine::{State, Parser, ParseResult, Stream, unexpected, env_parser, eof};
 use combine::primitives::ParseError;
 use combine::char::{spaces, alpha_num, letter, string, char};
-use combine::combinator::{EnvParser, try};
+use combine::combinator::{EnvParser, try, sep_end_by};
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
 use ast::{NodeId, Node, Stmt, StmtKind, Let, Expr, ExprKind, Type, TypeKind};
@@ -55,6 +55,14 @@ impl<'input, I> ParserEnv<'input, I>
 
     pub fn toplevel_node<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_toplevel_node)
+    }
+
+    fn parse_toplevel_code(&self, input: I) -> ParseResult<Vec<Node>, I> {
+        sep_end_by(self.toplevel_node(), self.env.lex(char(';'))).parse_stream(input)
+    }
+
+    pub fn toplevel_code<'p>(&'p self) -> LanguageParser<'input, 'p, I, Vec<Node>> {
+        env_parser(self, ParserEnv::parse_toplevel_code)
     }
 
     // statements
@@ -190,6 +198,14 @@ pub fn parse_expression(input: &str) -> Result<Expr, ParseError<State<&str>>> {
 pub fn parse_toplevel_node(input: &str) -> Result<Node, ParseError<State<&str>>> {
     let env = ParserEnv::new();
     match spaces().with(env.toplevel_node()).skip(eof()).parse_stream(State::new(input)) {
+        Ok((node, _)) => Ok(node),
+        Err(err) => Err(err.into_inner()),
+    }
+}
+
+pub fn parse(input: &str) -> Result<Vec<Node>, ParseError<State<&str>>> {
+    let env = ParserEnv::new();
+    match spaces().with(env.toplevel_code()).skip(eof()).parse_stream(State::new(input)) {
         Ok((node, _)) => Ok(node),
         Err(err) => Err(err.into_inner()),
     }
