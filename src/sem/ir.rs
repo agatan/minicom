@@ -4,24 +4,6 @@ use std::convert::From;
 pub enum Type {
     Int,
     Float,
-    Variable(TypeVariable),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TypeVariable {
-    pub id: u32,
-}
-
-impl TypeVariable {
-    pub fn new(id: u32) -> Self {
-        TypeVariable { id: id }
-    }
-}
-
-impl From<TypeVariable> for Type {
-    fn from(x: TypeVariable) -> Type {
-        Type::Variable(x)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,11 +1,8 @@
 pub mod ir;
-pub mod typing;
 pub mod typing2;
 
-pub use self::typing::transform;
-
-use self::ir::{Type, TypeVariable};
-use ast::Expr;
+use self::ir::Type;
+use ast::NodeId;
 
 error_chain! {
     types {
@@ -18,9 +15,9 @@ error_chain! {
             display("cannot unify types: {:?} and {:?}", t1, t2)
         }
 
-        NonDeterministicTypeVariable(x: TypeVariable) {
-            description("non deterministic type variable")
-            display("cannot determine a type variable {:?}", x)
+        CannotInfer(x: NodeId) {
+            description("cannot infer type")
+            display("cannot infer type: {:?}", x)
         }
     }
 }

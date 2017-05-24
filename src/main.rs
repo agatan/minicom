@@ -39,21 +39,22 @@ fn main() {
     let mut ctx = sem::typing2::Context::new();
     let mut subst = sem::typing2::Substitution::new();
     ctx.forward_expr(&mut subst, &expr).unwrap();
+    println!("subst: {:?}", subst);
     let typemap = ctx.determine_types(&subst).unwrap();
     println!("typemap: {:?}", typemap);
 
-    let checked = match sem::transform(expr) {
-        Ok(checked) => checked,
-        Err(err) => {
-            writeln!(&mut std::io::stderr(), "{}", err).unwrap();
-            ::std::process::exit(1);
-        }
-    };
-    println!("checked: {:?}", checked);
-
-    let instrs = vm::compiler::compile_expression(&checked);
-    println!("compiled: {:?}", instrs);
-
-    let v = vm::eval_expression(&checked);
-    println!("evaluated: {:?}", v);
+    // let checked = match sem::transform(expr) {
+    //     Ok(checked) => checked,
+    //     Err(err) => {
+    //         writeln!(&mut std::io::stderr(), "{}", err).unwrap();
+    //         ::std::process::exit(1);
+    //     }
+    // };
+    // println!("checked: {:?}", checked);
+    //
+    // let instrs = vm::compiler::compile_expression(&checked);
+    // println!("compiled: {:?}", instrs);
+    //
+    // let v = vm::eval_expression(&checked);
+    // println!("evaluated: {:?}", v);
 }

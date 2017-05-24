@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::collections::hash_map::Iter;
 use std::convert::From;
 
-use sem::{ErrorKind, Result};
+use sem::{Error, ErrorKind, Result};
+use sem::ir::Type;
 use ast::{NodeId, Node, Expr, ExprKind, Type as AstType, TypeKind};
 
 #[derive(Debug)]
@@ -30,12 +31,6 @@ impl<T> TypeMap<T> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeVariable(u32);
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Type {
-    Int,
-    Float,
-}
 
 #[derive(Debug, Clone)]
 enum TypeOrVar {
@@ -79,12 +74,8 @@ impl Substitution {
         self.table.insert(x, ty);
     }
 
-    fn lookup(&self, x: TypeVariable) -> Result<TypeOrVar> {
-        if let Some(ty) = self.table.get(&x) {
-            return Ok(ty.clone());
-        }
-        unimplemented!()
-        // Err(ErrorKind::NonDeterministicTypeVariable(x).into())
+    fn lookup(&self, x: TypeVariable) -> Option<TypeOrVar> {
+        self.table.get(&x).cloned()
     }
 
     fn apply(&self, ty: TypeOrVar) -> TypeOrVar {
@@ -92,16 +83,16 @@ impl Substitution {
             x @ TypeOrVar::Type(_) => x,
             TypeOrVar::Variable(x) => {
                 match self.lookup(x) {
-                    Ok(ty) => self.apply(ty),
-                    Err(_) => TypeOrVar::Variable(x),
+                    Some(ty) => self.apply(ty),
+                    None => TypeOrVar::Variable(x),
                 }
             }
         }
     }
 
-    fn deref(&self, ty: TypeOrVar) -> Result<Type> {
+    fn deref(&self, ty: TypeOrVar) -> Option<Type> {
         match ty {
-            TypeOrVar::Type(ty) => Ok(ty),
+            TypeOrVar::Type(ty) => Some(ty),
             TypeOrVar::Variable(x) => self.lookup(x).and_then(|ty| self.deref(ty)),
         }
     }
@@ -153,9 +144,12 @@ impl Context {
             ExprKind::Sub(ref l, ref r) |
             ExprKind::Mul(ref l, ref r) |
             ExprKind::Div(ref l, ref r) => {
+                self.forward_expr(subst, l)?;
+                self.forward_expr(subst, r)?;
                 let lty = self.transform_type(subst, &l.typ);
                 let rty = self.transform_type(subst, &r.typ);
-                subst.unify(lty, rty)
+                subst.unify(lty.clone(), rty)?;
+                subst.unify(ty, lty)
             }
             ExprKind::Parens(ref e) => {
                 let inner_ty = self.transform_type(subst, &e.typ);
@@ -168,7 +162,7 @@ impl Context {
     pub fn determine_types(&self, subst: &Substitution) -> Result<TypeMap<Type>> {
         let mut newmap = TypeMap::new();
         for (&id, typ) in self.map.iter() {
-            let newtyp = subst.deref(typ.clone())?;
+            let newtyp = subst.deref(typ.clone()).ok_or(Error::from(ErrorKind::CannotInfer(id)))?;
             newmap.insert(id, newtyp);
         }
         Ok(newmap)
