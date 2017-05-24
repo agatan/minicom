@@ -47,26 +47,16 @@ impl From<TypeVariable> for TypeOrVar {
 }
 
 #[derive(Debug)]
-pub struct Substitution<'a> {
-    parent: Option<&'a Substitution<'a>>,
+pub struct Substitution {
     table: HashMap<TypeVariable, TypeOrVar>,
     next_id: u32,
 }
 
-impl<'a> Substitution<'a> {
+impl Substitution {
     pub fn new() -> Self {
         Substitution {
-            parent: None,
             table: HashMap::new(),
             next_id: 0,
-        }
-    }
-
-    fn scoped(&'a self) -> Substitution<'a> {
-        Substitution {
-            parent: Some(self),
-            table: HashMap::new(),
-            next_id: self.next_id,
         }
     }
 
@@ -84,12 +74,8 @@ impl<'a> Substitution<'a> {
         if let Some(ty) = self.table.get(&x) {
             return Ok(ty.clone());
         }
-        if let Some(parent) = self.parent {
-            parent.lookup(x)
-        } else {
-            unimplemented!()
-            // Err(ErrorKind::NonDeterministicTypeVariable(x).into())
-        }
+        unimplemented!()
+        // Err(ErrorKind::NonDeterministicTypeVariable(x).into())
     }
 
     fn apply(&self, ty: TypeOrVar) -> TypeOrVar {
