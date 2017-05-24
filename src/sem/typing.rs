@@ -4,7 +4,7 @@ use std::convert::From;
 
 use sem::{Error, ErrorKind, Result};
 use sem::ir::Type;
-use ast::{NodeId, Node, Expr, ExprKind, Type as AstType, TypeKind};
+use ast::{NodeId, Expr, ExprKind, Type as AstType, TypeKind};
 
 #[derive(Debug)]
 pub struct TypeMap<T> {
@@ -16,16 +16,12 @@ impl<T> TypeMap<T> {
         TypeMap { table: HashMap::new() }
     }
 
-    pub fn insert_node<N: Node>(&mut self, node: &N, v: T) {
-        self.insert(node.get_id(), v);
-    }
-
     pub fn insert(&mut self, id: NodeId, v: T) {
         self.table.insert(id, v);
     }
 
-    pub fn get<N: Node>(&self, node: &N) -> &T {
-        self.table.get(&node.get_id()).expect("all ast node should be define in type map")
+    pub fn get(&self, id: NodeId) -> &T {
+        self.table.get(&id).expect("all ast node should be define in type map")
     }
 
     pub fn iter(&self) -> Iter<NodeId, T> {
@@ -140,7 +136,7 @@ impl Context {
 
     pub fn forward_expr(&mut self, subst: &mut Substitution, e: &Expr) -> Result<()> {
         let ty = self.transform_type(subst, &e.typ);
-        self.map.insert_node(e, ty.clone());
+        self.map.insert(e.id, ty.clone());
         match e.kind {
             ExprKind::Int(_) => subst.unify(ty, Type::Int.into()),
             ExprKind::Float(_) => subst.unify(ty, Type::Float.into()),

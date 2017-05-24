@@ -1,3 +1,5 @@
+use std::convert::From;
+
 mod types;
 pub use self::types::*;
 
@@ -10,8 +12,23 @@ impl NodeId {
     }
 }
 
-pub trait Node {
-    fn get_id(&self) -> NodeId;
+#[derive(Debug, Clone, PartialEq)]
+pub enum Node {
+    Expr(Expr),
+}
+
+impl Node {
+    pub fn get_id(&self) -> NodeId {
+        match *self {
+            Node::Expr(ref e) => e.id,
+        }
+    }
+}
+
+impl From<Expr> for Node {
+    fn from(e: Expr) -> Node {
+        Node::Expr(e)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -47,11 +64,5 @@ impl Expr {
             kind: kind,
             typ: typ,
         }
-    }
-}
-
-impl Node for Expr {
-    fn get_id(&self) -> NodeId {
-        self.id
     }
 }
