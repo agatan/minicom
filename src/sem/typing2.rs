@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Iter;
 use std::convert::From;
 
 use sem::{ErrorKind, Result};
@@ -14,13 +15,21 @@ impl<T> TypeMap<T> {
         TypeMap { table: HashMap::new() }
     }
 
-    pub fn insert<N: Node>(&mut self, node: &N, v: T) {
-        self.table.insert(node.get_id(), v);
+    pub fn insert_node<N: Node>(&mut self, node: &N, v: T) {
+        self.insert(node.get_id(), v);
+    }
+
+    pub fn insert(&mut self, id: NodeId, v: T) {
+        self.table.insert(id, v);
+    }
+
+    pub fn iter(&self) -> Iter<NodeId, T> {
+        self.table.iter()
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct TypeVariable(u32);
+pub struct TypeVariable(u32);
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
@@ -136,7 +145,7 @@ impl Context {
 
     pub fn forward_expr(&mut self, subst: &mut Substitution, e: &Expr) -> Result<()> {
         let ty = self.transform_type(subst, &e.typ);
-        self.map.insert(e, ty.clone());
+        self.map.insert_node(e, ty.clone());
         match e.kind {
             ExprKind::Int(_) => subst.unify(ty, Type::Int.into()),
             ExprKind::Float(_) => subst.unify(ty, Type::Float.into()),
@@ -154,5 +163,14 @@ impl Context {
                 self.forward_expr(subst, e)
             }
         }
+    }
+
+    pub fn determine_types(&self, subst: &Substitution) -> Result<TypeMap<Type>> {
+        let mut newmap = TypeMap::new();
+        for (&id, typ) in self.map.iter() {
+            let newtyp = subst.deref(typ.clone())?;
+            newmap.insert(id, newtyp);
+        }
+        Ok(newmap)
     }
 }

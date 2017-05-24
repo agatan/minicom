@@ -39,6 +39,8 @@ fn main() {
     let mut ctx = sem::typing2::Context::new();
     let mut subst = sem::typing2::Substitution::new();
     ctx.forward_expr(&mut subst, &expr).unwrap();
+    let typemap = ctx.determine_types(&subst).unwrap();
+    println!("typemap: {:?}", typemap);
 
     let checked = match sem::transform(expr) {
         Ok(checked) => checked,
