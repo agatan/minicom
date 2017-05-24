@@ -27,10 +27,7 @@ pub fn type_check(nodes: &[Node]) -> Result<TypeMap<Type>> {
     let mut ctx = typing::Context::new();
     let mut subst = typing::Substitution::new();
     for node in nodes {
-        match *node {
-            Node::Expr(ref e) => ctx.forward_expr(&mut subst, e)?,
-            Node::Stmt(_) => unimplemented!(),
-        }
+        ctx.forward(&mut subst, node)?;
     }
     ctx.determine_types(&subst)
 }

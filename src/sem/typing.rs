@@ -4,7 +4,7 @@ use std::convert::From;
 
 use sem::{Error, ErrorKind, Result};
 use sem::ir::Type;
-use ast::{NodeId, Expr, ExprKind, Type as AstType, TypeKind};
+use ast::{NodeId, Node, Expr, ExprKind, Type as AstType, TypeKind, Stmt, StmtKind, Let};
 
 #[derive(Debug)]
 pub struct TypeMap<T> {
@@ -119,11 +119,15 @@ impl Substitution {
 #[derive(Debug)]
 pub struct Context {
     map: TypeMap<TypeOrVar>,
+    varmap: HashMap<String, TypeOrVar>,
 }
 
 impl Context {
     pub fn new() -> Self {
-        Context { map: TypeMap::new() }
+        Context {
+            map: TypeMap::new(),
+            varmap: HashMap::new(),
+        }
     }
 
     fn transform_type(&mut self, subst: &mut Substitution, ty: &AstType) -> TypeOrVar {
@@ -161,6 +165,23 @@ impl Context {
                 let inner_ty = self.map.get(e.id);
                 subst.unify(ty, inner_ty)
             }
+        }
+    }
+
+    pub fn forward_stmt(&mut self, subst: &mut Substitution, s: &Stmt) -> Result<()> {
+        match s.kind {
+            StmtKind::Let(box Let { ref name, ref value, .. }) => {
+                self.forward_expr(subst, value)?;
+                self.varmap.insert(name.clone(), self.map.get(value.id));
+                Ok(())
+            }
+        }
+    }
+
+    pub fn forward(&mut self, subst: &mut Substitution, node: &Node) -> Result<()> {
+        match *node {
+            Node::Expr(ref e) => self.forward_expr(subst, e),
+            Node::Stmt(ref s) => self.forward_stmt(subst, s),
         }
     }
 
