@@ -2,7 +2,17 @@ use super::instr::Instruction;
 
 use sem::ir::{Expr, ExprKind};
 
-pub fn compile_expression(expr: &Expr) -> Vec<Instruction> {
+pub fn compile(exprs: &[Expr]) -> Vec<Instruction> {
+    let mut result = Vec::new();
+    for expr in exprs {
+        let mut is = compile_expression(expr);
+        result.append(&mut is);
+        result.push(Instruction::Pop);
+    }
+    result
+}
+
+fn compile_expression(expr: &Expr) -> Vec<Instruction> {
     match expr.kind {
         ExprKind::Int(n) => vec![Instruction::PushInt(n)],
         ExprKind::Float(n) => vec![Instruction::PushFloat(n)],

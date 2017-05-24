@@ -33,6 +33,9 @@ impl<'a> VM<'a> {
 
     fn eval_instr(&mut self, ins: Instruction) {
         match ins {
+            Pop => {
+                self.stack.pop();
+            }
             PushInt(n) => {
                 let v = Value::Int(n);
                 self.stack.push(v);
@@ -147,16 +150,10 @@ impl<'a> VM<'a> {
             self.eval_instr(ins);
         }
     }
-
-    fn evaluated_value(mut self) -> Value {
-        assert!(self.stack.len() == 1);
-        self.stack.pop()
-    }
 }
 
-pub fn eval_expression(expr: &Expr) -> Value {
-    let instrs = compiler::compile_expression(expr);
+pub fn eval_expression(exprs: &[Expr]) {
+    let instrs = compiler::compile(exprs);
     let mut vm = VM::new(&instrs);
     vm.run();
-    vm.evaluated_value()
 }

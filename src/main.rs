@@ -49,8 +49,8 @@ fn main() {
     };
     debug!("checked: {:?}", checked);
 
-    let instrs = vm::compiler::compile_expression(&checked[0]);
+    let instrs = vm::compiler::compile(&checked);
     debug!("compiled: {:?}", instrs);
 
-    vm::eval_expression(&checked[0]);
+    vm::eval_expression(&checked);
 }
