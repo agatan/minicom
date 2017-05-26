@@ -19,11 +19,52 @@ impl Compiler {
         match node.kind {
             NodeKind::Int(n) => self.push(Instruction::PushInt(n)),
             NodeKind::Float(n) => self.push(Instruction::PushFloat(n)),
+            NodeKind::AddInt(ref l, ref r) => {
+                self.compile_node(r);
+                self.compile_node(l);
+                self.push(Instruction::AddInt);
+            }
+            NodeKind::SubInt(ref l, ref r) => {
+                self.compile_node(r);
+                self.compile_node(l);
+                self.push(Instruction::SubInt);
+            }
+            NodeKind::MulInt(ref l, ref r) => {
+                self.compile_node(r);
+                self.compile_node(l);
+                self.push(Instruction::MulInt);
+            }
+            NodeKind::DivInt(ref l, ref r) => {
+                self.compile_node(r);
+                self.compile_node(l);
+                self.push(Instruction::DivInt);
+            }
+            NodeKind::AddFloat(ref l, ref r) => {
+                self.compile_node(r);
+                self.compile_node(l);
+                self.push(Instruction::AddFloat);
+            }
+            NodeKind::SubFloat(ref l, ref r) => {
+                self.compile_node(r);
+                self.compile_node(l);
+                self.push(Instruction::SubFloat);
+            }
+            NodeKind::MulFloat(ref l, ref r) => {
+                self.compile_node(r);
+                self.compile_node(l);
+                self.push(Instruction::MulFloat);
+            }
+            NodeKind::DivFloat(ref l, ref r) => {
+                self.compile_node(r);
+                self.compile_node(l);
+                self.push(Instruction::DivFloat);
+            }
             NodeKind::Print(ref e) => {
                 self.compile_node(e);
                 self.push(Instruction::Print);
             }
-            _ => unimplemented!(),
+            NodeKind::Let(_) |
+            NodeKind::Ident(_) => unimplemented!(),
         }
     }
 
