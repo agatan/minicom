@@ -21,13 +21,13 @@ mod vm;
 
 use std::io::Write;
 use sem::Context;
-use vm::VM;
+use vm::Machine;
 
 fn main() {
     env_logger::init().unwrap();
 
     let mut ctx = Context::new();
-    let mut machine = VM::new();
+    let mut machine = Machine::new();
 
     let input = match ::std::env::args().nth(1) {
         None => {
@@ -39,7 +39,7 @@ fn main() {
     run(&mut machine, &mut ctx, &input).unwrap();
 }
 
-fn run(machine: &mut VM, ctx: &mut Context, input: &str) -> Result<(), String> {
+fn run(machine: &mut Machine, ctx: &mut Context, input: &str) -> Result<(), String> {
     let nodes = parse::parse(input).map_err(|err| format!("{}", err))?;
     let nodes = ctx.check(&nodes).map_err(|err| format!("{}", err))?;
     let instrs = compiler::compile(&nodes);
@@ -47,7 +47,7 @@ fn run(machine: &mut VM, ctx: &mut Context, input: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn repl(machine: &mut VM, ctx: &mut Context) {
+fn repl(machine: &mut Machine, ctx: &mut Context) {
     let mut rl = Editor::<()>::new();
     loop {
         let readline = rl.readline(">> ");

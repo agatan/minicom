@@ -5,15 +5,15 @@ pub use self::value::Value;
 use self::instr::Instruction;
 use self::instr::Instruction::*;
 
-pub struct VM {
+pub struct Machine {
     pc: usize,
     stack: stack::Stack,
     vars: Vec<Value>,
 }
 
-impl VM {
+impl Machine {
     pub fn new() -> Self {
-        VM {
+        Machine {
             pc: 0,
             stack: stack::Stack::new(),
             vars: Vec::new(),
