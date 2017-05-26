@@ -4,6 +4,9 @@
 extern crate combine;
 extern crate combine_language;
 #[macro_use]
+extern crate log;
+extern crate env_logger;
+#[macro_use]
 extern crate error_chain;
 
 mod ast;
@@ -17,6 +20,8 @@ use sem::Context;
 use vm::VM;
 
 fn main() {
+    env_logger::init().unwrap();
+
     let input = match ::std::env::args().nth(1) {
         None => {
             writeln!(&mut std::io::stderr(), "no input given").unwrap();
@@ -24,6 +29,7 @@ fn main() {
         }
         Some(input) => input,
     };
+
     let nodes = match parse::parse(&input) {
         Ok(nodes) => nodes,
         Err(err) => {
@@ -32,7 +38,7 @@ fn main() {
         }
     };
 
-    println!("parsed: {:?}", nodes);
+    debug!("parsed: {:?}", nodes);
 
     let mut semctx = Context::new();
     let nodes = match semctx.check(&nodes) {
@@ -43,12 +49,12 @@ fn main() {
         }
     };
 
-    println!("nodes: {:?}", nodes);
-    println!("semantic context: {:?}", semctx);
+    debug!("nodes: {:?}", nodes);
+    debug!("semantic context: {:?}", semctx);
 
     let instrs = compiler::compile(&nodes);
 
-    println!("compiled: {:?}", instrs);
+    debug!("compiled: {:?}", instrs);
 
     let mut machine = VM::new(&semctx, &instrs);
     machine.run();
