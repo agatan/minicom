@@ -2,12 +2,12 @@ use sem::ir::*;
 use vm::instr::Instruction;
 
 #[derive(Debug)]
-pub struct Compiler {
+struct Compiler {
     instrs: Vec<Instruction>,
 }
 
 impl Compiler {
-    pub fn new() -> Compiler {
+    fn new() -> Compiler {
         Compiler { instrs: Vec::new() }
     }
 
@@ -15,7 +15,7 @@ impl Compiler {
         self.instrs.push(instr)
     }
 
-    pub fn compile_node(&mut self, node: &Node) {
+    fn compile_node(&mut self, node: &Node) {
         match node.kind {
             NodeKind::Int(n) => self.push(Instruction::PushInt(n)),
             NodeKind::Float(n) => self.push(Instruction::PushFloat(n)),
@@ -27,10 +27,16 @@ impl Compiler {
         }
     }
 
-    pub fn compile(&mut self, nodes: &[Node]) {
+    fn compile(&mut self, nodes: &[Node]) {
         for node in nodes {
             self.compile_node(node);
             self.push(Instruction::Pop);
         }
     }
+}
+
+pub fn compile(nodes: &[Node]) -> Vec<Instruction> {
+    let mut c = Compiler::new();
+    c.compile(nodes);
+    c.instrs
 }

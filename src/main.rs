@@ -14,7 +14,6 @@ mod vm;
 
 use std::io::Write;
 use sem::Context;
-use compiler::Compiler;
 
 fn main() {
     let input = match ::std::env::args().nth(1) {
@@ -46,26 +45,8 @@ fn main() {
     println!("nodes: {:?}", nodes);
     println!("semantic context: {:?}", semctx);
 
-    let mut compiler = Compiler::new();
-    compiler.compile(&nodes);
+    let instrs = compiler::compile(&nodes);
 
-    println!("{:?}", compiler);
-
-    // let typemap = sem::type_check(&nodes).unwrap();
-    // debug!("typemap: {:?}", typemap);
-    //
-    //
-    // let checked = match sem::transform(&nodes, &typemap) {
-    //     Ok(checked) => checked,
-    //     Err(err) => {
-    //         writeln!(&mut std::io::stderr(), "{}", err).unwrap();
-    //         ::std::process::exit(1);
-    //     }
-    // };
-    // debug!("checked: {:?}", checked);
-    //
-    // let instrs = vm::compiler::compile(&checked);
-    // debug!("compiled: {:?}", instrs);
-    //
+    println!("compiled: {:?}", instrs);
     // vm::eval_expression(&checked);
 }
