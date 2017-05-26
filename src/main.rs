@@ -52,6 +52,9 @@ fn repl(machine: &mut Machine, ctx: &mut Context) {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
+                if line == "quit" || line == "q" || line == "exit" {
+                    break;
+                }
                 rl.add_history_entry(&line);
                 match run(machine, ctx, &line) {
                     Ok(value) => println!("{:?}", value),
