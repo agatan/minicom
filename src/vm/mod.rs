@@ -136,7 +136,11 @@ impl Machine {
             SetLocal(n) => {
                 let v = self.stack.pop();
                 debug_assert!(n as usize <= self.vars.len());
-                self.vars.push(v);
+                if self.vars.len() == n as usize {
+                    self.vars.push(v);
+                } else {
+                    self.vars[n as usize] = v;
+                }
                 self.stack.push(Value::Unit);
             }
             GetLocal(n) => {
