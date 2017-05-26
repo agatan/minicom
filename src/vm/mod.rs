@@ -5,25 +5,24 @@ pub use self::value::Value;
 use self::instr::Instruction;
 use self::instr::Instruction::*;
 
-pub struct VM<'a> {
-    instrs: &'a [Instruction],
+pub struct VM {
     pc: usize,
     stack: stack::Stack,
     vars: Vec<Value>,
 }
 
-impl<'a> VM<'a> {
-    pub fn new(instrs: &'a [Instruction]) -> Self {
+impl VM {
+    pub fn new() -> Self {
         VM {
-            instrs: instrs,
             pc: 0,
             stack: stack::Stack::new(),
             vars: Vec::new(),
         }
     }
 
-    fn fetch_instr(&mut self) -> Instruction {
-        let ins = self.instrs[self.pc];
+    fn fetch_instr(&mut self, instrs: &[Instruction]) -> Instruction {
+        let ins = instrs[self.pc];
+        debug!("instruction: {:?}", ins);
         self.pc += 1;
         ins
     }
@@ -147,13 +146,14 @@ impl<'a> VM<'a> {
         }
     }
 
-    fn is_finished(&self) -> bool {
-        self.pc == self.instrs.len()
+    fn is_finished(&self, instrs: &[Instruction]) -> bool {
+        self.pc == instrs.len()
     }
 
-    pub fn run(&mut self) {
-        while !self.is_finished() {
-            let ins = self.fetch_instr();
+    pub fn run(&mut self, instrs: &[Instruction]) {
+        self.pc = 0;
+        while !self.is_finished(instrs) {
+            let ins = self.fetch_instr(instrs);
             self.eval_instr(ins);
         }
     }
