@@ -1,7 +1,9 @@
 pub mod ir;
 mod typing;
 
-use self::ir::{Node, NodeKind, Type};
+use std::collections::HashMap;
+
+use self::ir::{Node, NodeKind, Type, Let};
 use ast::{NodeId, Node as AstNode, NodeKind as AstNodeKind};
 pub use self::typing::TypeMap;
 
@@ -26,6 +28,7 @@ error_chain! {
 #[derive(Debug)]
 pub struct Checker {
     pub typemap: TypeMap,
+    venv: HashMap<String, Type>,
 }
 
 impl Checker {
@@ -39,7 +42,10 @@ impl Checker {
     }
 
     pub fn new() -> Self {
-        Checker { typemap: TypeMap::new() }
+        Checker {
+            typemap: TypeMap::new(),
+            venv: HashMap::new(),
+        }
     }
 
     pub fn transform_node(&mut self, node: &AstNode) -> Result<Node> {
@@ -118,7 +124,18 @@ impl Checker {
                 let ty = e.typ.clone();
                 Ok(Node::new(NodeKind::Print(Box::new(e)), ty))
             }
-            AstNodeKind::Let(_) => unimplemented!(),
+            AstNodeKind::Let(ref l) => {
+                let name = l.name.clone();
+                let value = self.transform_node(&l.value)?;
+                assert!(l.typ.is_none());
+                self.venv.insert(name.clone(), value.typ.clone());
+                Ok(Node::new(NodeKind::Let(Box::new(Let {
+                                 name: name,
+                                 typ: value.typ.clone(),
+                                 value: value,
+                             })),
+                             Type::Int))
+            }
         }
     }
 }

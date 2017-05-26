@@ -17,6 +17,15 @@ pub enum NodeKind {
     MulFloat(Box<Node>, Box<Node>),
     DivFloat(Box<Node>, Box<Node>),
     Print(Box<Node>),
+
+    Let(Box<Let>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Let {
+    pub name: String,
+    pub typ: Type,
+    pub value: Node,
 }
 
 #[derive(Debug, Clone, PartialEq)]
