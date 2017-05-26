@@ -5,29 +5,29 @@ pub enum Type {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ExprKind {
+pub enum NodeKind {
     Int(i64),
     Float(f64),
-    AddInt(Box<Expr>, Box<Expr>),
-    SubInt(Box<Expr>, Box<Expr>),
-    MulInt(Box<Expr>, Box<Expr>),
-    DivInt(Box<Expr>, Box<Expr>),
-    AddFloat(Box<Expr>, Box<Expr>),
-    SubFloat(Box<Expr>, Box<Expr>),
-    MulFloat(Box<Expr>, Box<Expr>),
-    DivFloat(Box<Expr>, Box<Expr>),
-    Print(Box<Expr>),
+    AddInt(Box<Node>, Box<Node>),
+    SubInt(Box<Node>, Box<Node>),
+    MulInt(Box<Node>, Box<Node>),
+    DivInt(Box<Node>, Box<Node>),
+    AddFloat(Box<Node>, Box<Node>),
+    SubFloat(Box<Node>, Box<Node>),
+    MulFloat(Box<Node>, Box<Node>),
+    DivFloat(Box<Node>, Box<Node>),
+    Print(Box<Node>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Expr {
-    pub kind: ExprKind,
+pub struct Node {
+    pub kind: NodeKind,
     pub typ: Type,
 }
 
-impl Expr {
-    pub fn new(kind: ExprKind, typ: Type) -> Self {
-        Expr {
+impl Node {
+    pub fn new(kind: NodeKind, typ: Type) -> Self {
+        Node {
             kind: kind,
             typ: typ,
         }

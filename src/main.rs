@@ -11,10 +11,11 @@ extern crate error_chain;
 
 mod ast;
 mod parse;
-// mod sem;
+mod sem;
 // mod vm;
 
 use std::io::Write;
+use sem::Checker;
 
 fn main() {
     env_logger::init().unwrap();
@@ -35,6 +36,18 @@ fn main() {
     };
 
     println!("parsed: {:?}", nodes);
+
+    let (nodes, typemap) = match Checker::check(&nodes) {
+        Ok(nts) => nts,
+        Err(err) => {
+            write!(&mut std::io::stderr(), "{}", err).unwrap();
+            ::std::process::exit(1);
+        }
+    };
+
+    println!("typemap: {:?}", typemap);
+    println!("nodes: {:?}", nodes);
+
     // let typemap = sem::type_check(&nodes).unwrap();
     // debug!("typemap: {:?}", typemap);
     //

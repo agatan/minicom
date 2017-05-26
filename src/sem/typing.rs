@@ -1,196 +1,124 @@
 use std::collections::HashMap;
-use std::collections::hash_map::Iter;
-use std::convert::From;
 
-use sem::{Error, ErrorKind, Result};
-use sem::ir::Type;
-use ast::{NodeId, Node, Expr, ExprKind, Type as AstType, TypeKind, Stmt, StmtKind, Let};
+use sem::{ErrorKind, Result};
+use sem::ir::{Type, Node, NodeKind};
+use ast::{NodeId, Node as AstNode, NodeKind as AstNodeKind};
 
 #[derive(Debug)]
-pub struct TypeMap<T> {
-    table: HashMap<NodeId, T>,
+pub struct TypeMap {
+    table: HashMap<NodeId, Type>,
 }
 
-impl<T: Clone> TypeMap<T> {
+impl TypeMap {
     pub fn new() -> Self {
         TypeMap { table: HashMap::new() }
     }
 
-    pub fn insert(&mut self, id: NodeId, v: T) {
+    pub fn insert(&mut self, id: NodeId, v: Type) {
         self.table.insert(id, v);
     }
 
-    pub fn get(&self, id: NodeId) -> T {
+    pub fn get(&self, id: NodeId) -> Type {
         self.table.get(&id).cloned().expect("all ast node should be define in type map")
     }
-
-    pub fn iter(&self) -> Iter<NodeId, T> {
-        self.table.iter()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TypeVariable(u32);
-
-#[derive(Debug, Clone)]
-enum TypeOrVar {
-    Type(Type),
-    Variable(TypeVariable),
-}
-
-impl From<Type> for TypeOrVar {
-    fn from(t: Type) -> Self {
-        TypeOrVar::Type(t)
-    }
-}
-
-impl From<TypeVariable> for TypeOrVar {
-    fn from(x: TypeVariable) -> Self {
-        TypeOrVar::Variable(x)
-    }
 }
 
 #[derive(Debug)]
-pub struct Substitution {
-    table: HashMap<TypeVariable, TypeOrVar>,
-    next_id: u32,
+pub struct Checker {
+    pub typemap: TypeMap,
 }
 
-impl Substitution {
-    pub fn new() -> Self {
-        Substitution {
-            table: HashMap::new(),
-            next_id: 0,
+impl Checker {
+    pub fn check(nodes: &[AstNode]) -> Result<(Vec<Node>, TypeMap)> {
+        let mut chk = Self::new();
+        let mut results = Vec::with_capacity(nodes.len());
+        for node in nodes {
+            chk.transform_node(node).map(|node| results.push(node))?;
         }
+        Ok((results, chk.typemap))
     }
 
-    fn new_var(&mut self) -> TypeOrVar {
-        let ty = TypeOrVar::Variable(TypeVariable(self.next_id));
-        self.next_id += 1;
-        ty
+    pub fn new() -> Self {
+        Checker { typemap: TypeMap::new() }
     }
 
-    fn insert(&mut self, x: TypeVariable, ty: TypeOrVar) {
-        self.table.insert(x, ty);
+    pub fn transform_node(&mut self, node: &AstNode) -> Result<Node> {
+        let e = self.transform_node_(node)?;
+        self.typemap.insert(node.id, e.typ.clone());
+        Ok(e)
     }
 
-    fn lookup(&self, x: TypeVariable) -> Option<TypeOrVar> {
-        self.table.get(&x).cloned()
-    }
-
-    fn apply(&self, ty: TypeOrVar) -> TypeOrVar {
-        match ty {
-            x @ TypeOrVar::Type(_) => x,
-            TypeOrVar::Variable(x) => {
-                match self.lookup(x) {
-                    Some(ty) => self.apply(ty),
-                    None => TypeOrVar::Variable(x),
+    fn transform_node_(&mut self, node: &AstNode) -> Result<Node> {
+        match node.kind {
+            AstNodeKind::Int(n) => Ok(Node::new(NodeKind::Int(n), Type::Int)),
+            AstNodeKind::Float(f) => Ok(Node::new(NodeKind::Float(f), Type::Float)),
+            AstNodeKind::Add(ref l, ref r) => {
+                let left = self.transform_node(l)?;
+                let right = self.transform_node(r)?;
+                let lty = self.typemap.get(l.id);
+                let rty = self.typemap.get(r.id);
+                if lty != rty {
+                    return Err(ErrorKind::InvalidTypeUnification(lty, rty).into());
+                }
+                if lty == Type::Int {
+                    Ok(Node::new(NodeKind::AddInt(Box::new(left), Box::new(right)), Type::Int))
+                } else {
+                    Ok(Node::new(NodeKind::AddFloat(Box::new(left), Box::new(right)),
+                                 Type::Float))
                 }
             }
-        }
-    }
-
-    fn deref(&self, ty: TypeOrVar) -> Option<Type> {
-        match ty {
-            TypeOrVar::Type(ty) => Some(ty),
-            TypeOrVar::Variable(x) => self.lookup(x).and_then(|ty| self.deref(ty)),
-        }
-    }
-
-    fn unify(&mut self, t1: TypeOrVar, t2: TypeOrVar) -> Result<()> {
-        let t1 = self.apply(t1);
-        let t2 = self.apply(t2);
-        match (t1, t2) {
-            (TypeOrVar::Type(t1), TypeOrVar::Type(t2)) => {
-                if t1 == t2 { Ok(()) } else { unimplemented!() }
+            AstNodeKind::Sub(ref l, ref r) => {
+                let left = self.transform_node(l)?;
+                let right = self.transform_node(r)?;
+                let lty = self.typemap.get(l.id);
+                let rty = self.typemap.get(r.id);
+                if lty != rty {
+                    return Err(ErrorKind::InvalidTypeUnification(lty, rty).into());
+                }
+                if lty == Type::Int {
+                    Ok(Node::new(NodeKind::SubInt(Box::new(left), Box::new(right)), Type::Int))
+                } else {
+                    Ok(Node::new(NodeKind::SubFloat(Box::new(left), Box::new(right)),
+                                 Type::Float))
+                }
             }
-            (TypeOrVar::Variable(x), t2) => {
-                self.insert(x, t2);
-                Ok(())
+            AstNodeKind::Mul(ref l, ref r) => {
+                let left = self.transform_node(l)?;
+                let right = self.transform_node(r)?;
+                let lty = self.typemap.get(l.id);
+                let rty = self.typemap.get(r.id);
+                if lty != rty {
+                    return Err(ErrorKind::InvalidTypeUnification(lty, rty).into());
+                }
+                if lty == Type::Int {
+                    Ok(Node::new(NodeKind::MulInt(Box::new(left), Box::new(right)), Type::Int))
+                } else {
+                    Ok(Node::new(NodeKind::MulFloat(Box::new(left), Box::new(right)),
+                                 Type::Float))
+                }
             }
-            (t1, TypeOrVar::Variable(x)) => {
-                self.insert(x, t1);
-                Ok(())
+            AstNodeKind::Div(ref l, ref r) => {
+                let left = self.transform_node(l)?;
+                let right = self.transform_node(r)?;
+                let lty = left.typ.clone();
+                let rty = right.typ.clone();
+                if lty != rty {
+                    return Err(ErrorKind::InvalidTypeUnification(lty, rty).into());
+                }
+                if lty == Type::Int {
+                    Ok(Node::new(NodeKind::DivInt(Box::new(left), Box::new(right)), Type::Int))
+                } else {
+                    Ok(Node::new(NodeKind::DivFloat(Box::new(left), Box::new(right)),
+                                 Type::Float))
+                }
             }
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Context {
-    map: TypeMap<TypeOrVar>,
-    varmap: HashMap<String, TypeOrVar>,
-}
-
-impl Context {
-    pub fn new() -> Self {
-        Context {
-            map: TypeMap::new(),
-            varmap: HashMap::new(),
-        }
-    }
-
-    fn transform_type(&mut self, subst: &mut Substitution, ty: &AstType) -> TypeOrVar {
-        match ty.kind {
-            TypeKind::Int => Type::Int.into(),
-            TypeKind::Float => Type::Float.into(),
-            TypeKind::Hole => subst.new_var(),
-        }
-    }
-
-    pub fn forward_expr(&mut self, subst: &mut Substitution, e: &Expr) -> Result<()> {
-        let ty = TypeOrVar::from(subst.new_var());
-        self.map.insert(e.id, ty.clone());
-        match e.kind {
-            ExprKind::Int(_) => subst.unify(ty, Type::Int.into()),
-            ExprKind::Float(_) => subst.unify(ty, Type::Float.into()),
-            ExprKind::Add(ref l, ref r) |
-            ExprKind::Sub(ref l, ref r) |
-            ExprKind::Mul(ref l, ref r) |
-            ExprKind::Div(ref l, ref r) => {
-                self.forward_expr(subst, l)?;
-                self.forward_expr(subst, r)?;
-                let lty = self.map.get(l.id);
-                let rty = self.map.get(r.id);
-                subst.unify(lty.clone(), rty)?;
-                subst.unify(ty, lty)
+            AstNodeKind::Parens(ref e) => self.transform_node(e),
+            AstNodeKind::Print(ref e) => {
+                let e = self.transform_node(e)?;
+                let ty = e.typ.clone();
+                Ok(Node::new(NodeKind::Print(Box::new(e)), ty))
             }
-            ExprKind::Parens(ref e) => {
-                self.forward_expr(subst, e)?;
-                let inner_ty = self.map.get(e.id);
-                subst.unify(ty, inner_ty)
-            }
-            ExprKind::Print(ref e) => {
-                self.forward_expr(subst, e)?;
-                let inner_ty = self.map.get(e.id);
-                subst.unify(ty, inner_ty)
-            }
+            AstNodeKind::Let(_) => unimplemented!(),
         }
-    }
-
-    pub fn forward_stmt(&mut self, subst: &mut Substitution, s: &Stmt) -> Result<()> {
-        match s.kind {
-            StmtKind::Let(box Let { ref name, ref value, .. }) => {
-                self.forward_expr(subst, value)?;
-                self.varmap.insert(name.clone(), self.map.get(value.id));
-                Ok(())
-            }
-        }
-    }
-
-    pub fn forward(&mut self, subst: &mut Substitution, node: &Node) -> Result<()> {
-        match *node {
-            Node::Expr(ref e) => self.forward_expr(subst, e),
-            Node::Stmt(ref s) => self.forward_stmt(subst, s),
-        }
-    }
-
-    pub fn determine_types(&self, subst: &Substitution) -> Result<TypeMap<Type>> {
-        let mut newmap = TypeMap::new();
-        for (&id, typ) in self.map.iter() {
-            let newtyp = subst.deref(typ.clone()).ok_or(Error::from(ErrorKind::CannotInfer(id)))?;
-            newmap.insert(id, newtyp);
-        }
-        Ok(newmap)
     }
 }
