@@ -14,6 +14,7 @@ mod vm;
 
 use std::io::Write;
 use sem::Context;
+use vm::VM;
 
 fn main() {
     let input = match ::std::env::args().nth(1) {
@@ -48,5 +49,7 @@ fn main() {
     let instrs = compiler::compile(&nodes);
 
     println!("compiled: {:?}", instrs);
-    // vm::eval_expression(&checked);
+
+    let mut machine = VM::new(&semctx, &instrs);
+    machine.run();
 }

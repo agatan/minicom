@@ -17,8 +17,4 @@ impl Stack {
     pub fn pop(&mut self) -> Value {
         self.values.pop().expect("pop on empty stack")
     }
-
-    pub fn len(&self) -> usize {
-        self.values.len()
-    }
 }
