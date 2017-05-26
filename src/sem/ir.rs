@@ -9,7 +9,7 @@ pub enum Type {
 pub enum NodeKind {
     Int(i64),
     Float(f64),
-    Ident(String),
+    Ident(IdentId),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
     MulInt(Box<Node>, Box<Node>),
@@ -21,6 +21,19 @@ pub enum NodeKind {
     Print(Box<Node>),
 
     Let(Box<Let>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct IdentId(usize);
+
+impl IdentId {
+    pub fn new(x: usize) -> Self {
+        IdentId(x)
+    }
+
+    pub fn to_usize(&self) -> usize {
+        self.0
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

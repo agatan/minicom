@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use sem::ir::Type;
+use sem::ir::{IdentId, Type};
 
 #[derive(Debug)]
 pub struct VariableEnv {
@@ -22,7 +22,7 @@ impl VariableEnv {
         self.vars.insert(name, index);
     }
 
-    pub fn get(&self, name: &str) -> Option<Type> {
-        self.vars.get(name).map(|&index| self.types[index].clone())
+    pub fn get(&self, name: &str) -> Option<(IdentId, Type)> {
+        self.vars.get(name).map(|&index| (IdentId::new(index), self.types[index].clone()))
     }
 }

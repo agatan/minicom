@@ -65,7 +65,7 @@ impl Context {
             AstNodeKind::Ident(ref name) => {
                 match self.venv.get(name) {
                     None => Err(ErrorKind::Undefined(name.clone()).into()),
-                    Some(typ) => Ok(Node::new(NodeKind::Ident(name.clone()), typ.clone())),
+                    Some((id, typ)) => Ok(Node::new(NodeKind::Ident(id), typ.clone())),
                 }
             }
             AstNodeKind::Add(ref l, ref r) => {
