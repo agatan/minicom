@@ -1,11 +1,13 @@
 pub mod ir;
 mod typing;
 mod venv;
+mod tyenv;
 
 use self::ir::{Node, NodeKind, Type, Let};
 use ast::{Node as AstNode, NodeKind as AstNodeKind};
 pub use self::typing::TypeMap;
 use self::venv::VariableEnv;
+use self::tyenv::TypeEnv;
 
 error_chain! {
     types {
@@ -28,6 +30,7 @@ error_chain! {
 pub struct Context {
     typemap: TypeMap,
     venv: VariableEnv,
+    tyenv: TypeEnv,
 }
 
 impl Context {
@@ -35,6 +38,7 @@ impl Context {
         Context {
             typemap: TypeMap::new(),
             venv: VariableEnv::new(),
+            tyenv: TypeEnv::new(),
         }
     }
 
@@ -132,7 +136,12 @@ impl Context {
             AstNodeKind::Let(ref l) => {
                 let name = l.name.clone();
                 let value = self.transform_node(&l.value)?;
-                assert!(l.typ.is_none());
+                if let Some(ref typ) = l.typ {
+                    let typ = self.tyenv.get(&typ.name)?;
+                    if typ != value.typ {
+                        bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
+                    }
+                }
                 let id = self.venv.insert(name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                  id: id,

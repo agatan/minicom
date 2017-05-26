@@ -49,3 +49,9 @@ pub struct Let {
 pub struct Type {
     pub name: String,
 }
+
+impl Type {
+    pub fn new(name: String) -> Type {
+        Type { name: name }
+    }
+}

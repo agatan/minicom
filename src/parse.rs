@@ -3,10 +3,10 @@ use std::cell::Cell;
 use combine::{State, Parser, ParseResult, Stream, unexpected, env_parser, eof};
 use combine::primitives::ParseError;
 use combine::char::{spaces, alpha_num, letter, string, char};
-use combine::combinator::{EnvParser, try, sep_end_by};
+use combine::combinator::{EnvParser, try, sep_end_by, optional};
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
-use ast::{NodeId, Node, NodeKind, Let};
+use ast::{NodeId, Node, NodeKind, Let, Type};
 
 type LanguageParser<'input: 'parser, 'parser, I, T> = EnvParser<&'parser ParserEnv<'input, I>,
                                                                 I,
@@ -68,12 +68,13 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_let_stmt(&self, input: I) -> ParseResult<Node, I> {
         (self.env.reserved("let"),
          self.env.identifier(),
+         optional(self.typespec()),
          self.env.reserved_op("="),
          self.expression())
-            .map(|(_, name, _, value)| {
+            .map(|(_, name, typ, _, value)| {
                 let let_ = Let {
                     name: name,
-                    typ: None,
+                    typ: typ,
                     value: value,
                 };
                 Node {
@@ -217,6 +218,20 @@ impl<'input, I> ParserEnv<'input, I>
 
     fn expression<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_expression)
+    }
+
+    // aux functions
+
+    fn parse_typespec(&self, input: I) -> ParseResult<Type, I> {
+        self.env
+            .lex(char(':'))
+            .and(self.env.identifier())
+            .map(|(_, name)| Type::new(name))
+            .parse_stream(input)
+    }
+
+    fn typespec<'p>(&'p self) -> LanguageParser<'input, 'p, I, Type> {
+        env_parser(self, ParserEnv::parse_typespec)
     }
 }
 
