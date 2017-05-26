@@ -20,6 +20,7 @@ pub enum NodeKind {
     // FIXME(agatan): temporary builtin command
     Print(Box<Node>),
     Let(Box<Let>),
+    Assign(String, Box<Node>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

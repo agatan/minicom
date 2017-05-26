@@ -58,7 +58,7 @@ impl Context {
             AstNodeKind::Int(n) => Ok(Node::new(NodeKind::Int(n), Type::Int)),
             AstNodeKind::Float(f) => Ok(Node::new(NodeKind::Float(f), Type::Float)),
             AstNodeKind::Ident(ref name) => {
-                match self.venv.get(name) {
+                match self.venv.get_by_name(name) {
                     None => Err(ErrorKind::Undefined(name.clone()).into()),
                     Some((id, typ)) => Ok(Node::new(NodeKind::Ident(id), typ.clone())),
                 }
@@ -140,6 +140,16 @@ impl Context {
                                  value: value,
                              })),
                              Type::Unit))
+            }
+            AstNodeKind::Assign(ref var, ref value) => {
+                let (id, typ) = self.venv
+                    .get_by_name(var)
+                    .ok_or(Error::from(ErrorKind::Undefined(var.clone())))?;
+                let value = self.transform_node(value)?;
+                if typ != value.typ {
+                    return Err(ErrorKind::InvalidTypeUnification(typ, value.typ).into());
+                }
+                Ok(Node::new(NodeKind::Assign(id, Box::new(value)), Type::Unit))
             }
         }
     }

@@ -21,6 +21,7 @@ pub enum NodeKind {
     Print(Box<Node>),
 
     Let(Box<Let>),
+    Assign(IdentId, Box<Node>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

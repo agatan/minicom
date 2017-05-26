@@ -48,9 +48,7 @@ impl<'input, I> ParserEnv<'input, I>
     }
 
     fn parse_toplevel_node(&self, input: I) -> ParseResult<Node, I> {
-        choice!(try(self.let_stmt()).map(Node::from),
-                self.expression().map(Node::from))
-            .parse_stream(input)
+        choice!(self.statement(), self.expression()).parse_stream(input)
     }
 
     pub fn toplevel_node<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
@@ -88,6 +86,29 @@ impl<'input, I> ParserEnv<'input, I>
 
     fn let_stmt<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_let_stmt)
+    }
+
+    fn parse_assignment(&self, input: I) -> ParseResult<Node, I> {
+        (self.env.identifier(), self.env.reserved_op("="), self.expression())
+            .map(|(name, _, value)| {
+                Node {
+                    id: self.new_node_id(),
+                    kind: NodeKind::Assign(name, Box::new(value)),
+                }
+            })
+            .parse_stream(input)
+    }
+
+    fn assignment<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
+        env_parser(self, ParserEnv::parse_assignment)
+    }
+
+    fn parse_statement(&self, input: I) -> ParseResult<Node, I> {
+        choice![self.let_stmt(), try(self.assignment())].parse_stream(input)
+    }
+
+    fn statement<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
+        env_parser(self, ParserEnv::parse_statement)
     }
 
     // expressions

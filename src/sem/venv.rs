@@ -23,7 +23,7 @@ impl VariableEnv {
         IdentId::new(index as u32)
     }
 
-    pub fn get(&self, name: &str) -> Option<(IdentId, Type)> {
+    pub fn get_by_name(&self, name: &str) -> Option<(IdentId, Type)> {
         self.vars.get(name).map(|&index| (IdentId::new(index as u32), self.types[index].clone()))
     }
 }
