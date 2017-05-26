@@ -49,6 +49,8 @@ fn main() {
     let mut compiler = Compiler::new();
     compiler.compile(&nodes);
 
+    println!("{:?}", compiler);
+
     // let typemap = sem::type_check(&nodes).unwrap();
     // debug!("typemap: {:?}", typemap);
     //
