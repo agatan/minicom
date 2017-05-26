@@ -21,7 +21,7 @@ mod vm;
 
 use std::io::Write;
 use sem::Context;
-use vm::Machine;
+use vm::{Value, Machine};
 
 fn main() {
     env_logger::init().unwrap();
@@ -39,12 +39,11 @@ fn main() {
     run(&mut machine, &mut ctx, &input).unwrap();
 }
 
-fn run(machine: &mut Machine, ctx: &mut Context, input: &str) -> Result<(), String> {
+fn run(machine: &mut Machine, ctx: &mut Context, input: &str) -> Result<Value, String> {
     let nodes = parse::parse(input).map_err(|err| format!("{}", err))?;
     let nodes = ctx.check(&nodes).map_err(|err| format!("{}", err))?;
     let instrs = compiler::compile(&nodes);
-    machine.run(&instrs);
-    Ok(())
+    Ok(machine.run(&instrs))
 }
 
 fn repl(machine: &mut Machine, ctx: &mut Context) {
@@ -54,8 +53,9 @@ fn repl(machine: &mut Machine, ctx: &mut Context) {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(&line);
-                if let Err(err) = run(machine, ctx, &line) {
-                    exit_error(err);
+                match run(machine, ctx, &line) {
+                    Ok(value) => println!("{:?}", value),
+                    Err(err) => println!("{}", err),
                 }
             }
             Err(ReadlineError::Eof) |

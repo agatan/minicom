@@ -76,9 +76,12 @@ impl Compiler {
     }
 
     fn compile(&mut self, nodes: &[Node]) {
-        for node in nodes {
-            self.compile_node(node);
-            self.push(Instruction::Pop);
+        if let Some((last, init)) = nodes.split_last() {
+            for node in init {
+                self.compile_node(node);
+                self.push(Instruction::Pop);
+            }
+            self.compile_node(last);
         }
     }
 }

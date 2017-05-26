@@ -150,11 +150,12 @@ impl Machine {
         self.pc == instrs.len()
     }
 
-    pub fn run(&mut self, instrs: &[Instruction]) {
+    pub fn run(&mut self, instrs: &[Instruction]) -> Value {
         self.pc = 0;
         while !self.is_finished(instrs) {
             let ins = self.fetch_instr(instrs);
             self.eval_instr(ins);
         }
+        self.stack.pop()
     }
 }
