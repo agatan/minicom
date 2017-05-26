@@ -26,8 +26,4 @@ impl VariableEnv {
     pub fn get(&self, name: &str) -> Option<(IdentId, Type)> {
         self.vars.get(name).map(|&index| (IdentId::new(index as u32), self.types[index].clone()))
     }
-
-    pub fn size(&self) -> u32 {
-        self.types.len() as u32
-    }
 }

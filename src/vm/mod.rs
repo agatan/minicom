@@ -5,8 +5,6 @@ pub use self::value::Value;
 use self::instr::Instruction;
 use self::instr::Instruction::*;
 
-use sem::Context;
-
 pub struct VM<'a> {
     instrs: &'a [Instruction],
     pc: usize,
@@ -15,12 +13,12 @@ pub struct VM<'a> {
 }
 
 impl<'a> VM<'a> {
-    pub fn new(ctx: &Context, instrs: &'a [Instruction]) -> Self {
+    pub fn new(instrs: &'a [Instruction]) -> Self {
         VM {
             instrs: instrs,
             pc: 0,
             stack: stack::Stack::new(),
-            vars: vec![Value::Unit; ctx.n_vars() as usize],
+            vars: Vec::new(),
         }
     }
 
@@ -138,7 +136,8 @@ impl<'a> VM<'a> {
             }
             SetLocal(n) => {
                 let v = self.stack.pop();
-                self.vars[n as usize] = v;
+                debug_assert_eq!(self.vars.len(), n as usize);
+                self.vars.push(v);
                 self.stack.push(Value::Unit);
             }
             GetLocal(n) => {

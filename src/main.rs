@@ -56,6 +56,6 @@ fn main() {
 
     debug!("compiled: {:?}", instrs);
 
-    let mut machine = VM::new(&semctx, &instrs);
+    let mut machine = VM::new(&instrs);
     machine.run();
 }

@@ -143,8 +143,4 @@ impl Context {
             }
         }
     }
-
-    pub fn n_vars(&self) -> u32 {
-        self.venv.size()
-    }
 }
