@@ -30,7 +30,7 @@ fn main() {
     let nodes = match parse::parse(&input) {
         Ok(nodes) => nodes,
         Err(err) => {
-            write!(&mut std::io::stderr(), "{}", err).unwrap();
+            writeln!(&mut std::io::stderr(), "{}", err).unwrap();
             ::std::process::exit(1);
         }
     };
@@ -40,7 +40,7 @@ fn main() {
     let (nodes, typemap) = match Checker::check(&nodes) {
         Ok(nts) => nts,
         Err(err) => {
-            write!(&mut std::io::stderr(), "{}", err).unwrap();
+            writeln!(&mut std::io::stderr(), "{}", err).unwrap();
             ::std::process::exit(1);
         }
     };
