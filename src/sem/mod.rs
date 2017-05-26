@@ -144,7 +144,7 @@ impl Checker {
                                  typ: value.typ.clone(),
                                  value: value,
                              })),
-                             Type::Int))
+                             Type::Unit))
             }
         }
     }

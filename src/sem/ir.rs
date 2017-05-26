@@ -2,6 +2,7 @@
 pub enum Type {
     Int,
     Float,
+    Unit,
 }
 
 #[derive(Debug, Clone, PartialEq)]
