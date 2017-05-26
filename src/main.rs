@@ -15,7 +15,7 @@ mod sem;
 // mod vm;
 
 use std::io::Write;
-use sem::Checker;
+use sem::Context;
 
 fn main() {
     env_logger::init().unwrap();
@@ -37,7 +37,8 @@ fn main() {
 
     println!("parsed: {:?}", nodes);
 
-    let (nodes, typemap) = match Checker::check(&nodes) {
+    let mut semctx = Context::new();
+    let nodes = match semctx.check(&nodes) {
         Ok(nts) => nts,
         Err(err) => {
             writeln!(&mut std::io::stderr(), "{}", err).unwrap();
@@ -45,8 +46,8 @@ fn main() {
         }
     };
 
-    println!("typemap: {:?}", typemap);
     println!("nodes: {:?}", nodes);
+    println!("semantic context: {:?}", semctx);
 
     // let typemap = sem::type_check(&nodes).unwrap();
     // debug!("typemap: {:?}", typemap);

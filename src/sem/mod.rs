@@ -30,27 +30,27 @@ error_chain! {
 }
 
 #[derive(Debug)]
-pub struct Checker {
-    pub typemap: TypeMap,
+pub struct Context {
+    typemap: TypeMap,
     venv: HashMap<String, Type>,
 }
 
-impl Checker {
-    pub fn check(nodes: &[AstNode]) -> Result<(Vec<Node>, TypeMap)> {
-        let mut chk = Self::new();
-        let mut results = Vec::with_capacity(nodes.len());
-        for node in nodes {
-            chk.transform_node(node).map(|node| results.push(node))?;
-        }
-        Ok((results, chk.typemap))
-    }
-
+impl Context {
     pub fn new() -> Self {
-        Checker {
+        Context {
             typemap: TypeMap::new(),
             venv: HashMap::new(),
         }
     }
+
+    pub fn check(&mut self, nodes: &[AstNode]) -> Result<Vec<Node>> {
+        let mut results = Vec::with_capacity(nodes.len());
+        for node in nodes {
+            self.transform_node(node).map(|node| results.push(node))?;
+        }
+        Ok(results)
+    }
+
 
     pub fn transform_node(&mut self, node: &AstNode) -> Result<Node> {
         let e = self.transform_node_(node)?;
