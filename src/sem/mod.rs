@@ -63,7 +63,7 @@ impl Context {
             AstNodeKind::Float(f) => Ok(Node::new(NodeKind::Float(f), Type::Float)),
             AstNodeKind::Ident(ref name) => {
                 match self.venv.get_by_name(name) {
-                    None => Err(ErrorKind::Undefined(name.clone()).into()),
+                    None => bail!(ErrorKind::Undefined(name.clone())),
                     Some((id, typ)) => Ok(Node::new(NodeKind::Ident(id), typ.clone())),
                 }
             }
@@ -73,7 +73,7 @@ impl Context {
                 let lty = self.typemap.get(l.id);
                 let rty = self.typemap.get(r.id);
                 if lty != rty {
-                    return Err(ErrorKind::InvalidTypeUnification(lty, rty).into());
+                    bail!(ErrorKind::InvalidTypeUnification(lty, rty));
                 }
                 if lty == Type::Int {
                     Ok(Node::new(NodeKind::AddInt(Box::new(left), Box::new(right)), Type::Int))
@@ -88,7 +88,7 @@ impl Context {
                 let lty = self.typemap.get(l.id);
                 let rty = self.typemap.get(r.id);
                 if lty != rty {
-                    return Err(ErrorKind::InvalidTypeUnification(lty, rty).into());
+                    bail!(ErrorKind::InvalidTypeUnification(lty, rty));
                 }
                 if lty == Type::Int {
                     Ok(Node::new(NodeKind::SubInt(Box::new(left), Box::new(right)), Type::Int))
@@ -103,7 +103,7 @@ impl Context {
                 let lty = self.typemap.get(l.id);
                 let rty = self.typemap.get(r.id);
                 if lty != rty {
-                    return Err(ErrorKind::InvalidTypeUnification(lty, rty).into());
+                    bail!(ErrorKind::InvalidTypeUnification(lty, rty));
                 }
                 if lty == Type::Int {
                     Ok(Node::new(NodeKind::MulInt(Box::new(left), Box::new(right)), Type::Int))
@@ -118,7 +118,7 @@ impl Context {
                 let lty = left.typ.clone();
                 let rty = right.typ.clone();
                 if lty != rty {
-                    return Err(ErrorKind::InvalidTypeUnification(lty, rty).into());
+                    bail!(ErrorKind::InvalidTypeUnification(lty, rty));
                 }
                 if lty == Type::Int {
                     Ok(Node::new(NodeKind::DivInt(Box::new(left), Box::new(right)), Type::Int))
@@ -156,7 +156,7 @@ impl Context {
                     .ok_or(Error::from(ErrorKind::Undefined(var.clone())))?;
                 let value = self.transform_node(value)?;
                 if typ != value.typ {
-                    return Err(ErrorKind::InvalidTypeUnification(typ, value.typ).into());
+                    bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                 }
                 Ok(Node::new(NodeKind::Assign(id, Box::new(value)), Type::Unit))
             }
