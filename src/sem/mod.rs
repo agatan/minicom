@@ -1,11 +1,11 @@
 pub mod ir;
 mod typing;
-
-use std::collections::HashMap;
+mod venv;
 
 use self::ir::{Node, NodeKind, Type, Let};
 use ast::{NodeId, Node as AstNode, NodeKind as AstNodeKind};
 pub use self::typing::TypeMap;
+use self::venv::VariableEnv;
 
 error_chain! {
     types {
@@ -32,14 +32,14 @@ error_chain! {
 #[derive(Debug)]
 pub struct Context {
     typemap: TypeMap,
-    venv: HashMap<String, Type>,
+    venv: VariableEnv,
 }
 
 impl Context {
     pub fn new() -> Self {
         Context {
             typemap: TypeMap::new(),
-            venv: HashMap::new(),
+            venv: VariableEnv::new(),
         }
     }
 
