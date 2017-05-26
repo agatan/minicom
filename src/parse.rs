@@ -6,7 +6,7 @@ use combine::char::{spaces, alpha_num, letter, string, char};
 use combine::combinator::{EnvParser, try, sep_end_by};
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
-use ast::{NodeId, Node, Stmt, StmtKind, Let, Expr, ExprKind, Type, TypeKind};
+use ast::{NodeId, Node, NodeKind, Let, Type, TypeKind};
 
 type LanguageParser<'input: 'parser, 'parser, I, T> = EnvParser<&'parser ParserEnv<'input, I>,
                                                                 I,
@@ -67,7 +67,7 @@ impl<'input, I> ParserEnv<'input, I>
 
     // statements
 
-    fn parse_let_stmt(&self, input: I) -> ParseResult<Stmt, I> {
+    fn parse_let_stmt(&self, input: I) -> ParseResult<Node, I> {
         (self.env.reserved("let"),
          self.env.identifier(),
          self.env.reserved_op("="),
@@ -78,67 +78,67 @@ impl<'input, I> ParserEnv<'input, I>
                     typ: None,
                     value: value,
                 };
-                Stmt {
+                Node {
                     id: self.new_node_id(),
-                    kind: StmtKind::Let(Box::new(let_)),
+                    kind: NodeKind::Let(Box::new(let_)),
                 }
             })
             .parse_stream(input)
     }
 
-    fn let_stmt<'p>(&'p self) -> LanguageParser<'input, 'p, I, Stmt> {
+    fn let_stmt<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_let_stmt)
     }
 
     // expressions
 
-    fn parse_integer(&self, input: I) -> ParseResult<Expr, I> {
+    fn parse_integer(&self, input: I) -> ParseResult<Node, I> {
         self.env
             .lex(self.env.integer_())
-            .map(|n| Expr::new(self.new_node_id(), ExprKind::Int(n)))
+            .map(|n| Node::new(self.new_node_id(), NodeKind::Int(n)))
             .parse_stream(input)
     }
 
-    fn integer<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
+    fn integer<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_integer)
     }
 
-    fn parse_float(&self, input: I) -> ParseResult<Expr, I> {
+    fn parse_float(&self, input: I) -> ParseResult<Node, I> {
         self.env
             .lex(self.env.float_())
-            .map(|n| Expr::new(self.new_node_id(), ExprKind::Float(n)))
+            .map(|n| Node::new(self.new_node_id(), NodeKind::Float(n)))
             .parse_stream(input)
     }
 
-    fn float<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
+    fn float<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_float)
     }
 
-    fn parse_parens_expr(&self, input: I) -> ParseResult<Expr, I> {
+    fn parse_parens_expr(&self, input: I) -> ParseResult<Node, I> {
         self.env
             .lex(self.env.parens(self.expression()))
-            .map(|e| Expr::new(self.new_node_id(), ExprKind::Parens(Box::new(e))))
+            .map(|e| Node::new(self.new_node_id(), NodeKind::Parens(Box::new(e))))
             .parse_stream(input)
     }
 
-    fn parens_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
+    fn parens_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_parens_expr)
     }
 
-    fn parse_print_expr(&self, input: I) -> ParseResult<Expr, I> {
+    fn parse_print_expr(&self, input: I) -> ParseResult<Node, I> {
         (self.env.reserved("print"),
          self.env.lex(char('(')),
          self.expression(),
          self.env.lex(char(')')))
-            .map(|(_, _, e, _)| Expr::new(self.new_node_id(), ExprKind::Print(Box::new(e))))
+            .map(|(_, _, e, _)| Node::new(self.new_node_id(), NodeKind::Print(Box::new(e))))
             .parse_stream(input)
     }
 
-    fn print_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
+    fn print_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_print_expr)
     }
 
-    fn parse_term_expr(&self, input: I) -> ParseResult<Expr, I> {
+    fn parse_term_expr(&self, input: I) -> ParseResult<Node, I> {
         choice!(self.parens_expr(),
                 self.print_expr(),
                 try(self.float()),
@@ -146,20 +146,20 @@ impl<'input, I> ParserEnv<'input, I>
             .parse_stream(input)
     }
 
-    fn term_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
+    fn term_expr<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_term_expr)
     }
 
-    fn parse_expression(&self, input: I) -> ParseResult<Expr, I> {
-        let new_binop = |l: Expr, o: &str, r: Expr| -> Expr {
+    fn parse_expression(&self, input: I) -> ParseResult<Node, I> {
+        let new_binop = |l: Node, o: &str, r: Node| -> Node {
             let kind = match o {
-                "+" => ExprKind::Add(box l, box r),
-                "-" => ExprKind::Sub(box l, box r),
-                "*" => ExprKind::Mul(box l, box r),
-                "/" => ExprKind::Div(box l, box r),
+                "+" => NodeKind::Add(box l, box r),
+                "-" => NodeKind::Sub(box l, box r),
+                "*" => NodeKind::Mul(box l, box r),
+                "/" => NodeKind::Div(box l, box r),
                 _ => unreachable!(),
             };
-            Expr::new(self.new_node_id(), kind)
+            Node::new(self.new_node_id(), kind)
         };
 
         let addsub_parser = choice!(self.env.reserved_op_("+"), self.env.reserved_op_("-"))
@@ -182,12 +182,12 @@ impl<'input, I> ParserEnv<'input, I>
         expression_parser(self.term_expr(), op_parser, new_binop).parse_stream(input)
     }
 
-    fn expression<'p>(&'p self) -> LanguageParser<'input, 'p, I, Expr> {
+    fn expression<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_expression)
     }
 }
 
-pub fn parse_expression(input: &str) -> Result<Expr, ParseError<State<&str>>> {
+pub fn parse_expression(input: &str) -> Result<Node, ParseError<State<&str>>> {
     let env = ParserEnv::new();
     match spaces().with(env.expression()).skip(eof()).parse_stream(State::new(input)) {
         Ok((expr, _)) => Ok(expr),

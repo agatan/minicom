@@ -1,9 +1,9 @@
 pub mod ir;
-mod typing;
+// mod typing;
 
 use self::ir::{Expr, ExprKind, Type};
-use ast::{NodeId, Node, Expr as AstExpr, ExprKind as AstExprKind};
-pub use self::typing::TypeMap;
+use ast::{NodeId, Node};
+// pub use self::typing::TypeMap;
 
 error_chain! {
     types {

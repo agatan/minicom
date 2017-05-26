@@ -11,8 +11,8 @@ extern crate error_chain;
 
 mod ast;
 mod parse;
-mod sem;
-mod vm;
+// mod sem;
+// mod vm;
 
 use std::io::Write;
 
@@ -34,23 +34,22 @@ fn main() {
         }
     };
 
-    debug!("parsed: {:?}", nodes);
-
-    let typemap = sem::type_check(&nodes).unwrap();
-    debug!("typemap: {:?}", typemap);
-
-
-    let checked = match sem::transform(&nodes, &typemap) {
-        Ok(checked) => checked,
-        Err(err) => {
-            writeln!(&mut std::io::stderr(), "{}", err).unwrap();
-            ::std::process::exit(1);
-        }
-    };
-    debug!("checked: {:?}", checked);
-
-    let instrs = vm::compiler::compile(&checked);
-    debug!("compiled: {:?}", instrs);
-
-    vm::eval_expression(&checked);
+    println!("parsed: {:?}", nodes);
+    // let typemap = sem::type_check(&nodes).unwrap();
+    // debug!("typemap: {:?}", typemap);
+    //
+    //
+    // let checked = match sem::transform(&nodes, &typemap) {
+    //     Ok(checked) => checked,
+    //     Err(err) => {
+    //         writeln!(&mut std::io::stderr(), "{}", err).unwrap();
+    //         ::std::process::exit(1);
+    //     }
+    // };
+    // debug!("checked: {:?}", checked);
+    //
+    // let instrs = vm::compiler::compile(&checked);
+    // debug!("compiled: {:?}", instrs);
+    //
+    // vm::eval_expression(&checked);
 }
