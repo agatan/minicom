@@ -114,6 +114,17 @@ impl<'input, I> ParserEnv<'input, I>
         env_parser(self, ParserEnv::parse_float)
     }
 
+    fn parse_identifier(&self, input: I) -> ParseResult<Node, I> {
+        self.env
+            .identifier()
+            .map(|n| Node::new(self.new_node_id(), NodeKind::Ident(n)))
+            .parse_stream(input)
+    }
+
+    fn identifier<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
+        env_parser(self, ParserEnv::parse_identifier)
+    }
+
     fn parse_parens_expr(&self, input: I) -> ParseResult<Node, I> {
         self.env
             .lex(self.env.parens(self.expression()))
@@ -141,6 +152,7 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_term_expr(&self, input: I) -> ParseResult<Node, I> {
         choice!(self.parens_expr(),
                 self.print_expr(),
+                self.identifier(),
                 try(self.float()),
                 self.integer())
             .parse_stream(input)

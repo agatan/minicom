@@ -13,6 +13,10 @@ error_chain! {
     }
 
     errors {
+        Undefined(name: String) {
+            description("undefined identifier")
+            display("undefined identifier {:?}", name)
+        }
         InvalidTypeUnification(t1: Type, t2: Type) {
             description("invalid type unification")
             display("cannot unify types: {:?} and {:?}", t1, t2)
@@ -58,6 +62,12 @@ impl Checker {
         match node.kind {
             AstNodeKind::Int(n) => Ok(Node::new(NodeKind::Int(n), Type::Int)),
             AstNodeKind::Float(f) => Ok(Node::new(NodeKind::Float(f), Type::Float)),
+            AstNodeKind::Ident(ref name) => {
+                match self.venv.get(name) {
+                    None => Err(ErrorKind::Undefined(name.clone()).into()),
+                    Some(typ) => Ok(Node::new(NodeKind::Ident(name.clone()), typ.clone())),
+                }
+            }
             AstNodeKind::Add(ref l, ref r) => {
                 let left = self.transform_node(l)?;
                 let right = self.transform_node(r)?;

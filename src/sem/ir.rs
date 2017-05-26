@@ -8,6 +8,7 @@ pub enum Type {
 pub enum NodeKind {
     Int(i64),
     Float(f64),
+    Ident(String),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
     MulInt(Box<Node>, Box<Node>),
