@@ -133,9 +133,9 @@ impl Context {
                 let name = l.name.clone();
                 let value = self.transform_node(&l.value)?;
                 assert!(l.typ.is_none());
-                self.venv.insert(name.clone(), value.typ.clone());
+                let id = self.venv.insert(name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
-                                 name: name,
+                                 id: id,
                                  typ: value.typ.clone(),
                                  value: value,
                              })),

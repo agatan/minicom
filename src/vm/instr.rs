@@ -15,4 +15,7 @@ pub enum Instruction {
     DivFloat,
 
     Print,
+
+    SetLocal(u32),
+    GetLocal(u32),
 }

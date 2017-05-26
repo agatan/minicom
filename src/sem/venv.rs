@@ -16,13 +16,14 @@ impl VariableEnv {
         }
     }
 
-    pub fn insert(&mut self, name: String, typ: Type) {
+    pub fn insert(&mut self, name: String, typ: Type) -> IdentId {
         let index = self.types.len();
         self.types.push(typ);
         self.vars.insert(name, index);
+        IdentId::new(index as u32)
     }
 
     pub fn get(&self, name: &str) -> Option<(IdentId, Type)> {
-        self.vars.get(name).map(|&index| (IdentId::new(index), self.types[index].clone()))
+        self.vars.get(name).map(|&index| (IdentId::new(index as u32), self.types[index].clone()))
     }
 }

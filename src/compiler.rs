@@ -63,8 +63,11 @@ impl Compiler {
                 self.compile_node(e);
                 self.push(Instruction::Print);
             }
-            NodeKind::Let(_) |
-            NodeKind::Ident(_) => unimplemented!(),
+            NodeKind::Let(ref let_) => {
+                self.compile_node(&let_.value);
+                self.push(Instruction::SetLocal(let_.id.to_u32()));
+            }
+            NodeKind::Ident(id) => self.push(Instruction::GetLocal(id.to_u32())),
         }
     }
 

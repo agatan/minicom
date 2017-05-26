@@ -24,17 +24,21 @@ pub enum NodeKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct IdentId(usize);
+pub struct IdentId(u32);
 
 impl IdentId {
-    pub fn new(x: usize) -> Self {
+    pub fn new(x: u32) -> Self {
         IdentId(x)
+    }
+
+    pub fn to_u32(&self) -> u32 {
+        self.0
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Let {
-    pub name: String,
+    pub id: IdentId,
     pub typ: Type,
     pub value: Node,
 }
