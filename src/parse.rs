@@ -6,7 +6,7 @@ use combine::char::{spaces, alpha_num, letter, string, char};
 use combine::combinator::{EnvParser, try, sep_end_by};
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
-use ast::{NodeId, Node, NodeKind, Let, Type, TypeKind};
+use ast::{NodeId, Node, NodeKind, Let};
 
 type LanguageParser<'input: 'parser, 'parser, I, T> = EnvParser<&'parser ParserEnv<'input, I>,
                                                                 I,
@@ -184,22 +184,6 @@ impl<'input, I> ParserEnv<'input, I>
 
     fn expression<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
         env_parser(self, ParserEnv::parse_expression)
-    }
-}
-
-pub fn parse_expression(input: &str) -> Result<Node, ParseError<State<&str>>> {
-    let env = ParserEnv::new();
-    match spaces().with(env.expression()).skip(eof()).parse_stream(State::new(input)) {
-        Ok((expr, _)) => Ok(expr),
-        Err(err) => Err(err.into_inner()),
-    }
-}
-
-pub fn parse_toplevel_node(input: &str) -> Result<Node, ParseError<State<&str>>> {
-    let env = ParserEnv::new();
-    match spaces().with(env.toplevel_node()).skip(eof()).parse_stream(State::new(input)) {
-        Ok((node, _)) => Ok(node),
-        Err(err) => Err(err.into_inner()),
     }
 }
 
