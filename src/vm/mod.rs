@@ -130,8 +130,8 @@ impl Machine {
             }
             Print => {
                 let v = self.stack.pop();
-                println!("{:?}", v);
-                self.stack.push(v);
+                println!("{}", v);
+                self.stack.push(Value::Unit);
             }
             SetLocal(n) => {
                 let v = self.stack.pop();
@@ -160,6 +160,6 @@ impl Machine {
             let ins = self.fetch_instr(instrs);
             self.eval_instr(ins);
         }
-        self.stack.pop()
+        self.stack.pop_optional().unwrap_or(Value::Unit)
     }
 }

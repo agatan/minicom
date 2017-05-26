@@ -17,4 +17,8 @@ impl Stack {
     pub fn pop(&mut self) -> Value {
         self.values.pop().expect("pop on empty stack")
     }
+
+    pub fn pop_optional(&mut self) -> Option<Value> {
+        self.values.pop()
+    }
 }

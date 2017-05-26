@@ -57,7 +57,7 @@ fn repl(machine: &mut Machine, ctx: &mut Context) {
                 }
                 rl.add_history_entry(&line);
                 match run(machine, ctx, &line) {
-                    Ok(value) => println!("{:?}", value),
+                    Ok(value) => println!("=> {}", value),
                     Err(err) => println!("{}", err),
                 }
             }
