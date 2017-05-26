@@ -9,10 +9,12 @@ extern crate error_chain;
 mod ast;
 mod parse;
 mod sem;
-// mod vm;
+mod compiler;
+mod vm;
 
 use std::io::Write;
 use sem::Context;
+use compiler::Compiler;
 
 fn main() {
     let input = match ::std::env::args().nth(1) {
@@ -43,6 +45,9 @@ fn main() {
 
     println!("nodes: {:?}", nodes);
     println!("semantic context: {:?}", semctx);
+
+    let mut compiler = Compiler::new();
+    compiler.compile(&nodes);
 
     // let typemap = sem::type_check(&nodes).unwrap();
     // debug!("typemap: {:?}", typemap);
