@@ -30,10 +30,6 @@ impl IdentId {
     pub fn new(x: usize) -> Self {
         IdentId(x)
     }
-
-    pub fn to_usize(&self) -> usize {
-        self.0
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

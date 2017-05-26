@@ -4,9 +4,6 @@
 extern crate combine;
 extern crate combine_language;
 #[macro_use]
-extern crate log;
-extern crate env_logger;
-#[macro_use]
 extern crate error_chain;
 
 mod ast;
@@ -18,8 +15,6 @@ use std::io::Write;
 use sem::Context;
 
 fn main() {
-    env_logger::init().unwrap();
-
     let input = match ::std::env::args().nth(1) {
         None => {
             writeln!(&mut std::io::stderr(), "no input given").unwrap();

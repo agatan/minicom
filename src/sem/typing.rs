@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
-use sem::{ErrorKind, Result};
-use sem::ir::{Type, Node, NodeKind};
-use ast::{NodeId, Node as AstNode, NodeKind as AstNodeKind};
+use sem::ir::Type;
+use ast::NodeId;
 
 #[derive(Debug)]
 pub struct TypeMap {

@@ -3,7 +3,7 @@ mod typing;
 mod venv;
 
 use self::ir::{Node, NodeKind, Type, Let};
-use ast::{NodeId, Node as AstNode, NodeKind as AstNodeKind};
+use ast::{Node as AstNode, NodeKind as AstNodeKind};
 pub use self::typing::TypeMap;
 use self::venv::VariableEnv;
 
@@ -20,11 +20,6 @@ error_chain! {
         InvalidTypeUnification(t1: Type, t2: Type) {
             description("invalid type unification")
             display("cannot unify types: {:?} and {:?}", t1, t2)
-        }
-
-        CannotInfer(x: NodeId) {
-            description("cannot infer type")
-            display("cannot infer type: {:?}", x)
         }
     }
 }

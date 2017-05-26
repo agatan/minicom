@@ -45,19 +45,6 @@ pub struct Let {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum TypeKind {
-    Int,
-    Float,
-    Hole,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct Type {
-    pub kind: TypeKind,
-}
-
-impl Type {
-    pub fn new(kind: TypeKind) -> Self {
-        Type { kind: kind }
-    }
+    pub name: String,
 }
