@@ -154,6 +154,7 @@ impl Machine {
                 let v = self.vars[id as usize];
                 self.stack.push(v);
             }
+            GetLocalArg(_) | SetLocalArg(_) => unimplemented!(),
         }
     }
 

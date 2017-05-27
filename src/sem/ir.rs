@@ -28,7 +28,7 @@ pub enum Type {
 
 #[derive(Debug)]
 pub struct Function {
-    pub args: Vec<(LocalId, Type)>,
+    pub args: Vec<Type>,
     pub ret_typ: Type,
     pub body: Vec<Node>,
 }
@@ -53,7 +53,7 @@ pub enum NodeKind {
     Unit,
     Int(i64),
     Float(f64),
-    Ident(LocalId, Level),
+    Ident(Var, Level),
     Call(FunctionId, Vec<Node>),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
@@ -66,7 +66,7 @@ pub enum NodeKind {
     Print(Box<Node>),
 
     Let(Box<Let>),
-    Assign(LocalId, Level, Box<Node>),
+    Assign(Var, Level, Box<Node>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -79,6 +79,21 @@ impl LocalId {
 
     pub fn to_u32(&self) -> u32 {
         self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Var {
+    Arg(u32, Type),
+    Local(LocalId, Type),
+}
+
+impl Var {
+    pub fn typ(&self) -> &Type {
+        match *self {
+            Var::Arg(_, ref t) => t,
+            Var::Local(_, ref t) => t,
+        }
     }
 }
 

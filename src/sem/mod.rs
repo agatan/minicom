@@ -98,8 +98,9 @@ impl<'a> Context<'a> {
             AstNodeKind::Ident(ref name) => {
                 match self.venv.get_var(name) {
                     None => bail!(ErrorKind::Undefined(name.clone())),
-                    Some((id, level, typ)) => {
-                        Ok(Node::new(NodeKind::Ident(id, level), typ.clone()))
+                    Some((var, level)) => {
+                        let typ = var.typ().clone();
+                        Ok(Node::new(NodeKind::Ident(var, level), typ))
                     }
                 }
             }
@@ -195,7 +196,7 @@ impl<'a> Context<'a> {
                         bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
                 }
-                let id = self.venv.insert(l.name.clone(), value.typ.clone());
+                let id = self.venv.insert_local(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                  id: id,
                                  typ: value.typ.clone(),
@@ -204,14 +205,15 @@ impl<'a> Context<'a> {
                              Type::Unit))
             }
             AstNodeKind::Assign(ref var, ref value) => {
-                let (id, level, typ) = self.venv
+                let (var, level) = self.venv
                     .get_var(var)
                     .ok_or(Error::from(ErrorKind::Undefined(var.clone())))?;
+                let typ = var.typ().clone();
                 let value = self.transform_node(value)?;
                 if typ != value.typ {
                     bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                 }
-                Ok(Node::new(NodeKind::Assign(id, level, Box::new(value)), Type::Unit))
+                Ok(Node::new(NodeKind::Assign(var, level, Box::new(value)), Type::Unit))
             }
             AstNodeKind::Def(ref def) => {
                 let function = self.transform_def(def)?;
@@ -226,8 +228,8 @@ impl<'a> Context<'a> {
         let mut args = Vec::new();
         for &(ref name, ref typ) in def.args.iter() {
             let typ = scoped.tyenv.get(&typ.name)?;
-            let id = scoped.venv.insert(name.clone(), typ.clone());
-            args.push((id, typ));
+            scoped.venv.insert_arg(name.clone(), typ.clone());
+            args.push(typ);
         }
         let body = def.body
             .iter()
@@ -250,7 +252,7 @@ impl<'a> Context<'a> {
     }
 
     fn define_function(&mut self, name: String, f: Function) {
-        let args = f.args.iter().map(|x| x.1.clone()).collect();
+        let args = f.args.iter().map(|x| x.clone()).collect();
         let id = self.venv.insert_function(name, args, f.ret_typ.clone());
         self.program.borrow_mut().define_function(id, f);
     }

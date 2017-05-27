@@ -20,11 +20,17 @@ impl Compiler {
             NodeKind::Unit => self.push(Instruction::PushUnit),
             NodeKind::Int(n) => self.push(Instruction::PushInt(n)),
             NodeKind::Float(n) => self.push(Instruction::PushFloat(n)),
-            NodeKind::Ident(id, level) => {
-                self.push(Instruction::GetLocal {
-                    id: id.to_u32(),
-                    level: level,
-                })
+            NodeKind::Ident(ref var, level) => {
+                let instr = match *var {
+                    Var::Arg(n, _) => Instruction::GetLocalArg(n),
+                    Var::Local(id, _) => {
+                        Instruction::GetLocal {
+                            id: id.to_u32(),
+                            level: level,
+                        }
+                    }
+                };
+                self.push(instr)
             }
             NodeKind::Call(id, ref args) => {
                 for arg in args {
@@ -86,12 +92,18 @@ impl Compiler {
                     level: 0,
                 });
             }
-            NodeKind::Assign(id, level, ref value) => {
+            NodeKind::Assign(ref var, level, ref value) => {
                 self.compile_node(value);
-                self.push(Instruction::SetLocal {
-                    id: id.to_u32(),
-                    level: level,
-                });
+                let instr = match *var {
+                    Var::Arg(n, _) => Instruction::SetLocalArg(n),
+                    Var::Local(id, _) => {
+                        Instruction::SetLocal {
+                            id: id.to_u32(),
+                            level: level,
+                        }
+                    }
+                };
+                self.push(instr)
             }
         }
     }

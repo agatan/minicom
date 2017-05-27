@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
-use sem::ir::{LocalId, FunctionId, Level, Type};
+use sem::ir::{LocalId, FunctionId, Level, Type, Var};
 
 #[derive(Debug)]
 pub struct VariableEnv<'a> {
     parent: Option<&'a VariableEnv<'a>>,
     vars: HashMap<String, Entry>,
+    n_args: u32,
     n_locals: u32,
     n_functions: u32,
 }
@@ -15,6 +16,7 @@ impl<'a> VariableEnv<'a> {
         VariableEnv {
             parent: None,
             vars: HashMap::new(),
+            n_args: 0,
             n_locals: 0,
             n_functions: 0,
         }
@@ -24,15 +26,23 @@ impl<'a> VariableEnv<'a> {
         VariableEnv {
             parent: Some(self),
             vars: HashMap::new(),
+            n_args: 0,
             n_locals: 0,
             n_functions: 0,
         }
     }
 
-    pub fn insert(&mut self, name: String, typ: Type) -> LocalId {
+    pub fn insert_arg(&mut self, name: String, typ: Type) -> u32 {
+        let n = self.n_args;
+        self.n_args += 1;
+        self.vars.insert(name, Entry::Var(Var::Arg(n, typ)));
+        n
+    }
+
+    pub fn insert_local(&mut self, name: String, typ: Type) -> LocalId {
         let id = LocalId::new(self.n_locals);
         self.n_locals += 1;
-        self.vars.insert(name, Entry::Var(id, typ));
+        self.vars.insert(name, Entry::Var(Var::Local(id, typ)));
         id
     }
 
@@ -43,13 +53,13 @@ impl<'a> VariableEnv<'a> {
         id
     }
 
-    pub fn get_var(&self, name: &str) -> Option<(LocalId, Level, Type)> {
+    pub fn get_var(&self, name: &str) -> Option<(Var, Level)> {
         match self.vars.get(name) {
-            Some(&Entry::Var(id, ref typ)) => Some((id, 0, typ.clone())),
+            Some(&Entry::Var(ref v)) => Some((v.clone(), 0)),
             Some(&Entry::Function(_, _, _)) => None,
             None => {
                 self.parent
-                    .and_then(|env| env.get_var(name).map(|(id, level, typ)| (id, level + 1, typ)))
+                    .and_then(|env| env.get_var(name).map(|(var, level)| (var, level + 1)))
             }
         }
     }
@@ -57,7 +67,7 @@ impl<'a> VariableEnv<'a> {
     pub fn get_function(&self, name: &str) -> Option<(FunctionId, Vec<Type>, Type)> {
         match self.vars.get(name) {
             Some(&Entry::Function(id, ref args, ref ret)) => Some((id, args.clone(), ret.clone())),
-            Some(&Entry::Var(_, _)) => None,
+            Some(&Entry::Var(_)) => None,
             None => {
                 self.parent
                     .and_then(|env| {
@@ -71,6 +81,6 @@ impl<'a> VariableEnv<'a> {
 
 #[derive(Debug)]
 pub enum Entry {
-    Var(LocalId, Type),
+    Var(Var),
     Function(FunctionId, Vec<Type>, Type),
 }
