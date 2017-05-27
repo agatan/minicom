@@ -15,7 +15,11 @@ impl Compiler {
 
     pub fn compile(&mut self, rootenv: &LocalEnv, nodes: &[Node]) -> Vec<Instruction> {
         self.compile_root(rootenv);
-        self.compile_nodes(nodes)
+        self.compile_nodes(nodes, true)
+    }
+
+    pub fn funcs(&self) -> HashMap<u32, Rc<instr::Function>> {
+        self.functions.clone()
     }
 
     fn compile_node(&mut self, instrs: &mut Vec<Instruction>, node: &Node, is_root: bool) {
@@ -115,7 +119,7 @@ impl Compiler {
         for (id, f) in f.env.functions() {
             self.compile_function(id, f);
         }
-        let mut instrs = self.compile_nodes(&f.body);
+        let mut instrs = self.compile_nodes(&f.body, false);
         instrs.push(Instruction::Ret);
         let n_locals = f.env.n_locals();
         self.functions.insert(id,
@@ -131,14 +135,14 @@ impl Compiler {
         }
     }
 
-    fn compile_nodes(&mut self, nodes: &[Node]) -> Vec<Instruction> {
+    fn compile_nodes(&mut self, nodes: &[Node], is_root: bool) -> Vec<Instruction> {
         let mut instrs = Vec::new();
         if let Some((last, init)) = nodes.split_last() {
             for node in init {
-                self.compile_node(&mut instrs, node, true);
+                self.compile_node(&mut instrs, node, is_root);
                 instrs.push(Instruction::Pop);
             }
-            self.compile_node(&mut instrs, last, true);
+            self.compile_node(&mut instrs, last, is_root);
         } else {
             instrs.push(Instruction::PushUnit);
         }

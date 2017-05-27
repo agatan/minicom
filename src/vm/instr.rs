@@ -32,3 +32,31 @@ pub struct Function {
     pub instrs: Vec<Instruction>,
     pub n_locals: u32,
 }
+
+impl Function {
+    pub fn start_pc(&self) -> ProgramCounter {
+        ProgramCounter::new(self.instrs.as_ptr())
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct ProgramCounter(*const Instruction);
+
+impl ProgramCounter {
+    pub fn null() -> Self {
+        ProgramCounter::new(0 as *const Instruction)
+    }
+
+    pub fn new(ptr: *const Instruction) -> Self {
+        ProgramCounter(ptr)
+    }
+
+    pub fn fetch(&self) -> Instruction {
+        debug!("fetch: {:?}", unsafe { *self.0 });
+        unsafe { *self.0 }
+    }
+
+    pub fn next(&mut self) {
+        self.0 = unsafe { self.0.offset(1) }
+    }
+}

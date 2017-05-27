@@ -70,7 +70,7 @@ fn run(machine: &mut Machine,
     debug!("program: {:?}", prog);
     let instrs = compiler.compile(ctx.root(), &prog);
     debug!("instrs: {:?}", instrs);
-    Ok(machine.run(&instrs))
+    Ok(machine.run(compiler.funcs(), &instrs))
 }
 
 fn repl(machine: &mut Machine,
