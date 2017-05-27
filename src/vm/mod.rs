@@ -160,7 +160,14 @@ impl Machine {
                 }
                 self.pc = f.start_pc();
             }
-            Ret => unimplemented!(),
+            Ret => {
+                let v = self.stack.pop();
+                let last_frame = self.frames.pop().expect("frames is not empty");
+                self.pc = last_frame.pc;
+                self.stack.set_len(last_frame.fp);
+                self.stack.push(v);
+                self.pc.next();
+            }
             Print => {
                 let v = self.stack.pop();
                 println!("{}", v);

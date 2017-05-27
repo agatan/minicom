@@ -6,4 +6,4 @@ def add(x: int, y: int): int {
     z
 };
 
-add(1, 2)
+print(add(1, 2));

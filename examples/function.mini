@@ -1,4 +1,5 @@
 let global_var0 = 0;
+print(global_var0);
 
 def add(x: int, y: int): int {
     global_var0 = x + y;
@@ -7,12 +8,15 @@ def add(x: int, y: int): int {
 
 let x = 1.0;
 let y = 2.0;
-let global_var1 = add(1, 2);
+let global_var1 = add(0, 1) + 1;
+
+print(global_var0);
+print(global_var1);
 
 def sub(x: int, y: int): int {
-global_var1 = x - y;
+  global_var1 = x - y + 1;
   x - y
 };
 
-print(x);
-print(y);
+print(sub(4, 1));
+print(global_var1);

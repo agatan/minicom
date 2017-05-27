@@ -27,6 +27,10 @@ impl Stack {
     pub fn len(&self) -> usize {
         self.values.len()
     }
+
+    pub fn set_len(&mut self, p: usize) {
+        self.values.truncate(p)
+    }
 }
 
 impl Index<usize> for Stack {
