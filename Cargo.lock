@@ -2,11 +2,10 @@
 name = "minivm"
 version = "0.1.0"
 dependencies = [
- "combine 2.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "combine-language 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "minivm-syntax 0.1.0",
  "rustyline 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -133,6 +132,14 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "minivm-syntax"
+version = "0.1.0"
+dependencies = [
+ "combine 2.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "combine-language 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

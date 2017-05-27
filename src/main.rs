@@ -1,20 +1,17 @@
 #![feature(box_syntax, box_patterns)]
 
 #[macro_use]
-extern crate combine;
-extern crate combine_language;
-#[macro_use]
 extern crate log;
 extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
 extern crate rustyline;
 
+extern crate minivm_syntax as syntax;
+
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
 
-mod ast;
-mod parse;
 mod sem;
 mod compiler;
 mod vm;
@@ -22,6 +19,9 @@ mod vm;
 use std::io::prelude::*;
 use std::fs::File;
 use std::error::Error;
+
+use syntax::{ast, parse};
+
 use sem::Context;
 use compiler::Compiler;
 use vm::{Value, Machine};

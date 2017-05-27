@@ -4,9 +4,9 @@ version = "0.1.0"
 authors = ["agatan <agatan039@gmail.com>"]
 
 [dependencies]
-combine = "*"
-combine-language = "*"
 log = "*"
 env_logger = "*"
 error-chain = "*"
 rustyline = "*"
+
+minivm-syntax = { path = "./syntax" }
