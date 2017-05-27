@@ -15,7 +15,7 @@ impl Compiler {
         self.instrs.push(instr)
     }
 
-    fn compile_node(&mut self, node: &Node) {
+    fn compile_node(&mut self, node: &Node, is_root: bool) {
         match node.kind {
             NodeKind::Unit => self.push(Instruction::PushUnit),
             NodeKind::Int(n) => self.push(Instruction::PushInt(n)),
@@ -26,9 +26,10 @@ impl Compiler {
                     level: lv_var.level,
                 })
             }
+            NodeKind::GlobalIdent(ref var) => self.push(Instruction::GetGlobal(var.index)),
             NodeKind::Call(ref lv_var, ref args) => {
                 for arg in args {
-                    self.compile_node(arg);
+                    self.compile_node(arg, is_root);
                 }
                 self.push(Instruction::Call {
                     id: lv_var.value,
@@ -37,62 +38,70 @@ impl Compiler {
                 })
             }
             NodeKind::AddInt(ref l, ref r) => {
-                self.compile_node(r);
-                self.compile_node(l);
+                self.compile_node(r, is_root);
+                self.compile_node(l, is_root);
                 self.push(Instruction::AddInt);
             }
             NodeKind::SubInt(ref l, ref r) => {
-                self.compile_node(r);
-                self.compile_node(l);
+                self.compile_node(r, is_root);
+                self.compile_node(l, is_root);
                 self.push(Instruction::SubInt);
             }
             NodeKind::MulInt(ref l, ref r) => {
-                self.compile_node(r);
-                self.compile_node(l);
+                self.compile_node(r, is_root);
+                self.compile_node(l, is_root);
                 self.push(Instruction::MulInt);
             }
             NodeKind::DivInt(ref l, ref r) => {
-                self.compile_node(r);
-                self.compile_node(l);
+                self.compile_node(r, is_root);
+                self.compile_node(l, is_root);
                 self.push(Instruction::DivInt);
             }
             NodeKind::AddFloat(ref l, ref r) => {
-                self.compile_node(r);
-                self.compile_node(l);
+                self.compile_node(r, is_root);
+                self.compile_node(l, is_root);
                 self.push(Instruction::AddFloat);
             }
             NodeKind::SubFloat(ref l, ref r) => {
-                self.compile_node(r);
-                self.compile_node(l);
+                self.compile_node(r, is_root);
+                self.compile_node(l, is_root);
                 self.push(Instruction::SubFloat);
             }
             NodeKind::MulFloat(ref l, ref r) => {
-                self.compile_node(r);
-                self.compile_node(l);
+                self.compile_node(r, is_root);
+                self.compile_node(l, is_root);
                 self.push(Instruction::MulFloat);
             }
             NodeKind::DivFloat(ref l, ref r) => {
-                self.compile_node(r);
-                self.compile_node(l);
+                self.compile_node(r, is_root);
+                self.compile_node(l, is_root);
                 self.push(Instruction::DivFloat);
             }
             NodeKind::Print(ref e) => {
-                self.compile_node(e);
+                self.compile_node(e, is_root);
                 self.push(Instruction::Print);
             }
             NodeKind::Let(ref let_) => {
-                self.compile_node(&let_.value);
-                self.push(Instruction::SetLocal {
-                    id: let_.id,
-                    level: 0,
-                });
+                self.compile_node(&let_.value, is_root);
+                if is_root {
+                    self.push(Instruction::SetGlobal(let_.id))
+                } else {
+                    self.push(Instruction::SetLocal {
+                        id: let_.id,
+                        level: 0,
+                    })
+                }
             }
             NodeKind::Assign(ref lv_var, ref value) => {
-                self.compile_node(value);
+                self.compile_node(value, is_root);
                 self.push(Instruction::SetLocal {
                     id: lv_var.value.index,
                     level: lv_var.level,
                 })
+            }
+            NodeKind::AssignGlobal(ref var, ref value) => {
+                self.compile_node(value, is_root);
+                self.push(Instruction::SetGlobal(var.index))
             }
         }
     }
@@ -100,10 +109,10 @@ impl Compiler {
     fn compile(&mut self, nodes: &[Node]) {
         if let Some((last, init)) = nodes.split_last() {
             for node in init {
-                self.compile_node(node);
+                self.compile_node(node, true);
                 self.push(Instruction::Pop);
             }
-            self.compile_node(last);
+            self.compile_node(last, true);
         }
     }
 }

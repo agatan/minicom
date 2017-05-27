@@ -9,6 +9,7 @@ pub struct Machine {
     pc: usize,
     stack: stack::Stack,
     vars: Vec<Value>,
+    global_vars: Vec<Value>,
 }
 
 impl Machine {
@@ -17,6 +18,7 @@ impl Machine {
             pc: 0,
             stack: stack::Stack::new(),
             vars: Vec::new(),
+            global_vars: Vec::new(),
         }
     }
 
@@ -152,6 +154,20 @@ impl Machine {
             GetLocal { id, level } => {
                 debug_assert_eq!(level, 0);
                 let v = self.vars[id as usize];
+                self.stack.push(v);
+            }
+
+            SetGlobal(n) => {
+                let v = self.stack.pop();
+                if self.global_vars.len() == n as usize {
+                    self.global_vars.push(v);
+                } else {
+                    self.global_vars[n as usize] = v;
+                }
+                self.stack.push(Value::Unit)
+            }
+            GetGlobal(n) => {
+                let v = self.global_vars[n as usize];
                 self.stack.push(v);
             }
         }

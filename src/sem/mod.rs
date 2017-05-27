@@ -37,6 +37,7 @@ error_chain! {
 #[derive(Debug)]
 pub struct Context {
     typemap: Rc<RefCell<TypeMap>>,
+    rootenv: LocalEnv,
     envchain: Vec<LocalEnv>,
     // venv: VariableEnv<'a>,
     tyenv: Rc<TypeEnv>,
@@ -46,10 +47,16 @@ impl Context {
     pub fn new() -> Self {
         Context {
             typemap: Rc::new(RefCell::new(TypeMap::new())),
-            envchain: vec![LocalEnv::new()],
+            rootenv: LocalEnv::new(),
+            envchain: Vec::new(),
             // venv: VariableEnv::new(),
             tyenv: Rc::new(TypeEnv::new()),
         }
+    }
+
+    pub fn transform(&mut self, nodes: &[AstNode]) -> Result<Vec<Node>> {
+        self.collect_types(nodes)?;
+        nodes.iter().map(|n| self.transform_node(n)).collect::<Result<_>>()
     }
 
     fn enter_scope(&mut self) -> Scoped {
@@ -59,7 +66,18 @@ impl Context {
     }
 
     fn current_env(&mut self) -> &mut LocalEnv {
-        self.envchain.last_mut().unwrap()
+        match self.envchain.last_mut() {
+            Some(env) => env,
+            None => &mut self.rootenv,
+        }
+    }
+
+    fn current_depth(&self) -> u32 {
+        self.envchain.len() as u32
+    }
+
+    fn is_root(&self, level: u32) -> bool {
+        level == self.current_depth()
     }
 
     fn get_var(&self, name: &str) -> Option<Level<Var>> {
@@ -71,7 +89,12 @@ impl Context {
                 });
             }
         }
-        None
+        self.rootenv.get_local(name).map(|var| {
+            Level {
+                value: var,
+                level: self.envchain.len() as u32,
+            }
+        })
     }
 
     fn get_function_info(&self, name: &str) -> Option<Level<FunctionInfo>> {
@@ -84,11 +107,6 @@ impl Context {
             }
         }
         None
-    }
-
-    pub fn transform(&mut self, nodes: &[AstNode]) -> Result<Vec<Node>> {
-        self.collect_types(nodes)?;
-        nodes.iter().map(|n| self.transform_node(n)).collect::<Result<_>>()
     }
 
     fn collect_types(&mut self, nodes: &[AstNode]) -> Result<()> {
@@ -126,7 +144,11 @@ impl Context {
                     None => bail!(ErrorKind::Undefined(name.clone())),
                     Some(lv_var) => {
                         let typ = lv_var.value.typ.clone();
-                        Ok(Node::new(NodeKind::Ident(lv_var), typ))
+                        if self.is_root(lv_var.level) {
+                            Ok(Node::new(NodeKind::GlobalIdent(lv_var.value), typ))
+                        } else {
+                            Ok(Node::new(NodeKind::Ident(lv_var), typ))
+                        }
                     }
                 }
             }
@@ -243,7 +265,12 @@ impl Context {
                 if typ != value.typ {
                     bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                 }
-                Ok(Node::new(NodeKind::Assign(lv_var, Box::new(value)), Type::Unit))
+                if self.is_root(lv_var.level) {
+                    Ok(Node::new(NodeKind::AssignGlobal(lv_var.value, Box::new(value)),
+                                 Type::Unit))
+                } else {
+                    Ok(Node::new(NodeKind::Assign(lv_var, Box::new(value)), Type::Unit))
+                }
             }
             AstNodeKind::Def(ref def) => {
                 let function = self.transform_def(def)?;

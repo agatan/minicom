@@ -28,6 +28,7 @@ pub enum NodeKind {
     Int(i64),
     Float(f64),
     Ident(Level<Var>),
+    GlobalIdent(Var),
     Call(Level<u32>, Vec<Node>),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
@@ -41,6 +42,7 @@ pub enum NodeKind {
 
     Let(Box<Let>),
     Assign(Level<Var>, Box<Node>),
+    AssignGlobal(Var, Box<Node>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

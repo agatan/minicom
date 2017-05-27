@@ -21,4 +21,7 @@ pub enum Instruction {
 
     SetLocal { id: u32, level: u32 },
     GetLocal { id: u32, level: u32 },
+
+    SetGlobal(u32),
+    GetGlobal(u32),
 }
