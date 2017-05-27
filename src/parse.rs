@@ -3,10 +3,10 @@ use std::cell::Cell;
 use combine::{State, Parser, ParseResult, Stream, unexpected, env_parser, eof};
 use combine::primitives::ParseError;
 use combine::char::{spaces, alpha_num, letter, string, char};
-use combine::combinator::{EnvParser, try, sep_end_by, optional};
+use combine::combinator::{EnvParser, try, sep_end_by, optional, many};
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
-use ast::{NodeId, Node, NodeKind, Let, Type};
+use ast::{NodeId, Node, NodeKind, Let, Type, Def};
 
 type LanguageParser<'input: 'parser, 'parser, I, T> = EnvParser<&'parser ParserEnv<'input, I>,
                                                                 I,
@@ -27,7 +27,7 @@ impl<'input, I> ParserEnv<'input, I>
                 ident: Identifier {
                     start: letter(),
                     rest: alpha_num(),
-                    reserved: ["print", "let"].iter().map(|x| (*x).into()).collect(),
+                    reserved: ["print", "let", "def"].iter().map(|x| (*x).into()).collect(),
                 },
                 op: Identifier {
                     start: unexpected("cannot use user defined operator").map(|_| ' '),
@@ -47,20 +47,45 @@ impl<'input, I> ParserEnv<'input, I>
         NodeId::new(x)
     }
 
-    fn parse_toplevel_node(&self, input: I) -> ParseResult<Node, I> {
-        choice!(self.statement(), self.expression()).parse_stream(input)
+    fn parse_node(&self, input: I) -> ParseResult<Node, I> {
+        choice!(self.def(), self.statement(), self.expression()).parse_stream(input)
     }
 
-    pub fn toplevel_node<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
-        env_parser(self, ParserEnv::parse_toplevel_node)
+    pub fn node<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
+        env_parser(self, ParserEnv::parse_node)
     }
 
     fn parse_toplevel_code(&self, input: I) -> ParseResult<Vec<Node>, I> {
-        sep_end_by(self.toplevel_node(), self.env.lex(char(';'))).parse_stream(input)
+        sep_end_by(self.node(), self.env.lex(char(';'))).parse_stream(input)
     }
 
     pub fn toplevel_code<'p>(&'p self) -> LanguageParser<'input, 'p, I, Vec<Node>> {
         env_parser(self, ParserEnv::parse_toplevel_code)
+    }
+
+    // definition
+    fn parse_def(&self, input: I) -> ParseResult<Node, I> {
+        let arg = (self.env.identifier(), self.typespec());
+        let args = sep_end_by(arg, self.env.lex(char(',')));
+        (self.env.reserved("def"),
+         self.env.identifier(),
+         self.env.parens(args),
+         optional(self.typespec()),
+         self.env.braces(many(self.node())))
+            .map(|(_def, name, args, ret, body)| {
+                let def = Def {
+                    name: name,
+                    args: args,
+                    ret: ret,
+                    body: body,
+                };
+                Node::new(self.new_node_id(), NodeKind::Def(Box::new(def)))
+            })
+            .parse_stream(input)
+    }
+
+    fn def<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
+        env_parser(self, ParserEnv::parse_def)
     }
 
     // statements

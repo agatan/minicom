@@ -160,6 +160,7 @@ impl Context {
                 }
                 Ok(Node::new(NodeKind::Assign(id, Box::new(value)), Type::Unit))
             }
+            AstNodeKind::Def(_) => unimplemented!(),
         }
     }
 }
