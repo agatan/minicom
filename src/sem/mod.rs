@@ -65,6 +65,10 @@ impl Context {
         Scoped(self)
     }
 
+    pub fn root(&self) -> &LocalEnv {
+        &self.rootenv
+    }
+
     fn current_env(&mut self) -> &mut LocalEnv {
         match self.envchain.last_mut() {
             Some(env) => env,

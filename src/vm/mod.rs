@@ -132,6 +132,7 @@ impl Machine {
                 }
             }
             Call { id, n_args } => unimplemented!(),
+            Ret => unimplemented!(),
             Print => {
                 let v = self.stack.pop();
                 println!("{}", v);

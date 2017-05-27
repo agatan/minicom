@@ -23,6 +23,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::error::Error;
 use sem::Context;
+use compiler::Compiler;
 use vm::{Value, Machine};
 
 macro_rules! try_or_exit {
@@ -41,33 +42,41 @@ fn main() {
     try_or_exit!(env_logger::init());
 
     let mut ctx = Context::new();
+    let mut compiler = Compiler::new();
     let mut machine = Machine::new();
 
     match ::std::env::args().nth(1) {
         None => {
-            try_or_exit!(repl(&mut machine, &mut ctx));
+            try_or_exit!(repl(&mut machine, &mut compiler, &mut ctx));
         }
         Some(filename) => {
             let mut file = try_or_exit!(File::open(filename));
             let mut contents = String::new();
             try_or_exit!(file.read_to_string(&mut contents));
-            try_or_exit!(run(&mut machine, &mut ctx, &contents));
+            try_or_exit!(run(&mut machine, &mut compiler, &mut ctx, &contents));
         }
     };
 }
 
-fn run(machine: &mut Machine, ctx: &mut Context, input: &str) -> Result<Value, String> {
+fn run(machine: &mut Machine,
+       compiler: &mut Compiler,
+       ctx: &mut Context,
+       input: &str)
+       -> Result<Value, String> {
     let nodes = parse::parse(input).map_err(|err| format!("{}", err))?;
     debug!("nodes: {:?}", nodes);
     // let nodes = ctx.check(&nodes).map_err(|err| format!("{}", err))?;
     let prog = ctx.transform(&nodes).map_err(|err| format!("{}", err))?;
     debug!("program: {:?}", prog);
-    let instrs = compiler::compile(&prog);
+    let instrs = compiler.compile(ctx.root(), &prog);
     debug!("instrs: {:?}", instrs);
     Ok(machine.run(&instrs))
 }
 
-fn repl(machine: &mut Machine, ctx: &mut Context) -> Result<(), Box<Error>> {
+fn repl(machine: &mut Machine,
+        compiler: &mut Compiler,
+        ctx: &mut Context)
+        -> Result<(), Box<Error>> {
     let mut rl = Editor::<()>::new();
     loop {
         let readline = rl.readline(">> ");
@@ -77,7 +86,7 @@ fn repl(machine: &mut Machine, ctx: &mut Context) -> Result<(), Box<Error>> {
                     return Ok(());
                 }
                 rl.add_history_entry(&line);
-                match run(machine, ctx, &line) {
+                match run(machine, compiler, ctx, &line) {
                     Ok(value) => println!("=> {}", value),
                     Err(err) => println!("{}", err),
                 }

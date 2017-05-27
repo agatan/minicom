@@ -16,6 +16,7 @@ pub enum Instruction {
     DivFloat,
 
     Call { id: u32, n_args: u32 },
+    Ret,
 
     Print,
 
