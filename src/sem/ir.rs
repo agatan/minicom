@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Program {
-    pub functions: HashMap<IdentId, Function>,
+    pub functions: HashMap<FunctionId, Function>,
     pub toplevel: Vec<Node>,
 }
 
@@ -14,7 +14,7 @@ impl Program {
         }
     }
 
-    pub fn define_function(&mut self, id: IdentId, f: Function) {
+    pub fn define_function(&mut self, id: FunctionId, f: Function) {
         self.functions.insert(id, f);
     }
 }
@@ -28,7 +28,7 @@ pub enum Type {
 
 #[derive(Debug)]
 pub struct Function {
-    pub args: Vec<(IdentId, Type)>,
+    pub args: Vec<(LocalId, Type)>,
     pub ret_typ: Type,
     pub body: Vec<Node>,
 }
@@ -53,7 +53,7 @@ pub enum NodeKind {
     Unit,
     Int(i64),
     Float(f64),
-    Ident(IdentId, Level),
+    Ident(LocalId, Level),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
     MulInt(Box<Node>, Box<Node>),
@@ -65,15 +65,28 @@ pub enum NodeKind {
     Print(Box<Node>),
 
     Let(Box<Let>),
-    Assign(IdentId, Level, Box<Node>),
+    Assign(LocalId, Level, Box<Node>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct IdentId(u32);
+pub struct LocalId(u32);
 
-impl IdentId {
+impl LocalId {
     pub fn new(x: u32) -> Self {
-        IdentId(x)
+        LocalId(x)
+    }
+
+    pub fn to_u32(&self) -> u32 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FunctionId(u32);
+
+impl FunctionId {
+    pub fn new(x: u32) -> Self {
+        FunctionId(x)
     }
 
     pub fn to_u32(&self) -> u32 {
@@ -85,7 +98,7 @@ pub type Level = u32;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Let {
-    pub id: IdentId,
+    pub id: LocalId,
     pub typ: Type,
     pub value: Node,
 }

@@ -1,0 +1,13 @@
+let globalvar = 0;
+
+def add(x: int, y: int): int {
+    globalvar = x + y
+    globalvar
+};
+
+let x = 1.0;
+let y = 2.0;
+
+def sub(x: int, y: int): int {
+  x - y
+}
