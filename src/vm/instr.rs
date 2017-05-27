@@ -16,6 +16,6 @@ pub enum Instruction {
 
     Print,
 
-    SetLocal(u32),
-    GetLocal(u32),
+    SetLocal { id: u32, level: u32 },
+    GetLocal { id: u32, level: u32 },
 }

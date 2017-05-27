@@ -19,7 +19,12 @@ impl Compiler {
         match node.kind {
             NodeKind::Int(n) => self.push(Instruction::PushInt(n)),
             NodeKind::Float(n) => self.push(Instruction::PushFloat(n)),
-            NodeKind::Ident(id) => self.push(Instruction::GetLocal(id.to_u32())),
+            NodeKind::Ident(id, level) => {
+                self.push(Instruction::GetLocal {
+                    id: id.to_u32(),
+                    level: level,
+                })
+            }
             NodeKind::AddInt(ref l, ref r) => {
                 self.compile_node(r);
                 self.compile_node(l);
@@ -66,11 +71,17 @@ impl Compiler {
             }
             NodeKind::Let(ref let_) => {
                 self.compile_node(&let_.value);
-                self.push(Instruction::SetLocal(let_.id.to_u32()));
+                self.push(Instruction::SetLocal {
+                    id: let_.id.to_u32(),
+                    level: 0,
+                });
             }
-            NodeKind::Assign(id, ref value) => {
+            NodeKind::Assign(id, level, ref value) => {
                 self.compile_node(value);
-                self.push(Instruction::SetLocal(id.to_u32()));
+                self.push(Instruction::SetLocal {
+                    id: id.to_u32(),
+                    level: level,
+                });
             }
         }
     }

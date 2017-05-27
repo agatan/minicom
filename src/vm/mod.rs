@@ -133,21 +133,23 @@ impl Machine {
                 println!("{}", v);
                 self.stack.push(Value::Unit);
             }
-            SetLocal(n) => {
+            SetLocal { id, level } => {
                 let v = self.stack.pop();
-                debug_assert!(n as usize <= self.vars.len(),
-                              "n: {}, vars: {:?}",
-                              n,
+                debug_assert!(id as usize <= self.vars.len(),
+                              "id: {}, vars: {:?}",
+                              id,
                               self.vars);
-                if self.vars.len() == n as usize {
+                debug_assert_eq!(level, 0);
+                if self.vars.len() == id as usize {
                     self.vars.push(v);
                 } else {
-                    self.vars[n as usize] = v;
+                    self.vars[id as usize] = v;
                 }
                 self.stack.push(Value::Unit);
             }
-            GetLocal(n) => {
-                let v = self.vars[n as usize];
+            GetLocal { id, level } => {
+                debug_assert_eq!(level, 0);
+                let v = self.vars[id as usize];
                 self.stack.push(v);
             }
         }

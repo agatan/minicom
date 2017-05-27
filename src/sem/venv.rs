@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use sem::ir::{IdentId, Type, Function};
+use sem::ir::{IdentId, Level, Type};
 
 #[derive(Debug)]
 pub struct VariableEnv {
@@ -30,12 +30,12 @@ impl VariableEnv {
         IdentId::new(index as u32)
     }
 
-    pub fn get_var(&self, name: &str) -> Option<(IdentId, Type)> {
+    pub fn get_var(&self, name: &str) -> Option<(IdentId, Level, Type)> {
         self.vars
             .get(name)
             .and_then(|&index| {
                 match self.entries[index] {
-                    Entry::Var(ref typ) => Some((IdentId::new(index as u32), typ.clone())),
+                    Entry::Var(ref typ) => Some((IdentId::new(index as u32), 0, typ.clone())),
                     Entry::Function(_, _) => None,
                 }
             })

@@ -40,7 +40,7 @@ impl Node {
 pub enum NodeKind {
     Int(i64),
     Float(f64),
-    Ident(IdentId),
+    Ident(IdentId, Level),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
     MulInt(Box<Node>, Box<Node>),
@@ -52,7 +52,7 @@ pub enum NodeKind {
     Print(Box<Node>),
 
     Let(Box<Let>),
-    Assign(IdentId, Box<Node>),
+    Assign(IdentId, Level, Box<Node>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -67,6 +67,8 @@ impl IdentId {
         self.0
     }
 }
+
+pub type Level = u32;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Let {

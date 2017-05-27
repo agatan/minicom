@@ -94,7 +94,9 @@ impl Context {
             AstNodeKind::Ident(ref name) => {
                 match self.venv.get_var(name) {
                     None => bail!(ErrorKind::Undefined(name.clone())),
-                    Some((id, typ)) => Ok(Node::new(NodeKind::Ident(id), typ.clone())),
+                    Some((id, level, typ)) => {
+                        Ok(Node::new(NodeKind::Ident(id, level), typ.clone()))
+                    }
                 }
             }
             AstNodeKind::Add(ref l, ref r) => {
@@ -180,14 +182,14 @@ impl Context {
                              Type::Unit))
             }
             AstNodeKind::Assign(ref var, ref value) => {
-                let (id, typ) = self.venv
+                let (id, level, typ) = self.venv
                     .get_var(var)
                     .ok_or(Error::from(ErrorKind::Undefined(var.clone())))?;
                 let value = self.transform_node(value)?;
                 if typ != value.typ {
                     bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                 }
-                Ok(Node::new(NodeKind::Assign(id, Box::new(value)), Type::Unit))
+                Ok(Node::new(NodeKind::Assign(id, level, Box::new(value)), Type::Unit))
             }
             AstNodeKind::Def(_) => unimplemented!(),
         }
