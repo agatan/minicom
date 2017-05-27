@@ -29,6 +29,7 @@ impl Machine {
 
     fn eval_instr(&mut self, ins: Instruction) {
         match ins {
+            PushUnit => self.stack.push(Value::Unit),
             Pop => {
                 self.stack.pop();
             }

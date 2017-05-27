@@ -1,5 +1,6 @@
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Instruction {
+    PushUnit,
     Pop,
 
     PushInt(i64),

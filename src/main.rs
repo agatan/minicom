@@ -43,7 +43,7 @@ fn run(machine: &mut Machine, ctx: &mut Context, input: &str) -> Result<Value, S
     let nodes = parse::parse(input).map_err(|err| format!("{}", err))?;
     // let nodes = ctx.check(&nodes).map_err(|err| format!("{}", err))?;
     let prog = ctx.transform(&nodes).map_err(|err| format!("{}", err))?;
-    let instrs = compiler::compile(&prog.toplevel);
+    let instrs = compiler::compile(&prog);
     Ok(machine.run(&instrs))
 }
 

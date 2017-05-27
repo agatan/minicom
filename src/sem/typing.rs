@@ -16,8 +16,4 @@ impl TypeMap {
     pub fn insert(&mut self, id: NodeId, v: Type) {
         self.table.insert(id, v);
     }
-
-    pub fn get(&self, id: NodeId) -> Type {
-        self.table.get(&id).cloned().expect("all ast node should be define in type map")
-    }
 }

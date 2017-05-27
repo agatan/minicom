@@ -6,6 +6,19 @@ pub struct Program {
     pub toplevel: Vec<Node>,
 }
 
+impl Program {
+    pub fn new() -> Self {
+        Program {
+            functions: HashMap::new(),
+            toplevel: Vec::new(),
+        }
+    }
+
+    pub fn define_function(&mut self, id: IdentId, f: Function) {
+        self.functions.insert(id, f);
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,
@@ -15,7 +28,6 @@ pub enum Type {
 
 #[derive(Debug)]
 pub struct Function {
-    pub id: IdentId,
     pub args: Vec<(IdentId, Type)>,
     pub ret_typ: Type,
     pub body: Vec<Node>,
@@ -38,6 +50,7 @@ impl Node {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeKind {
+    Unit,
     Int(i64),
     Float(f64),
     Ident(IdentId, Level),

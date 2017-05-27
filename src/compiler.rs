@@ -17,6 +17,7 @@ impl Compiler {
 
     fn compile_node(&mut self, node: &Node) {
         match node.kind {
+            NodeKind::Unit => self.push(Instruction::PushUnit),
             NodeKind::Int(n) => self.push(Instruction::PushInt(n)),
             NodeKind::Float(n) => self.push(Instruction::PushFloat(n)),
             NodeKind::Ident(id, level) => {

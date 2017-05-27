@@ -3,14 +3,24 @@ use std::collections::HashMap;
 use sem::ir::{IdentId, Level, Type};
 
 #[derive(Debug)]
-pub struct VariableEnv {
+pub struct VariableEnv<'a> {
+    parent: Option<&'a VariableEnv<'a>>,
     entries: Vec<Entry>,
     vars: HashMap<String, usize>,
 }
 
-impl VariableEnv {
+impl<'a> VariableEnv<'a> {
     pub fn new() -> Self {
         VariableEnv {
+            parent: None,
+            entries: Vec::new(),
+            vars: HashMap::new(),
+        }
+    }
+
+    pub fn scoped<'parent>(&'parent self) -> VariableEnv<'parent> {
+        VariableEnv {
+            parent: Some(self),
             entries: Vec::new(),
             vars: HashMap::new(),
         }

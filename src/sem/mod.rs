@@ -1,11 +1,12 @@
-use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub mod ir;
 mod typing;
 mod venv;
 mod tyenv;
 
-use self::ir::{Program, Node, NodeKind, Type, Let};
+use self::ir::{Program, IdentId, Node, NodeKind, Type, Let, Function};
 use ast::{Node as AstNode, NodeKind as AstNodeKind};
 pub use self::typing::TypeMap;
 use self::venv::VariableEnv;
@@ -29,28 +30,35 @@ error_chain! {
 }
 
 #[derive(Debug)]
-pub struct Context {
-    typemap: TypeMap,
-    venv: VariableEnv,
-    tyenv: TypeEnv,
+pub struct Context<'a> {
+    typemap: Rc<RefCell<TypeMap>>,
+    venv: VariableEnv<'a>,
+    tyenv: Rc<TypeEnv>,
+    program: Rc<RefCell<Program>>,
 }
 
-impl Context {
+impl<'a> Context<'a> {
     pub fn new() -> Self {
         Context {
-            typemap: TypeMap::new(),
+            typemap: Rc::new(RefCell::new(TypeMap::new())),
             venv: VariableEnv::new(),
-            tyenv: TypeEnv::new(),
+            tyenv: Rc::new(TypeEnv::new()),
+            program: Rc::new(RefCell::new(Program::new())),
         }
     }
 
-    pub fn transform(&mut self, nodes: &[AstNode]) -> Result<Program> {
+    pub fn scoped(&self) -> Context {
+        Context {
+            typemap: self.typemap.clone(),
+            venv: self.venv.scoped(),
+            tyenv: self.tyenv.clone(),
+            program: self.program.clone(),
+        }
+    }
+
+    pub fn transform(&mut self, nodes: &[AstNode]) -> Result<Vec<Node>> {
         self.collect_types(nodes)?;
-        let nodes = nodes.iter().map(|n| self.transform_node(n)).collect::<Result<Vec<_>>>()?;
-        Ok(Program {
-            functions: HashMap::new(),
-            toplevel: nodes,
-        })
+        nodes.iter().map(|n| self.transform_node(n)).collect::<Result<_>>()
     }
 
     fn collect_types(&mut self, nodes: &[AstNode]) -> Result<()> {
@@ -75,7 +83,7 @@ impl Context {
 
     pub fn transform_node(&mut self, node: &AstNode) -> Result<Node> {
         let e = self.transform_node_(node)?;
-        self.typemap.insert(node.id, e.typ.clone());
+        self.typemap.borrow_mut().insert(node.id, e.typ.clone());
         Ok(e)
     }
 
@@ -94,8 +102,8 @@ impl Context {
             AstNodeKind::Add(ref l, ref r) => {
                 let left = self.transform_node(l)?;
                 let right = self.transform_node(r)?;
-                let lty = self.typemap.get(l.id);
-                let rty = self.typemap.get(r.id);
+                let lty = left.typ.clone();
+                let rty = right.typ.clone();
                 if lty != rty {
                     bail!(ErrorKind::InvalidTypeUnification(lty, rty));
                 }
@@ -109,8 +117,8 @@ impl Context {
             AstNodeKind::Sub(ref l, ref r) => {
                 let left = self.transform_node(l)?;
                 let right = self.transform_node(r)?;
-                let lty = self.typemap.get(l.id);
-                let rty = self.typemap.get(r.id);
+                let lty = left.typ.clone();
+                let rty = right.typ.clone();
                 if lty != rty {
                     bail!(ErrorKind::InvalidTypeUnification(lty, rty));
                 }
@@ -124,8 +132,8 @@ impl Context {
             AstNodeKind::Mul(ref l, ref r) => {
                 let left = self.transform_node(l)?;
                 let right = self.transform_node(r)?;
-                let lty = self.typemap.get(l.id);
-                let rty = self.typemap.get(r.id);
+                let lty = left.typ.clone();
+                let rty = right.typ.clone();
                 if lty != rty {
                     bail!(ErrorKind::InvalidTypeUnification(lty, rty));
                 }
@@ -183,7 +191,41 @@ impl Context {
                 }
                 Ok(Node::new(NodeKind::Assign(id, level, Box::new(value)), Type::Unit))
             }
-            AstNodeKind::Def(_) => unimplemented!(),
+            AstNodeKind::Def(ref def) => {
+                let mut scoped = self.scoped();
+                let mut args = Vec::new();
+                for &(ref name, ref typ) in def.args.iter() {
+                    let typ = scoped.tyenv.get(&typ.name)?;
+                    let id = scoped.venv.insert(name.clone(), typ.clone());
+                    args.push((id, typ));
+                }
+                let body = def.body
+                    .iter()
+                    .map(|node| scoped.transform_node(node))
+                    .collect::<Result<Vec<_>>>()?;
+                let ret_typ = def.ret
+                    .as_ref()
+                    .map(|ret| scoped.tyenv.get(&ret.name))
+                    .unwrap_or(Ok(Type::Unit))?;
+                let body_typ = body.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
+                if ret_typ != body_typ {
+                    bail!(ErrorKind::InvalidTypeUnification(ret_typ, body_typ));
+                }
+                let id = scoped.venv.insert_function(def.name.clone(),
+                                                     args.iter().map(|x| x.1.clone()).collect(),
+                                                     ret_typ.clone());
+                let function = Function {
+                    args: args,
+                    ret_typ: ret_typ,
+                    body: body,
+                };
+                self.define_function(id, function);
+                Ok(Node::new(NodeKind::Unit, Type::Unit))
+            }
         }
+    }
+
+    fn define_function(&self, id: IdentId, f: Function) {
+        self.program.borrow_mut().define_function(id, f);
     }
 }
