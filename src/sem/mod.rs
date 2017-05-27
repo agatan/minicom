@@ -6,8 +6,8 @@ mod typing;
 mod venv;
 mod tyenv;
 
-use self::ir::{Program, IdentId, Node, NodeKind, Type, Let, Function};
-use ast::{Node as AstNode, NodeKind as AstNodeKind};
+use self::ir::{Program, Node, NodeKind, Type, Let, Function};
+use ast::{self, Node as AstNode, NodeKind as AstNodeKind};
 pub use self::typing::TypeMap;
 use self::venv::VariableEnv;
 use self::tyenv::TypeEnv;
@@ -192,40 +192,44 @@ impl<'a> Context<'a> {
                 Ok(Node::new(NodeKind::Assign(id, level, Box::new(value)), Type::Unit))
             }
             AstNodeKind::Def(ref def) => {
-                let mut scoped = self.scoped();
-                let mut args = Vec::new();
-                for &(ref name, ref typ) in def.args.iter() {
-                    let typ = scoped.tyenv.get(&typ.name)?;
-                    let id = scoped.venv.insert(name.clone(), typ.clone());
-                    args.push((id, typ));
-                }
-                let body = def.body
-                    .iter()
-                    .map(|node| scoped.transform_node(node))
-                    .collect::<Result<Vec<_>>>()?;
-                let ret_typ = def.ret
-                    .as_ref()
-                    .map(|ret| scoped.tyenv.get(&ret.name))
-                    .unwrap_or(Ok(Type::Unit))?;
-                let body_typ = body.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
-                if ret_typ != body_typ {
-                    bail!(ErrorKind::InvalidTypeUnification(ret_typ, body_typ));
-                }
-                let id = scoped.venv.insert_function(def.name.clone(),
-                                                     args.iter().map(|x| x.1.clone()).collect(),
-                                                     ret_typ.clone());
-                let function = Function {
-                    args: args,
-                    ret_typ: ret_typ,
-                    body: body,
-                };
-                self.define_function(id, function);
+                let function = self.transform_def(def)?;
+                self.define_function(def.name.clone(), function);
                 Ok(Node::new(NodeKind::Unit, Type::Unit))
             }
         }
     }
 
-    fn define_function(&self, id: IdentId, f: Function) {
+    fn transform_def(&self, def: &ast::Def) -> Result<Function> {
+        let mut scoped = self.scoped();
+        let mut args = Vec::new();
+        for &(ref name, ref typ) in def.args.iter() {
+            let typ = scoped.tyenv.get(&typ.name)?;
+            let id = scoped.venv.insert(name.clone(), typ.clone());
+            args.push((id, typ));
+        }
+        let body = def.body
+            .iter()
+            .map(|node| scoped.transform_node(node))
+            .collect::<Result<Vec<_>>>()?;
+        let ret_typ = def.ret
+            .as_ref()
+            .map(|ret| scoped.tyenv.get(&ret.name))
+            .unwrap_or(Ok(Type::Unit))?;
+        let body_typ = body.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
+        if ret_typ != body_typ {
+            bail!(ErrorKind::InvalidTypeUnification(ret_typ, body_typ));
+        }
+        let function = Function {
+            args: args,
+            ret_typ: ret_typ,
+            body: body,
+        };
+        Ok(function)
+    }
+
+    fn define_function(&mut self, name: String, f: Function) {
+        let args = f.args.iter().map(|x| x.1.clone()).collect();
+        let id = self.venv.insert_function(name, args, f.ret_typ.clone());
         self.program.borrow_mut().define_function(id, f);
     }
 }
