@@ -4,7 +4,7 @@ use std::ops::{Deref, DerefMut};
 
 pub mod ir;
 mod typing;
-// mod venv;
+mod alpha;
 mod tyenv;
 
 use self::ir::*;
@@ -12,6 +12,7 @@ use ast::{self, Node as AstNode, NodeKind as AstNodeKind};
 pub use self::typing::TypeMap;
 // use self::venv::VariableEnv;
 use self::tyenv::TypeEnv;
+use self::alpha::Alpha;
 
 error_chain! {
     types {
@@ -54,8 +55,10 @@ impl Context {
         }
     }
 
-    pub fn transform(&mut self, nodes: &[AstNode]) -> Result<Vec<Node>> {
-        self.collect_types(nodes)?;
+    pub fn transform(&mut self, nodes: Vec<AstNode>) -> Result<Vec<Node>> {
+        let mut alp = Alpha::new();
+        let nodes = nodes.into_iter().map(|n| alp.apply(n)).collect::<Vec<_>>();
+        self.collect_types(&nodes)?;
         nodes.iter().map(|n| self.transform_node(n)).collect::<Result<_>>()
     }
 
@@ -245,6 +248,7 @@ impl Context {
                 let ty = e.typ.clone();
                 Ok(Node::new(NodeKind::Print(Box::new(e)), ty))
             }
+            AstNodeKind::Block(_) => unimplemented!(),
             AstNodeKind::Let(ref l) => {
                 let value = self.transform_node(&l.value)?;
                 if let Some(ref typ) = l.typ {

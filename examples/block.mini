@@ -1,0 +1,4 @@
+let x = 0
+def sample(x: int, y: int): int {
+  x + y
+}

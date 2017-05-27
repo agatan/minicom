@@ -18,6 +18,7 @@ pub enum NodeKind {
     Mul(Box<Node>, Box<Node>),
     Div(Box<Node>, Box<Node>),
     Parens(Box<Node>),
+    Block(Vec<Node>),
     // FIXME(agatan): temporary builtin command
     Print(Box<Node>),
     Let(Box<Let>),

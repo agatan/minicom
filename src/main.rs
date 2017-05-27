@@ -65,7 +65,7 @@ fn run(machine: &mut Machine,
        -> Result<Value, String> {
     let nodes = syntax::parse(input).map_err(|err| format!("{}", err))?;
     debug!("nodes: {:?}", nodes);
-    let prog = ctx.transform(&nodes).map_err(|err| format!("{}", err))?;
+    let prog = ctx.transform(nodes).map_err(|err| format!("{}", err))?;
     debug!("program: {:?}", prog);
     let instrs = compiler.compile(ctx.root(), &prog);
     debug!("instrs: {:?}", instrs);
@@ -99,7 +99,7 @@ fn repl(machine: &mut Machine,
 
 #[cfg(test)]
 mod tests {
-    use parse;
+    use syntax;
     use sem::Context;
     use compiler::Compiler;
     use vm::{Value, Machine};
@@ -108,8 +108,8 @@ mod tests {
         let mut machine = Machine::new();
         let mut compiler = Compiler::new();
         let mut ctx = Context::new();
-        let nodes = parse::parse(input).map_err(|err| format!("{}", err))?;
-        let prog = ctx.transform(&nodes).map_err(|err| format!("{}", err))?;
+        let nodes = syntax::parse(input).map_err(|err| format!("{}", err))?;
+        let prog = ctx.transform(nodes).map_err(|err| format!("{}", err))?;
         let instrs = compiler.compile(ctx.root(), &prog);
         Ok(machine.run(compiler.funcs(), &instrs))
     }
