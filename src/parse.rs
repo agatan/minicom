@@ -161,15 +161,20 @@ impl<'input, I> ParserEnv<'input, I>
         env_parser(self, ParserEnv::parse_float)
     }
 
-    fn parse_identifier(&self, input: I) -> ParseResult<Node, I> {
+    fn parse_identifier_or_call(&self, input: I) -> ParseResult<Node, I> {
+        let args = self.env.parens(sep_end_by(self.expression(), self.env.lex(char(','))));
         self.env
             .identifier()
-            .map(|n| Node::new(self.new_node_id(), NodeKind::Ident(n)))
+            .and(optional(args))
+            .map(|(n, args)| match args {
+                None => Node::new(self.new_node_id(), NodeKind::Ident(n)),
+                Some(args) => Node::new(self.new_node_id(), NodeKind::Call(n, args)),
+            })
             .parse_stream(input)
     }
 
-    fn identifier<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
-        env_parser(self, ParserEnv::parse_identifier)
+    fn identifier_or_call<'p>(&'p self) -> LanguageParser<'input, 'p, I, Node> {
+        env_parser(self, ParserEnv::parse_identifier_or_call)
     }
 
     fn parse_parens_expr(&self, input: I) -> ParseResult<Node, I> {
@@ -199,7 +204,7 @@ impl<'input, I> ParserEnv<'input, I>
     fn parse_term_expr(&self, input: I) -> ParseResult<Node, I> {
         choice!(self.parens_expr(),
                 self.print_expr(),
-                self.identifier(),
+                self.identifier_or_call(),
                 try(self.float()),
                 self.integer())
             .parse_stream(input)

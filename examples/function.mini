@@ -7,7 +7,7 @@ def add(x: int, y: int): int {
 
 let x = 1.0;
 let y = 2.0;
-let global_var1 = 0;
+let global_var1 = add(1, 2);
 
 def sub(x: int, y: int): int {
 global_var1 = x - y;

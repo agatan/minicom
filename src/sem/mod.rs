@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 
 pub mod ir;
@@ -109,7 +109,7 @@ impl Context {
                 return Some(finfo);
             }
         }
-        None
+        self.rootenv.get_function_info(name)
     }
 
     fn collect_types(&mut self, nodes: &[AstNode]) -> Result<()> {
