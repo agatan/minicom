@@ -26,6 +26,10 @@ error_chain! {
             description("invalid type unification")
             display("cannot unify types: {:?} and {:?}", t1, t2)
         }
+        InvalidArguments(fname: String, required: usize, given: usize) {
+            description("invalid arguments")
+            display("invalid number of arguments for {}: required {:?}, but given {:?}", fname, required, given)
+        }
     }
 }
 
@@ -98,6 +102,24 @@ impl<'a> Context<'a> {
                         Ok(Node::new(NodeKind::Ident(id, level), typ.clone()))
                     }
                 }
+            }
+            AstNodeKind::Call(ref fname, ref args) => {
+                let (id, args_typ, ret_typ) = match self.venv.get_function(fname) {
+                    None => bail!(ErrorKind::Undefined(fname.clone())),
+                    Some(r) => r,
+                };
+                let args = args.iter()
+                    .map(|n| self.transform_node(n))
+                    .collect::<Result<Vec<_>>>()?;
+                if args.len() != args_typ.len() {
+                    bail!(ErrorKind::InvalidArguments(fname.clone(), args_typ.len(), args.len()));
+                }
+                for (required, given) in args_typ.iter().zip(args.iter().map(|n| &n.typ)) {
+                    if required != given {
+                        bail!(ErrorKind::InvalidTypeUnification(required.clone(), given.clone()));
+                    }
+                }
+                Ok(Node::new(NodeKind::Call(id, args), ret_typ.clone()))
             }
             AstNodeKind::Add(ref l, ref r) => {
                 let left = self.transform_node(l)?;

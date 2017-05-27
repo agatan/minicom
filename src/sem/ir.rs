@@ -54,6 +54,7 @@ pub enum NodeKind {
     Int(i64),
     Float(f64),
     Ident(LocalId, Level),
+    Call(FunctionId, Vec<Node>),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
     MulInt(Box<Node>, Box<Node>),
@@ -87,6 +88,10 @@ pub struct FunctionId(u32);
 impl FunctionId {
     pub fn new(x: u32) -> Self {
         FunctionId(x)
+    }
+
+    pub fn to_u32(&self) -> u32 {
+        self.0
     }
 }
 

@@ -26,6 +26,15 @@ impl Compiler {
                     level: level,
                 })
             }
+            NodeKind::Call(id, ref args) => {
+                for arg in args {
+                    self.compile_node(arg);
+                }
+                self.push(Instruction::Call {
+                    id: id.to_u32(),
+                    n_args: args.len() as u32,
+                })
+            }
             NodeKind::AddInt(ref l, ref r) => {
                 self.compile_node(r);
                 self.compile_node(l);

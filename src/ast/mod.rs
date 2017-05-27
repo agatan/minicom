@@ -12,6 +12,7 @@ pub enum NodeKind {
     Int(i64),
     Float(f64),
     Ident(String),
+    Call(String, Vec<Node>),
     Add(Box<Node>, Box<Node>),
     Sub(Box<Node>, Box<Node>),
     Mul(Box<Node>, Box<Node>),
