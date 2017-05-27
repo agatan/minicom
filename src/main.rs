@@ -19,7 +19,8 @@ mod sem;
 mod compiler;
 mod vm;
 
-use std::io::Write;
+use std::io::prelude::*;
+use std::fs::File;
 use sem::Context;
 use vm::{Value, Machine};
 
@@ -29,14 +30,17 @@ fn main() {
     let mut ctx = Context::new();
     let mut machine = Machine::new();
 
-    let input = match ::std::env::args().nth(1) {
+    match ::std::env::args().nth(1) {
         None => {
             repl(&mut machine, &mut ctx);
-            return;
         }
-        Some(input) => input,
+        Some(filename) => {
+            let mut file = File::open(filename).unwrap();
+            let mut contents = String::new();
+            file.read_to_string(&mut contents).unwrap();
+            run(&mut machine, &mut ctx, &contents).unwrap();
+        }
     };
-    run(&mut machine, &mut ctx, &input).unwrap();
 }
 
 fn run(machine: &mut Machine, ctx: &mut Context, input: &str) -> Result<Value, String> {
