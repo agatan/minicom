@@ -1,5 +1,6 @@
 use std::str::Chars;
 use std::iter::Iterator;
+use std::fmt;
 
 use pos::{Byte, Line, Column, Location, Spanned};
 
@@ -37,6 +38,34 @@ impl<'input> Token<'input> {
         match *self {
             Identifier(_) | IntLiteral(_) | FloatLiteral(_) | RParen | RBrace => true,
             _ => false,
+        }
+    }
+}
+
+impl<'input> fmt::Display for Token<'input> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::Token::*;
+        match *self {
+            Identifier(n) => fmt::Debug::fmt(n, f),
+            IntLiteral(n) => n.fmt(f),
+            FloatLiteral(n) => n.fmt(f),
+            Add => "+".fmt(f),
+            Sub => "-".fmt(f),
+            Mul => "*".fmt(f),
+            Div => "/".fmt(f),
+            Equals => "=".fmt(f),
+            Let => "let".fmt(f),
+            Def => "def".fmt(f),
+            Print => "print".fmt(f),
+            Colon => ":".fmt(f),
+            Comma => ",".fmt(f),
+            LParen => "(".fmt(f),
+            RParen => ")".fmt(f),
+            LBrace => "{".fmt(f),
+            RBrace => "}".fmt(f),
+            Semi => ";".fmt(f),
+            ImplicitSemi => "<newline>".fmt(f),
+            EOF => "<EOF>".fmt(f),
         }
     }
 }

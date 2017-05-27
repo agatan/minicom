@@ -2,8 +2,11 @@
 name = "minivm-syntax"
 version = "0.1.0"
 authors = ["agatan <agatan039@gmail.com>"]
+build = "build.rs"
 
 [dependencies]
-combine = "2.3"
-combine-language = "2.0"
-quick-error = "*"
+quick-error = "1.2"
+lalrpop-util = "0.13"
+
+[build-dependencies]
+lalrpop = "0.13"

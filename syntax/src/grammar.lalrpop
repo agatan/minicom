@@ -1,0 +1,139 @@
+use pos::Location;
+use token::Token;
+use ast::{Node, NodeKind, Type, Let, Def};
+
+use MutNodeEnv;
+
+grammar<'input, 'env>(src: &'input str, env: MutNodeEnv<'env>);
+
+extern {
+    type Location = Location;
+
+    enum Token<'input> {
+        "identifier" => Token::Identifier(<&'input str>),
+        "int literal" => Token::IntLiteral(<i64>),
+        "float literal" => Token::FloatLiteral(<f64>),
+
+        "+" => Token::Add,
+        "-" => Token::Sub,
+        "*" => Token::Mul,
+        "/" => Token::Div,
+        "=" => Token::Equals,
+
+        "let" => Token::Let,
+        "def" => Token::Def,
+        "print" => Token::Print,
+
+        ":" => Token::Colon,
+        "," => Token::Comma,
+        "(" => Token::LParen,
+        ")" => Token::RParen,
+        "{" => Token::LBrace,
+        "}" => Token::RBrace,
+
+        ";" => Token::Semi,
+        "newline" => Token::ImplicitSemi,
+    }
+}
+
+Sep = {
+    ";",
+    "newline",
+};
+
+SepSeq<R>: Vec<R> =
+    <rs: (<R> Sep)*> <last: R?> => {
+        let mut rs = rs;
+        rs.extend(last);
+        rs
+    };
+
+Comma<R>: Vec<R> =
+    <rs: (<R> ",")*> <last: R?> => {
+        let mut rs = rs;
+        rs.extend(last);
+        rs
+    };
+
+TypeSpec: Type =
+    ":" <name:"identifier"> => {
+        Type::new(name.to_string())
+    };
+
+Param: (String, Type) =
+    <name:"identifier"> <typ:TypeSpec> => {
+        (name.to_string(), typ)
+    };
+
+// expressions
+
+AtomicExpr: Node = {
+    "identifier" => Node::new(env.next_id(), NodeKind::Ident(<>.to_string())),
+    "print" "(" <expr:Expression> ")" => Node::new(env.next_id(), NodeKind::Print(Box::new(expr))),
+    <name:"identifier"> "(" <args:Comma<Expression>> ")" => Node::new(env.next_id(), NodeKind::Call(name.to_string(), args)),
+    "int literal" => Node::new(env.next_id(), NodeKind::Int(<>)),
+    "float literal" => Node::new(env.next_id(), NodeKind::Float(<>)),
+    "(" <expr:Expression> ")" => Node::new(env.next_id(), NodeKind::Parens(Box::new(expr))),
+};
+
+Factor = {
+    <l:Factor> "*" <r:AtomicExpr> => Node::new(env.next_id(), NodeKind::Mul(Box::new(l), Box::new(r))),
+    <l:Factor> "/" <r:AtomicExpr> => Node::new(env.next_id(), NodeKind::Div(Box::new(l), Box::new(r))),
+    AtomicExpr,
+};
+
+Expression: Node = {
+    <l:Expression> "+" <r:Factor> => Node::new(env.next_id(), NodeKind::Add(Box::new(l), Box::new(r))),
+    <l:Expression> "-" <r:Factor> => Node::new(env.next_id(), NodeKind::Sub(Box::new(l), Box::new(r))),
+    Factor,
+};
+
+// statement
+
+LetStmt: Node = {
+    "let" <name:"identifier"> <typ:TypeSpec?> "=" <value:Expression> => {
+        let let_ = Let {
+            name: name.to_string(),
+            typ: typ,
+            value: value,
+        };
+        Node::new(env.next_id(), NodeKind::Let(Box::new(let_)))
+    },
+};
+
+Assignment: Node = {
+    <name:"identifier"> "=" <value:Expression> => {
+        Node::new(env.next_id(), NodeKind::Assign(name.to_string(), Box::new(value)))
+    }
+};
+
+Statement: Node = {
+    LetStmt,
+    Assignment,
+};
+
+// definition
+
+Definition: Node = {
+    "def" <name:"identifier"> "(" <args:Comma<Param>> ")" <ret:TypeSpec?> "{" <body:Nodes> "}" => {
+        let def = Def {
+            name: name.to_string(),
+            args: args,
+            ret: ret,
+            body: body,
+        };
+        Node::new(env.next_id(), NodeKind::Def(Box::new(def)))
+    },
+};
+
+// nodes
+
+AnyNode: Node = {
+    Definition,
+    Statement,
+    Expression,
+};
+
+Nodes: Vec<Node> = SepSeq<AnyNode>;
+
+pub Toplevel = Nodes;

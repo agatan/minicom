@@ -20,7 +20,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::error::Error;
 
-use syntax::{ast, parse};
+use syntax::ast;
 
 use sem::Context;
 use compiler::Compiler;
@@ -63,9 +63,8 @@ fn run(machine: &mut Machine,
        ctx: &mut Context,
        input: &str)
        -> Result<Value, String> {
-    let nodes = parse::parse(input).map_err(|err| format!("{}", err))?;
+    let nodes = syntax::parse(input).map_err(|err| format!("{}", err))?;
     debug!("nodes: {:?}", nodes);
-    // let nodes = ctx.check(&nodes).map_err(|err| format!("{}", err))?;
     let prog = ctx.transform(&nodes).map_err(|err| format!("{}", err))?;
     debug!("program: {:?}", prog);
     let instrs = compiler.compile(ctx.root(), &prog);
