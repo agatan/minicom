@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["agatan <agatan039@gmail.com>"]
 
 [dependencies]
-combine = "*"
-combine-language = "*"
+combine = "2.3"
+combine-language = "2.0"
