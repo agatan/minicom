@@ -5,6 +5,29 @@ pub enum Type {
     Unit,
 }
 
+#[derive(Debug)]
+pub struct Function {
+    pub id: IdentId,
+    pub args_typ: Vec<Type>,
+    pub ret_typ: Type,
+    pub body: Vec<Node>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Node {
+    pub kind: NodeKind,
+    pub typ: Type,
+}
+
+impl Node {
+    pub fn new(kind: NodeKind, typ: Type) -> Self {
+        Node {
+            kind: kind,
+            typ: typ,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeKind {
     Int(i64),
@@ -42,19 +65,4 @@ pub struct Let {
     pub id: IdentId,
     pub typ: Type,
     pub value: Node,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Node {
-    pub kind: NodeKind,
-    pub typ: Type,
-}
-
-impl Node {
-    pub fn new(kind: NodeKind, typ: Type) -> Self {
-        Node {
-            kind: kind,
-            typ: typ,
-        }
-    }
 }
