@@ -44,14 +44,6 @@ impl Context {
         }
     }
 
-    pub fn check(&mut self, nodes: &[AstNode]) -> Result<Vec<Node>> {
-        let mut results = Vec::with_capacity(nodes.len());
-        for node in nodes {
-            self.transform_node(node).map(|node| results.push(node))?;
-        }
-        Ok(results)
-    }
-
     pub fn transform(&mut self, nodes: &[AstNode]) -> Result<Program> {
         self.collect_types(nodes)?;
         let nodes = nodes.iter().map(|n| self.transform_node(n)).collect::<Result<Vec<_>>>()?;
