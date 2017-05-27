@@ -1,12 +1,14 @@
 pub mod instr;
-pub mod value;
-pub mod stack;
+mod value;
+mod stack;
+
 pub use self::value::Value;
 use self::instr::Instruction;
 use self::instr::Instruction::*;
 
 pub struct Machine {
-    pc: usize,
+    pc: ProgramCounter,
+    end: ProgramCounter,
     stack: stack::Stack,
     vars: Vec<Value>,
     global_vars: Vec<Value>,
@@ -15,29 +17,29 @@ pub struct Machine {
 impl Machine {
     pub fn new() -> Self {
         Machine {
-            pc: 0,
+            pc: ProgramCounter::null(),
+            end: ProgramCounter::null(),
             stack: stack::Stack::new(),
             vars: Vec::new(),
             global_vars: Vec::new(),
         }
     }
 
-    fn fetch_instr(&mut self, instrs: &[Instruction]) -> Instruction {
-        let ins = instrs[self.pc];
-        debug!("instruction: {:?}", ins);
-        self.pc += 1;
-        ins
-    }
-
-    fn eval_instr(&mut self, ins: Instruction) {
+    fn eval_instr(&mut self) {
+        let ins = self.pc.fetch();
         match ins {
-            PushUnit => self.stack.push(Value::Unit),
+            PushUnit => {
+                self.stack.push(Value::Unit);
+                self.pc.next();
+            }
             Pop => {
                 self.stack.pop();
+                self.pc.next();
             }
             PushInt(n) => {
                 let v = Value::Int(n);
                 self.stack.push(v);
+                self.pc.next();
             }
             AddInt => {
                 let v1 = self.stack.pop();
@@ -49,6 +51,7 @@ impl Machine {
                     }
                     _ => panic!("typed expression should be always valid"),
                 }
+                self.pc.next();
             }
             SubInt => {
                 let v1 = self.stack.pop();
@@ -60,6 +63,7 @@ impl Machine {
                     }
                     _ => panic!("typed expression should be always valid"),
                 }
+                self.pc.next();
             }
             MulInt => {
                 let v1 = self.stack.pop();
@@ -71,6 +75,7 @@ impl Machine {
                     }
                     _ => panic!("typed expression should be always valid"),
                 }
+                self.pc.next();
             }
             DivInt => {
                 let v1 = self.stack.pop();
@@ -82,10 +87,12 @@ impl Machine {
                     }
                     _ => panic!("typed expression should be always valid"),
                 }
+                self.pc.next();
             }
             PushFloat(n) => {
                 let v = Value::Float(n);
                 self.stack.push(v);
+                self.pc.next();
             }
             AddFloat => {
                 let v1 = self.stack.pop();
@@ -97,6 +104,7 @@ impl Machine {
                     }
                     _ => panic!("typed expression should be always valid"),
                 }
+                self.pc.next();
             }
             SubFloat => {
                 let v1 = self.stack.pop();
@@ -108,6 +116,7 @@ impl Machine {
                     }
                     _ => panic!("typed expression should be always valid"),
                 }
+                self.pc.next();
             }
             MulFloat => {
                 let v1 = self.stack.pop();
@@ -119,6 +128,7 @@ impl Machine {
                     }
                     _ => panic!("typed expression should be always valid"),
                 }
+                self.pc.next();
             }
             DivFloat => {
                 let v1 = self.stack.pop();
@@ -130,6 +140,7 @@ impl Machine {
                     }
                     _ => panic!("typed expression should be always valid"),
                 }
+                self.pc.next();
             }
             Call { id, n_args } => unimplemented!(),
             Ret => unimplemented!(),
@@ -137,6 +148,7 @@ impl Machine {
                 let v = self.stack.pop();
                 println!("{}", v);
                 self.stack.push(Value::Unit);
+                self.pc.next();
             }
             SetLocal { id, level } => {
                 let v = self.stack.pop();
@@ -151,11 +163,13 @@ impl Machine {
                     self.vars[id as usize] = v;
                 }
                 self.stack.push(Value::Unit);
+                self.pc.next();
             }
             GetLocal { id, level } => {
                 debug_assert_eq!(level, 0);
                 let v = self.vars[id as usize];
                 self.stack.push(v);
+                self.pc.next();
             }
 
             SetGlobal(n) => {
@@ -165,25 +179,48 @@ impl Machine {
                 } else {
                     self.global_vars[n as usize] = v;
                 }
-                self.stack.push(Value::Unit)
+                self.stack.push(Value::Unit);
+                self.pc.next();
             }
             GetGlobal(n) => {
                 let v = self.global_vars[n as usize];
                 self.stack.push(v);
+                self.pc.next();
             }
         }
     }
 
-    fn is_finished(&self, instrs: &[Instruction]) -> bool {
-        self.pc == instrs.len()
+    fn is_finished(&self) -> bool {
+        self.pc == self.end
     }
 
     pub fn run(&mut self, instrs: &[Instruction]) -> Value {
-        self.pc = 0;
-        while !self.is_finished(instrs) {
-            let ins = self.fetch_instr(instrs);
-            self.eval_instr(ins);
+        self.pc = ProgramCounter::new(instrs.as_ptr());
+        self.end = unsafe { ProgramCounter::new(instrs.as_ptr().offset(instrs.len() as isize)) };
+        while !self.is_finished() {
+            self.eval_instr();
         }
         self.stack.pop_optional().unwrap_or(Value::Unit)
+    }
+}
+
+#[derive(PartialEq)]
+struct ProgramCounter(*const Instruction);
+
+impl ProgramCounter {
+    fn null() -> Self {
+        ProgramCounter::new(0 as *const Instruction)
+    }
+
+    fn new(ptr: *const Instruction) -> Self {
+        ProgramCounter(ptr)
+    }
+
+    fn fetch(&self) -> Instruction {
+        unsafe { *self.0 }
+    }
+
+    fn next(&mut self) {
+        self.0 = unsafe { self.0.offset(1) }
     }
 }
