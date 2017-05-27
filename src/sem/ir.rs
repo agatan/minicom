@@ -1,3 +1,11 @@
+use std::collections::HashMap;
+
+#[derive(Debug)]
+pub struct Program {
+    pub functions: HashMap<IdentId, Function>,
+    pub toplevel: Vec<Node>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,

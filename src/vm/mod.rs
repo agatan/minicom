@@ -135,7 +135,10 @@ impl Machine {
             }
             SetLocal(n) => {
                 let v = self.stack.pop();
-                debug_assert!(n as usize <= self.vars.len());
+                debug_assert!(n as usize <= self.vars.len(),
+                              "n: {}, vars: {:?}",
+                              n,
+                              self.vars);
                 if self.vars.len() == n as usize {
                     self.vars.push(v);
                 } else {

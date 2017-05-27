@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+
 pub mod ir;
 mod typing;
 mod venv;
 mod tyenv;
 
-use self::ir::{Node, NodeKind, Type, Let};
+use self::ir::{Program, Node, NodeKind, Type, Let};
 use ast::{Node as AstNode, NodeKind as AstNodeKind};
 pub use self::typing::TypeMap;
 use self::venv::VariableEnv;
@@ -50,6 +52,31 @@ impl Context {
         Ok(results)
     }
 
+    pub fn transform(&mut self, nodes: &[AstNode]) -> Result<Program> {
+        self.collect_types(nodes)?;
+        let nodes = nodes.iter().map(|n| self.transform_node(n)).collect::<Result<Vec<_>>>()?;
+        Ok(Program {
+            functions: HashMap::new(),
+            toplevel: nodes,
+        })
+    }
+
+    fn collect_types(&mut self, nodes: &[AstNode]) -> Result<()> {
+        for node in nodes {
+            match node.kind {
+                AstNodeKind::Let(ref let_) => {
+                    let typ = match let_.typ {
+                        Some(ref typ) => self.tyenv.get(&typ.name)?,
+                        None => self.transform_node(&let_.value).map(|n| n.typ)?,
+                    };
+                    self.venv.insert(let_.name.clone(), typ);
+                }
+                AstNodeKind::Def(ref def) => unimplemented!(),
+                _ => continue,
+            }
+        }
+        Ok(())
+    }
 
     pub fn transform_node(&mut self, node: &AstNode) -> Result<Node> {
         let e = self.transform_node_(node)?;
@@ -134,7 +161,7 @@ impl Context {
                 Ok(Node::new(NodeKind::Print(Box::new(e)), ty))
             }
             AstNodeKind::Let(ref l) => {
-                let name = l.name.clone();
+                let name = &l.name;
                 let value = self.transform_node(&l.value)?;
                 if let Some(ref typ) = l.typ {
                     let typ = self.tyenv.get(&typ.name)?;
@@ -142,7 +169,8 @@ impl Context {
                         bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
                 }
-                let id = self.venv.insert(name.clone(), value.typ.clone());
+                // the variable is already registerd to venv in collect phase.
+                let id = self.venv.get_var(name).map(|(id, _)| id).unwrap();
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                  id: id,
                                  typ: value.typ.clone(),
