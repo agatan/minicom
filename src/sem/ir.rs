@@ -29,7 +29,7 @@ pub enum NodeKind {
     Float(f64),
     Ident(Level<Var>),
     GlobalIdent(Var),
-    Call(Level<u32>, Vec<Node>),
+    Call(u32, Vec<Node>),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
     MulInt(Box<Node>, Box<Node>),
@@ -69,7 +69,6 @@ pub struct Function {
 #[derive(Debug)]
 pub struct LocalEnv {
     locals: Vec<String>,
-    functions: Vec<String>,
     table: HashMap<String, Entry>,
 }
 
@@ -77,7 +76,6 @@ impl LocalEnv {
     pub fn new() -> Self {
         LocalEnv {
             locals: Vec::new(),
-            functions: Vec::new(),
             table: HashMap::new(),
         }
     }
@@ -93,21 +91,15 @@ impl LocalEnv {
         n
     }
 
-    pub fn declare_function(&mut self, name: String, args: Vec<Type>, ret: Type) {
-        let n = self.functions.len() as u32;
-        self.functions.push(name.clone());
-        self.table.insert(name, Entry::ExternFunction(n, args, ret));
+    pub fn declare_function(&mut self, id: u32, name: String, args: Vec<Type>, ret: Type) {
+        self.table.insert(name, Entry::ExternFunction(id, args, ret));
     }
 
     pub fn define_function(&mut self, name: String, f: Function) {
         let n = match self.table.get(&name) {
             Some(&Entry::ExternFunction(n, _, _)) => n,
             Some(_) => unimplemented!(), // FIXME(agatan): duplicated identifiers
-            None => {
-                let n = self.functions.len() as u32;
-                self.functions.push(name.clone());
-                n
-            }
+            None => unreachable!(), // functions should be corrected in advance.
         };
         self.table.insert(name, Entry::Function(n, f));
     }

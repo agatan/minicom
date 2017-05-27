@@ -15,7 +15,7 @@ pub enum Instruction {
     MulFloat,
     DivFloat,
 
-    Call { id: u32, level: u32, n_args: u32 },
+    Call { id: u32, n_args: u32 },
 
     Print,
 

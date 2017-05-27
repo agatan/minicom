@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::ops::{Deref, DerefMut};
 
 pub mod ir;
@@ -39,8 +39,8 @@ pub struct Context {
     typemap: Rc<RefCell<TypeMap>>,
     rootenv: LocalEnv,
     envchain: Vec<LocalEnv>,
-    // venv: VariableEnv<'a>,
     tyenv: Rc<TypeEnv>,
+    function_id: u32,
 }
 
 impl Context {
@@ -49,8 +49,8 @@ impl Context {
             typemap: Rc::new(RefCell::new(TypeMap::new())),
             rootenv: LocalEnv::new(),
             envchain: Vec::new(),
-            // venv: VariableEnv::new(),
             tyenv: Rc::new(TypeEnv::new()),
+            function_id: 0,
         }
     }
 
@@ -80,6 +80,12 @@ impl Context {
         level == self.current_depth()
     }
 
+    fn next_function_id(&mut self) -> u32 {
+        let n = self.function_id;
+        self.function_id += 1;
+        n
+    }
+
     fn get_var(&self, name: &str) -> Option<Level<Var>> {
         for (env, level) in self.envchain.iter().rev().zip(0..) {
             if let Some(var) = env.get_local(name) {
@@ -97,13 +103,10 @@ impl Context {
         })
     }
 
-    fn get_function_info(&self, name: &str) -> Option<Level<FunctionInfo>> {
-        for (env, level) in self.envchain.iter().rev().zip(0..) {
+    fn get_function_info(&self, name: &str) -> Option<FunctionInfo> {
+        for env in self.envchain.iter().rev() {
             if let Some(finfo) = env.get_function_info(name) {
-                return Some(Level {
-                    value: finfo,
-                    level: level,
-                });
+                return Some(finfo);
             }
         }
         None
@@ -121,7 +124,9 @@ impl Context {
                         .iter()
                         .map(|&(_, ref typ)| self.tyenv.get(&typ.name))
                         .collect::<Result<Vec<_>>>()?;
-                    self.current_env().declare_function(def.name.clone(), args, ret);
+                    let id = self.next_function_id();
+                    self.current_env()
+                        .declare_function(id, def.name.clone(), args, ret);
                 }
                 _ => continue,
             }
@@ -153,7 +158,7 @@ impl Context {
                 }
             }
             AstNodeKind::Call(ref fname, ref args) => {
-                let Level { value: finfo, level } = match self.get_function_info(fname) {
+                let finfo = match self.get_function_info(fname) {
                     None => bail!(ErrorKind::Undefined(fname.clone())),
                     Some(r) => r,
                 };
@@ -168,12 +173,7 @@ impl Context {
                         bail!(ErrorKind::InvalidTypeUnification(required.clone(), given.clone()));
                     }
                 }
-                Ok(Node::new(NodeKind::Call(Level {
-                                                value: finfo.index,
-                                                level: level,
-                                            },
-                                            args),
-                             finfo.ret.clone()))
+                Ok(Node::new(NodeKind::Call(finfo.index, args), finfo.ret.clone()))
             }
             AstNodeKind::Add(ref l, ref r) => {
                 let left = self.transform_node(l)?;

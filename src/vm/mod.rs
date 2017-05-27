@@ -131,7 +131,7 @@ impl Machine {
                     _ => panic!("typed expression should be always valid"),
                 }
             }
-            Call { id, level, n_args } => unimplemented!(),
+            Call { id, n_args } => unimplemented!(),
             Print => {
                 let v = self.stack.pop();
                 println!("{}", v);

@@ -27,13 +27,12 @@ impl Compiler {
                 })
             }
             NodeKind::GlobalIdent(ref var) => self.push(Instruction::GetGlobal(var.index)),
-            NodeKind::Call(ref lv_var, ref args) => {
+            NodeKind::Call(index, ref args) => {
                 for arg in args {
                     self.compile_node(arg, is_root);
                 }
                 self.push(Instruction::Call {
-                    id: lv_var.value,
-                    level: lv_var.level,
+                    id: index,
                     n_args: args.len() as u32,
                 })
             }
