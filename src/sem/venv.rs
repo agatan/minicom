@@ -23,13 +23,20 @@ impl VariableEnv {
         IdentId::new(index as u32)
     }
 
+    pub fn insert_function(&mut self, name: String, args: Vec<Type>, ret: Type) -> IdentId {
+        let index = self.entries.len();
+        self.entries.push(Entry::Function(args, ret));
+        self.vars.insert(name, index);
+        IdentId::new(index as u32)
+    }
+
     pub fn get_var(&self, name: &str) -> Option<(IdentId, Type)> {
         self.vars
             .get(name)
             .and_then(|&index| {
                 match self.entries[index] {
                     Entry::Var(ref typ) => Some((IdentId::new(index as u32), typ.clone())),
-                    Entry::Function(_) => None,
+                    Entry::Function(_, _) => None,
                 }
             })
     }
@@ -38,5 +45,5 @@ impl VariableEnv {
 #[derive(Debug)]
 pub enum Entry {
     Var(Type),
-    Function(Function),
+    Function(Vec<Type>, Type),
 }

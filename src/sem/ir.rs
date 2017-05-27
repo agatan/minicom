@@ -16,7 +16,7 @@ pub enum Type {
 #[derive(Debug)]
 pub struct Function {
     pub id: IdentId,
-    pub args_typ: Vec<Type>,
+    pub args: Vec<(IdentId, Type)>,
     pub ret_typ: Type,
     pub body: Vec<Node>,
 }

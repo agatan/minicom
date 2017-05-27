@@ -71,7 +71,17 @@ impl Context {
                     };
                     self.venv.insert(let_.name.clone(), typ);
                 }
-                AstNodeKind::Def(ref def) => unimplemented!(),
+                AstNodeKind::Def(ref def) => {
+                    let ret = def.ret
+                        .as_ref()
+                        .map(|typ| self.tyenv.get(&typ.name))
+                        .unwrap_or(Ok(Type::Unit))?;
+                    let args = def.args
+                        .iter()
+                        .map(|&(_, ref typ)| self.tyenv.get(&typ.name))
+                        .collect::<Result<Vec<_>>>()?;
+                    self.venv.insert_function(def.name.clone(), args, ret);
+                }
                 _ => continue,
             }
         }
