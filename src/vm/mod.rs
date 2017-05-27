@@ -129,7 +129,7 @@ impl Machine {
                     _ => panic!("typed expression should be always valid"),
                 }
             }
-            Call { id, n_args } => unimplemented!(),
+            Call { id, level, n_args } => unimplemented!(),
             Print => {
                 let v = self.stack.pop();
                 println!("{}", v);
@@ -154,7 +154,6 @@ impl Machine {
                 let v = self.vars[id as usize];
                 self.stack.push(v);
             }
-            GetLocalArg(_) | SetLocalArg(_) => unimplemented!(),
         }
     }
 

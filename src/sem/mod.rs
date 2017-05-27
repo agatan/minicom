@@ -1,15 +1,16 @@
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::ops::{Deref, DerefMut};
 
 pub mod ir;
 mod typing;
-mod venv;
+// mod venv;
 mod tyenv;
 
-use self::ir::{Program, Node, NodeKind, Type, Let, Function};
+use self::ir::*;
 use ast::{self, Node as AstNode, NodeKind as AstNodeKind};
 pub use self::typing::TypeMap;
-use self::venv::VariableEnv;
+// use self::venv::VariableEnv;
 use self::tyenv::TypeEnv;
 
 error_chain! {
@@ -34,30 +35,55 @@ error_chain! {
 }
 
 #[derive(Debug)]
-pub struct Context<'a> {
+pub struct Context {
     typemap: Rc<RefCell<TypeMap>>,
-    venv: VariableEnv<'a>,
+    envchain: Vec<LocalEnv>,
+    // venv: VariableEnv<'a>,
     tyenv: Rc<TypeEnv>,
-    program: Rc<RefCell<Program>>,
 }
 
-impl<'a> Context<'a> {
+impl Context {
     pub fn new() -> Self {
         Context {
             typemap: Rc::new(RefCell::new(TypeMap::new())),
-            venv: VariableEnv::new(),
+            envchain: vec![LocalEnv::new()],
+            // venv: VariableEnv::new(),
             tyenv: Rc::new(TypeEnv::new()),
-            program: Rc::new(RefCell::new(Program::new())),
         }
     }
 
-    pub fn scoped(&self) -> Context {
-        Context {
-            typemap: self.typemap.clone(),
-            venv: self.venv.scoped(),
-            tyenv: self.tyenv.clone(),
-            program: self.program.clone(),
+    fn enter_scope(&mut self) -> Scoped {
+        let e = LocalEnv::new();
+        self.envchain.push(e);
+        Scoped(self)
+    }
+
+    fn current_env(&mut self) -> &mut LocalEnv {
+        self.envchain.last_mut().unwrap()
+    }
+
+    fn get_var(&self, name: &str) -> Option<Level<Var>> {
+        for (env, level) in self.envchain.iter().rev().zip(0..) {
+            if let Some(var) = env.get_local(name) {
+                return Some(Level {
+                    value: var,
+                    level: level,
+                });
+            }
         }
+        None
+    }
+
+    fn get_function_info(&self, name: &str) -> Option<Level<FunctionInfo>> {
+        for (env, level) in self.envchain.iter().rev().zip(0..) {
+            if let Some(finfo) = env.get_function_info(name) {
+                return Some(Level {
+                    value: finfo,
+                    level: level,
+                });
+            }
+        }
+        None
     }
 
     pub fn transform(&mut self, nodes: &[AstNode]) -> Result<Vec<Node>> {
@@ -77,7 +103,7 @@ impl<'a> Context<'a> {
                         .iter()
                         .map(|&(_, ref typ)| self.tyenv.get(&typ.name))
                         .collect::<Result<Vec<_>>>()?;
-                    self.venv.insert_function(def.name.clone(), args, ret);
+                    self.current_env().declare_function(def.name.clone(), args, ret);
                 }
                 _ => continue,
             }
@@ -96,31 +122,36 @@ impl<'a> Context<'a> {
             AstNodeKind::Int(n) => Ok(Node::new(NodeKind::Int(n), Type::Int)),
             AstNodeKind::Float(f) => Ok(Node::new(NodeKind::Float(f), Type::Float)),
             AstNodeKind::Ident(ref name) => {
-                match self.venv.get_var(name) {
+                match self.get_var(name) {
                     None => bail!(ErrorKind::Undefined(name.clone())),
-                    Some((var, level)) => {
-                        let typ = var.typ().clone();
-                        Ok(Node::new(NodeKind::Ident(var, level), typ))
+                    Some(lv_var) => {
+                        let typ = lv_var.value.typ.clone();
+                        Ok(Node::new(NodeKind::Ident(lv_var), typ))
                     }
                 }
             }
             AstNodeKind::Call(ref fname, ref args) => {
-                let (id, args_typ, ret_typ) = match self.venv.get_function(fname) {
+                let Level { value: finfo, level } = match self.get_function_info(fname) {
                     None => bail!(ErrorKind::Undefined(fname.clone())),
                     Some(r) => r,
                 };
                 let args = args.iter()
                     .map(|n| self.transform_node(n))
                     .collect::<Result<Vec<_>>>()?;
-                if args.len() != args_typ.len() {
-                    bail!(ErrorKind::InvalidArguments(fname.clone(), args_typ.len(), args.len()));
+                if args.len() != finfo.args.len() {
+                    bail!(ErrorKind::InvalidArguments(fname.clone(), finfo.args.len(), args.len()));
                 }
-                for (required, given) in args_typ.iter().zip(args.iter().map(|n| &n.typ)) {
+                for (required, given) in finfo.args.iter().zip(args.iter().map(|n| &n.typ)) {
                     if required != given {
                         bail!(ErrorKind::InvalidTypeUnification(required.clone(), given.clone()));
                     }
                 }
-                Ok(Node::new(NodeKind::Call(id, args), ret_typ.clone()))
+                Ok(Node::new(NodeKind::Call(Level {
+                                                value: finfo.index,
+                                                level: level,
+                                            },
+                                            args),
+                             finfo.ret.clone()))
             }
             AstNodeKind::Add(ref l, ref r) => {
                 let left = self.transform_node(l)?;
@@ -196,7 +227,7 @@ impl<'a> Context<'a> {
                         bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
                 }
-                let id = self.venv.insert_local(l.name.clone(), value.typ.clone());
+                let id = self.current_env().define_local(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                  id: id,
                                  typ: value.typ.clone(),
@@ -205,15 +236,14 @@ impl<'a> Context<'a> {
                              Type::Unit))
             }
             AstNodeKind::Assign(ref var, ref value) => {
-                let (var, level) = self.venv
-                    .get_var(var)
+                let lv_var = self.get_var(var)
                     .ok_or(Error::from(ErrorKind::Undefined(var.clone())))?;
-                let typ = var.typ().clone();
+                let typ = lv_var.value.typ.clone();
                 let value = self.transform_node(value)?;
                 if typ != value.typ {
                     bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                 }
-                Ok(Node::new(NodeKind::Assign(var, level, Box::new(value)), Type::Unit))
+                Ok(Node::new(NodeKind::Assign(lv_var, Box::new(value)), Type::Unit))
             }
             AstNodeKind::Def(ref def) => {
                 let function = self.transform_def(def)?;
@@ -223,12 +253,12 @@ impl<'a> Context<'a> {
         }
     }
 
-    fn transform_def(&self, def: &ast::Def) -> Result<Function> {
-        let mut scoped = self.scoped();
+    fn transform_def(&mut self, def: &ast::Def) -> Result<Function> {
+        let mut scoped = self.enter_scope();
         let mut args = Vec::new();
         for &(ref name, ref typ) in def.args.iter() {
             let typ = scoped.tyenv.get(&typ.name)?;
-            scoped.venv.insert_arg(name.clone(), typ.clone());
+            scoped.current_env().define_local(name.clone(), typ.clone());
             args.push(typ);
         }
         let body = def.body
@@ -243,17 +273,39 @@ impl<'a> Context<'a> {
         if ret_typ != body_typ {
             bail!(ErrorKind::InvalidTypeUnification(ret_typ, body_typ));
         }
+        let env = scoped.exit_and_pop();
         let function = Function {
             args: args,
             ret_typ: ret_typ,
             body: body,
+            env: env,
         };
         Ok(function)
     }
 
     fn define_function(&mut self, name: String, f: Function) {
-        let args = f.args.iter().map(|x| x.clone()).collect();
-        let id = self.venv.insert_function(name, args, f.ret_typ.clone());
-        self.program.borrow_mut().define_function(id, f);
+        self.current_env().define_function(name, f);
+    }
+}
+
+struct Scoped<'a>(&'a mut Context);
+
+impl<'a> Scoped<'a> {
+    fn exit_and_pop(&mut self) -> LocalEnv {
+        self.0.envchain.pop().unwrap()
+    }
+}
+
+impl<'a> Deref for Scoped<'a> {
+    type Target = Context;
+
+    fn deref(&self) -> &Context {
+        self.0
+    }
+}
+
+impl<'a> DerefMut for Scoped<'a> {
+    fn deref_mut(&mut self) -> &mut Context {
+        self.0
     }
 }

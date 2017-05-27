@@ -78,9 +78,3 @@ impl<'a> VariableEnv<'a> {
         }
     }
 }
-
-#[derive(Debug)]
-pub enum Entry {
-    Var(Var),
-    Function(FunctionId, Vec<Type>, Type),
-}

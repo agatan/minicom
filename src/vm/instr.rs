@@ -15,12 +15,10 @@ pub enum Instruction {
     MulFloat,
     DivFloat,
 
-    Call { id: u32, n_args: u32 },
+    Call { id: u32, level: u32, n_args: u32 },
 
     Print,
 
     SetLocal { id: u32, level: u32 },
     GetLocal { id: u32, level: u32 },
-    SetLocalArg(u32),
-    GetLocalArg(u32),
 }

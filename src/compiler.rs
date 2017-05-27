@@ -20,24 +20,19 @@ impl Compiler {
             NodeKind::Unit => self.push(Instruction::PushUnit),
             NodeKind::Int(n) => self.push(Instruction::PushInt(n)),
             NodeKind::Float(n) => self.push(Instruction::PushFloat(n)),
-            NodeKind::Ident(ref var, level) => {
-                let instr = match *var {
-                    Var::Arg(n, _) => Instruction::GetLocalArg(n),
-                    Var::Local(id, _) => {
-                        Instruction::GetLocal {
-                            id: id.to_u32(),
-                            level: level,
-                        }
-                    }
-                };
-                self.push(instr)
+            NodeKind::Ident(ref lv_var) => {
+                self.push(Instruction::GetLocal {
+                    id: lv_var.value.index,
+                    level: lv_var.level,
+                })
             }
-            NodeKind::Call(id, ref args) => {
+            NodeKind::Call(ref lv_var, ref args) => {
                 for arg in args {
                     self.compile_node(arg);
                 }
                 self.push(Instruction::Call {
-                    id: id.to_u32(),
+                    id: lv_var.value,
+                    level: lv_var.level,
                     n_args: args.len() as u32,
                 })
             }
@@ -88,22 +83,16 @@ impl Compiler {
             NodeKind::Let(ref let_) => {
                 self.compile_node(&let_.value);
                 self.push(Instruction::SetLocal {
-                    id: let_.id.to_u32(),
+                    id: let_.id,
                     level: 0,
                 });
             }
-            NodeKind::Assign(ref var, level, ref value) => {
+            NodeKind::Assign(ref lv_var, ref value) => {
                 self.compile_node(value);
-                let instr = match *var {
-                    Var::Arg(n, _) => Instruction::SetLocalArg(n),
-                    Var::Local(id, _) => {
-                        Instruction::SetLocal {
-                            id: id.to_u32(),
-                            level: level,
-                        }
-                    }
-                };
-                self.push(instr)
+                self.push(Instruction::SetLocal {
+                    id: lv_var.value.index,
+                    level: lv_var.level,
+                })
             }
         }
     }
