@@ -25,8 +25,8 @@ impl<'input, I> ParserEnv<'input, I>
             next_node_id: Cell::new(0),
             env: LanguageEnv::new(LanguageDef {
                 ident: Identifier {
-                    start: letter(),
-                    rest: alpha_num(),
+                    start: letter().or(char('_')),
+                    rest: alpha_num().or(char('_')),
                     reserved: ["print", "let", "def"].iter().map(|x| (*x).into()).collect(),
                 },
                 op: Identifier {
