@@ -64,13 +64,6 @@ impl Context {
     fn collect_types(&mut self, nodes: &[AstNode]) -> Result<()> {
         for node in nodes {
             match node.kind {
-                AstNodeKind::Let(ref let_) => {
-                    let typ = match let_.typ {
-                        Some(ref typ) => self.tyenv.get(&typ.name)?,
-                        None => self.transform_node(&let_.value).map(|n| n.typ)?,
-                    };
-                    self.venv.insert(let_.name.clone(), typ);
-                }
                 AstNodeKind::Def(ref def) => {
                     let ret = def.ret
                         .as_ref()
@@ -171,7 +164,6 @@ impl Context {
                 Ok(Node::new(NodeKind::Print(Box::new(e)), ty))
             }
             AstNodeKind::Let(ref l) => {
-                let name = &l.name;
                 let value = self.transform_node(&l.value)?;
                 if let Some(ref typ) = l.typ {
                     let typ = self.tyenv.get(&typ.name)?;
@@ -179,8 +171,7 @@ impl Context {
                         bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
                 }
-                // the variable is already registerd to venv in collect phase.
-                let id = self.venv.get_var(name).map(|(id, _)| id).unwrap();
+                let id = self.venv.insert(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                  id: id,
                                  typ: value.typ.clone(),
