@@ -74,6 +74,7 @@ AtomicExpr: Node = {
     "int literal" => Node::new(env.next_id(), NodeKind::Int(<>)),
     "float literal" => Node::new(env.next_id(), NodeKind::Float(<>)),
     "(" <expr:Expression> ")" => Node::new(env.next_id(), NodeKind::Parens(Box::new(expr))),
+    "{" <nodes:Nodes> "}" => Node::new(env.next_id(), NodeKind::Block(nodes)),
 };
 
 Factor = {

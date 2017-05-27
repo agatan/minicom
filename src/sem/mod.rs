@@ -57,7 +57,9 @@ impl Context {
 
     pub fn transform(&mut self, nodes: Vec<AstNode>) -> Result<Vec<Node>> {
         let mut alp = Alpha::new();
+        debug!("before: {:?}", nodes);
         let nodes = nodes.into_iter().map(|n| alp.apply(n)).collect::<Vec<_>>();
+        debug!("alpha: {:?}", nodes);
         self.collect_types(&nodes)?;
         nodes.iter().map(|n| self.transform_node(n)).collect::<Result<_>>()
     }
@@ -248,7 +250,12 @@ impl Context {
                 let ty = e.typ.clone();
                 Ok(Node::new(NodeKind::Print(Box::new(e)), ty))
             }
-            AstNodeKind::Block(_) => unimplemented!(),
+            AstNodeKind::Block(ref nodes) => {
+                let nodes =
+                    nodes.into_iter().map(|n| self.transform_node(n)).collect::<Result<Vec<_>>>()?;
+                let typ = nodes.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
+                Ok(Node::new(NodeKind::Block(nodes), typ))
+            }
             AstNodeKind::Let(ref l) => {
                 let value = self.transform_node(&l.value)?;
                 if let Some(ref typ) = l.typ {

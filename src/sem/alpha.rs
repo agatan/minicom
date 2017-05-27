@@ -83,8 +83,8 @@ impl<'a> Alpha<'a> {
             }
             NodeKind::Let(let_) => {
                 let mut let_ = *let_;
-                let_.name = self.define(let_.name);
                 let_.value = self.apply(let_.value);
+                let_.name = self.define(let_.name);
                 NodeKind::Let(Box::new(let_))
             }
             NodeKind::Assign(name, value) => {

@@ -1,4 +1,11 @@
 let x = 0
+
 def sample(x: int, y: int): int {
-  x + y
+  let z = {
+    let x = x + 1;
+    x
+  };
+  x + y + z
 }
+
+print(sample(1, 2));

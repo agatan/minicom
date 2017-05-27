@@ -87,6 +87,18 @@ impl Compiler {
                 self.compile_node(instrs, e, is_root);
                 instrs.push(Instruction::Print);
             }
+            NodeKind::Block(ref nodes) => {
+                match nodes.split_last() {
+                    None => instrs.push(Instruction::PushUnit),
+                    Some((last, nodes)) => {
+                        for node in nodes {
+                            self.compile_node(instrs, node, is_root);
+                            instrs.push(Instruction::Pop);
+                        }
+                        self.compile_node(instrs, last, is_root);
+                    }
+                }
+            }
             NodeKind::Let(ref let_) => {
                 self.compile_node(instrs, &let_.value, is_root);
                 if is_root {

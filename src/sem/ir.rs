@@ -41,6 +41,7 @@ pub enum NodeKind {
     MulFloat(Box<Node>, Box<Node>),
     DivFloat(Box<Node>, Box<Node>),
     Print(Box<Node>),
+    Block(Vec<Node>),
 
     Let(Box<Let>),
     Assign(Level<Var>, Box<Node>),
