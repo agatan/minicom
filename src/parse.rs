@@ -3,7 +3,7 @@ use std::cell::Cell;
 use combine::{State, Parser, ParseResult, Stream, unexpected, env_parser, eof};
 use combine::primitives::ParseError;
 use combine::char::{spaces, alpha_num, letter, string, char};
-use combine::combinator::{EnvParser, try, sep_end_by, optional, many};
+use combine::combinator::{EnvParser, try, sep_end_by, optional};
 use combine_language::{LanguageEnv, LanguageDef, Identifier, Assoc, Fixity, expression_parser};
 
 use ast::{NodeId, Node, NodeKind, Let, Type, Def};
@@ -71,7 +71,7 @@ impl<'input, I> ParserEnv<'input, I>
          self.env.identifier(),
          self.env.parens(args),
          optional(self.typespec()),
-         self.env.braces(many(self.node())))
+         self.env.braces(sep_end_by(self.node(), self.env.lex(char(';')))))
             .map(|(_def, name, args, ret, body)| {
                 let def = Def {
                     name: name,

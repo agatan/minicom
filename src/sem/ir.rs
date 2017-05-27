@@ -88,10 +88,6 @@ impl FunctionId {
     pub fn new(x: u32) -> Self {
         FunctionId(x)
     }
-
-    pub fn to_u32(&self) -> u32 {
-        self.0
-    }
 }
 
 pub type Level = u32;

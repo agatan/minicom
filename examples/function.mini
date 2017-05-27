@@ -1,7 +1,7 @@
 let globalvar = 0;
 
 def add(x: int, y: int): int {
-    globalvar = x + y
+    globalvar = x + y;
     globalvar
 };
 
@@ -10,4 +10,7 @@ let y = 2.0;
 
 def sub(x: int, y: int): int {
   x - y
-}
+};
+
+print(x);
+print(y);
