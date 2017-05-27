@@ -5,6 +5,7 @@ mod stack;
 pub use self::value::Value;
 use self::instr::Instruction;
 use self::instr::Instruction::*;
+use self::value::ProgramCounter;
 
 pub struct Machine {
     pc: ProgramCounter,
@@ -12,6 +13,7 @@ pub struct Machine {
     stack: stack::Stack,
     vars: Vec<Value>,
     global_vars: Vec<Value>,
+    frames: Vec<Frame>,
 }
 
 impl Machine {
@@ -22,6 +24,7 @@ impl Machine {
             stack: stack::Stack::new(),
             vars: Vec::new(),
             global_vars: Vec::new(),
+            frames: Vec::new(),
         }
     }
 
@@ -197,6 +200,10 @@ impl Machine {
     pub fn run(&mut self, instrs: &[Instruction]) -> Value {
         self.pc = ProgramCounter::new(instrs.as_ptr());
         self.end = unsafe { ProgramCounter::new(instrs.as_ptr().offset(instrs.len() as isize)) };
+        self.frames.push(Frame {
+            pc: self.pc,
+            sp: self.stack.len(),
+        });
         while !self.is_finished() {
             self.eval_instr();
         }
@@ -204,23 +211,8 @@ impl Machine {
     }
 }
 
-#[derive(PartialEq)]
-struct ProgramCounter(*const Instruction);
-
-impl ProgramCounter {
-    fn null() -> Self {
-        ProgramCounter::new(0 as *const Instruction)
-    }
-
-    fn new(ptr: *const Instruction) -> Self {
-        ProgramCounter(ptr)
-    }
-
-    fn fetch(&self) -> Instruction {
-        unsafe { *self.0 }
-    }
-
-    fn next(&mut self) {
-        self.0 = unsafe { self.0.offset(1) }
-    }
+#[derive(Debug)]
+struct Frame {
+    pc: ProgramCounter,
+    sp: usize,
 }
