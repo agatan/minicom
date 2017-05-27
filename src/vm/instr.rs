@@ -26,3 +26,9 @@ pub enum Instruction {
     SetGlobal(u32),
     GetGlobal(u32),
 }
+
+#[derive(Debug, Clone)]
+pub struct Function {
+    pub instrs: Vec<Instruction>,
+    pub n_locals: u32,
+}

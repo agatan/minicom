@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use sem::ir::*;
-use vm::instr::Instruction;
+use vm::instr::{self, Instruction};
 
 #[derive(Debug)]
 pub struct Compiler {
-    functions: HashMap<u32, Rc<Vec<Instruction>>>,
+    functions: HashMap<u32, Rc<instr::Function>>,
 }
 
 impl Compiler {
@@ -16,10 +16,6 @@ impl Compiler {
     pub fn compile(&mut self, rootenv: &LocalEnv, nodes: &[Node]) -> Vec<Instruction> {
         self.compile_root(rootenv);
         self.compile_nodes(nodes)
-    }
-
-    pub fn funcmap(&self) -> &HashMap<u32, Rc<Vec<Instruction>>> {
-        &self.functions
     }
 
     fn compile_node(&mut self, instrs: &mut Vec<Instruction>, node: &Node, is_root: bool) {
@@ -121,7 +117,12 @@ impl Compiler {
         }
         let mut instrs = self.compile_nodes(&f.body);
         instrs.push(Instruction::Ret);
-        self.functions.insert(id, Rc::new(instrs));
+        let n_locals = f.env.n_locals();
+        self.functions.insert(id,
+                              Rc::new(instr::Function {
+                                  instrs: instrs,
+                                  n_locals: n_locals,
+                              }));
     }
 
     fn compile_root(&mut self, env: &LocalEnv) {

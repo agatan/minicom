@@ -136,6 +136,10 @@ impl LocalEnv {
     pub fn functions(&self) -> Functions {
         Functions { entries: self.table.values() }
     }
+
+    pub fn n_locals(&self) -> u32 {
+        self.locals.len() as u32
+    }
 }
 
 #[derive(Debug)]
