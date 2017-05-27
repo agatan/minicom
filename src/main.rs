@@ -21,24 +21,37 @@ mod vm;
 
 use std::io::prelude::*;
 use std::fs::File;
+use std::error::Error;
 use sem::Context;
 use vm::{Value, Machine};
 
+macro_rules! try_or_exit {
+    ($x:expr) => {
+        match $x {
+            Ok(x) => x,
+            Err(err) => {
+                writeln!(::std::io::stderr(), "{}", err).unwrap();
+                ::std::process::exit(1);
+            }
+        }
+    }
+}
+
 fn main() {
-    env_logger::init().unwrap();
+    try_or_exit!(env_logger::init());
 
     let mut ctx = Context::new();
     let mut machine = Machine::new();
 
     match ::std::env::args().nth(1) {
         None => {
-            repl(&mut machine, &mut ctx);
+            try_or_exit!(repl(&mut machine, &mut ctx));
         }
         Some(filename) => {
-            let mut file = File::open(filename).unwrap();
+            let mut file = try_or_exit!(File::open(filename));
             let mut contents = String::new();
-            file.read_to_string(&mut contents).unwrap();
-            run(&mut machine, &mut ctx, &contents).unwrap();
+            try_or_exit!(file.read_to_string(&mut contents));
+            try_or_exit!(run(&mut machine, &mut ctx, &contents));
         }
     };
 }
@@ -51,14 +64,14 @@ fn run(machine: &mut Machine, ctx: &mut Context, input: &str) -> Result<Value, S
     Ok(machine.run(&instrs))
 }
 
-fn repl(machine: &mut Machine, ctx: &mut Context) {
+fn repl(machine: &mut Machine, ctx: &mut Context) -> Result<(), Box<Error>> {
     let mut rl = Editor::<()>::new();
     loop {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
                 if line == "quit" || line == "q" || line == "exit" {
-                    break;
+                    return Ok(());
                 }
                 rl.add_history_entry(&line);
                 match run(machine, ctx, &line) {
@@ -67,13 +80,8 @@ fn repl(machine: &mut Machine, ctx: &mut Context) {
                 }
             }
             Err(ReadlineError::Eof) |
-            Err(ReadlineError::Interrupted) => break,
-            Err(err) => exit_error(format!("{}", err)),
+            Err(ReadlineError::Interrupted) => return Ok(()),
+            Err(err) => return Err(Box::new(err)),
         }
     }
-}
-
-fn exit_error(msg: String) -> ! {
-    writeln!(::std::io::stderr(), "{}", msg).unwrap();
-    ::std::process::exit(1)
 }
