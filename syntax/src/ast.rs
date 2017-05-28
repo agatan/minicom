@@ -9,6 +9,7 @@ impl NodeId {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeKind {
+    Unit,
     Int(i64),
     Float(f64),
     Bool(bool),

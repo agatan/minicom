@@ -3,3 +3,7 @@ print(1 + 2);
 print(1 + 2 * 3);
 print(true);
 print(false)
+
+let x = ();
+print(());
+print(x);

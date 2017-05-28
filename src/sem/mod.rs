@@ -151,6 +151,7 @@ impl Context {
 
     fn transform_node_(&mut self, node: &AstNode) -> Result<Node> {
         match node.kind {
+            AstNodeKind::Unit => Ok(Node::new(NodeKind::Unit, Type::Unit)),
             AstNodeKind::Int(n) => Ok(Node::new(NodeKind::Int(n), Type::Int)),
             AstNodeKind::Float(f) => Ok(Node::new(NodeKind::Float(f), Type::Float)),
             AstNodeKind::Bool(b) => Ok(Node::new(NodeKind::Bool(b), Type::Bool)),

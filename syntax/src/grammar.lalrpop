@@ -57,10 +57,14 @@ Comma<R>: Vec<R> =
         rs
     };
 
-TypeSpec: Type =
+TypeSpec: Type = {
     ":" <name:"identifier"> => {
         Type::new(name.to_string())
-    };
+    },
+    ":" "(" ")" => {
+        Type::new("()".to_string())
+    },
+};
 
 Param: (String, Type) =
     <name:"identifier"> <typ:TypeSpec> => {
@@ -77,6 +81,7 @@ AtomicExpr: Node = {
     "float literal" => Node::new(env.next_id(), NodeKind::Float(<>)),
     "true" => Node::new(env.next_id(), NodeKind::Bool(true)),
     "false" => Node::new(env.next_id(), NodeKind::Bool(false)),
+    "(" ")" => Node::new(env.next_id(), NodeKind::Unit),
     "(" <expr:Expression> ")" => Node::new(env.next_id(), NodeKind::Parens(Box::new(expr))),
     "{" <nodes:Nodes> "}" => Node::new(env.next_id(), NodeKind::Block(nodes)),
 };

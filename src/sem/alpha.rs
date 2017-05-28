@@ -55,6 +55,7 @@ impl<'a> Alpha<'a> {
 
     pub fn apply(&mut self, mut node: Node) -> Node {
         node.kind = match node.kind {
+            NodeKind::Unit => NodeKind::Unit,
             NodeKind::Int(n) => NodeKind::Int(n),
             NodeKind::Float(n) => NodeKind::Float(n),
             NodeKind::Bool(b) => NodeKind::Bool(b),
