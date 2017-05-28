@@ -156,7 +156,7 @@ impl Compiler {
                 };
                 let jumpback_size = (cond_instrs.len() + 1 + body_instrs.len()) as isize;
                 body_instrs.push(Instruction::Jump(-jumpback_size as i32));
-                let break_size = body_instrs.len() as i32;
+                let break_size = body_instrs.len() as i32 + 1;
                 instrs.extend(cond_instrs);
                 instrs.push(Instruction::JumpIfZero(break_size));
                 instrs.extend(body_instrs);

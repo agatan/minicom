@@ -26,6 +26,7 @@ pub enum Token<'input> {
 
     If,
     Else,
+    While,
     Let,
     Def,
     Print,
@@ -74,6 +75,7 @@ impl<'input> fmt::Display for Token<'input> {
             GT => f.write_str(">"),
             If => f.write_str("if"),
             Else => f.write_str("else"),
+            While => f.write_str("while"),
             Let => f.write_str("let"),
             Def => f.write_str("def"),
             Print => f.write_str("print"),
@@ -214,6 +216,7 @@ impl<'input> Tokenizer<'input> {
             "false" => Token::False,
             "if" => Token::If,
             "else" => Token::Else,
+            "while" => Token::While,
             "let" => Token::Let,
             "def" => Token::Def,
             "print" => Token::Print,

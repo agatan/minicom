@@ -31,6 +31,7 @@ extern {
 
         "if" => Token::If,
         "else" => Token::Else,
+        "while" => Token::While,
         "let" => Token::Let,
         "def" => Token::Def,
         "print" => Token::Print,
@@ -94,6 +95,11 @@ IfExpr: Node = {
     },
 };
 
+WhileExpr: Node =
+    "while" <cond:Expression> <body:BlockExpr> => {
+        Node::new(env.next_id(), NodeKind::While(Box::new(cond), Box::new(body)))
+    };
+
 BlockExpr: Node = {
     "{" <nodes:Nodes> "}" => Node::new(env.next_id(), NodeKind::Block(nodes)),
 };
@@ -110,6 +116,7 @@ AtomicExpr: Node = {
     "(" <expr:Expression> ")" => Node::new(env.next_id(), NodeKind::Parens(Box::new(expr))),
     BlockExpr,
     IfExpr,
+    WhileExpr,
 };
 
 Factor = {
