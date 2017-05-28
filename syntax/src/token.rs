@@ -17,6 +17,12 @@ pub enum Token<'input> {
     Mul,
     Div,
     Equals,
+    EqEq,
+    Neq,
+    LE,
+    LT,
+    GE,
+    GT,
 
     If,
     Else,
@@ -60,6 +66,12 @@ impl<'input> fmt::Display for Token<'input> {
             Mul => f.write_str("*"),
             Div => f.write_str("/"),
             Equals => f.write_str("="),
+            EqEq => f.write_str("=="),
+            Neq => f.write_str("!="),
+            LE => f.write_str("<="),
+            LT => f.write_str("<"),
+            GE => f.write_str(">="),
+            GT => f.write_str(">"),
             If => f.write_str("if"),
             Else => f.write_str("else"),
             Let => f.write_str("let"),
@@ -176,6 +188,12 @@ impl<'input> Tokenizer<'input> {
         &self.input[start.absolute.0..end.absolute.0]
     }
 
+    fn test_lookahead<F>(&self, mut f: F) -> bool
+        where F: FnMut(char) -> bool
+    {
+        self.lookahead.as_ref().map(|&(_, ch)| f(ch)).unwrap_or(false)
+    }
+
     fn take_while<F>(&mut self, start: Location, mut f: F) -> (Location, &'input str)
         where F: FnMut(char) -> bool
     {
@@ -236,7 +254,42 @@ impl<'input> Tokenizer<'input> {
                 '-' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Sub))),
                 '*' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Mul))),
                 '/' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Div))),
-                '=' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Equals))),
+                '=' => {
+                    let sp = if self.test_lookahead(|ch| ch == '=') {
+                        self.bump();
+                        Spanned::new(start, start.shift(ch).shift('='), Token::EqEq)
+                    } else {
+                        Spanned::new(start, start.shift(ch), Token::Equals)
+                    };
+                    Some(Ok(sp))
+                }
+                '!' => {
+                    let sp = if self.test_lookahead(|ch| ch == '=') {
+                        self.bump();
+                        Spanned::new(start, start.shift(ch).shift('='), Token::Neq)
+                    } else {
+                        return Some(self.error(start, Error::UnexpectedChar(ch)));
+                    };
+                    Some(Ok(sp))
+                }
+                '<' => {
+                    let sp = if self.test_lookahead(|ch| ch == '=') {
+                        self.bump();
+                        Spanned::new(start, start.shift(ch).shift('='), Token::LE)
+                    } else {
+                        Spanned::new(start, start.shift(ch), Token::LT)
+                    };
+                    Some(Ok(sp))
+                }
+                '>' => {
+                    let sp = if self.test_lookahead(|ch| ch == '=') {
+                        self.bump();
+                        Spanned::new(start, start.shift(ch).shift('='), Token::GE)
+                    } else {
+                        Spanned::new(start, start.shift(ch), Token::GT)
+                    };
+                    Some(Ok(sp))
+                }
                 ch if is_ident_start(ch) => Some(Ok(self.identifier(start))),
                 ch if ch.is_digit(10) => Some(self.numeric_literal(start)),
                 '\n' => {
@@ -308,5 +361,16 @@ mod test {
         runtest("123 123.4",
                 vec![("^^^      ", Token::IntLiteral(123)),
                      ("    ^^^^^", Token::FloatLiteral(123.4))])
+    }
+
+    #[test]
+    fn multiple_char_operators() {
+        runtest(" == != <= < >= > ",
+                vec![(" ^^              ", Token::EqEq),
+                     ("    ^^           ", Token::Neq),
+                     ("       ^^        ", Token::LE),
+                     ("          ^      ", Token::LT),
+                     ("            ^^   ", Token::GE),
+                     ("               ^ ", Token::GT)])
     }
 }

@@ -228,6 +228,30 @@ impl Context {
                             (lty, rty) => bail!(ErrorKind::InvalidTypeUnification(lty, rty)),
                         }
                     }
+                    cmp => {
+                        if lty != rty {
+                            bail!(ErrorKind::InvalidTypeUnification(lty, rty));
+                        }
+                        let kind = match cmp {
+                            Operator::Eq => NodeKind::Eq(left, right),
+                            Operator::Neq => {
+                                NodeKind::Not(Box::new(Node::new(NodeKind::Eq(left, right),
+                                                                 Type::Bool)))
+                            }
+                            Operator::LE => NodeKind::LE(left, right),
+                            Operator::LT => NodeKind::LT(left, right),
+                            Operator::GE => {
+                                NodeKind::Not(Box::new(Node::new(NodeKind::LT(right, left),
+                                                                 Type::Bool)))
+                            }
+                            Operator::GT => {
+                                NodeKind::Not(Box::new(Node::new(NodeKind::LE(right, left),
+                                                                 Type::Bool)))
+                            }
+                            _ => unreachable!(),
+                        };
+                        return Ok(Node::new(kind, Type::Bool));
+                    }
                 };
                 Ok(Node::new(kind, typ))
             }

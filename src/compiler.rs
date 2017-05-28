@@ -84,6 +84,25 @@ impl Compiler {
                 self.compile_node(instrs, l, is_root);
                 instrs.push(Instruction::DivFloat);
             }
+            NodeKind::Not(ref e) => {
+                self.compile_node(instrs, e, is_root);
+                instrs.push(Instruction::Not);
+            }
+            NodeKind::Eq(ref l, ref r) => {
+                self.compile_node(instrs, r, is_root);
+                self.compile_node(instrs, l, is_root);
+                instrs.push(Instruction::Eq);
+            }
+            NodeKind::LE(ref l, ref r) => {
+                self.compile_node(instrs, r, is_root);
+                self.compile_node(instrs, l, is_root);
+                instrs.push(Instruction::LE);
+            }
+            NodeKind::LT(ref l, ref r) => {
+                self.compile_node(instrs, r, is_root);
+                self.compile_node(instrs, l, is_root);
+                instrs.push(Instruction::LT);
+            }
             NodeKind::Print(ref e) => {
                 self.compile_node(instrs, e, is_root);
                 instrs.push(Instruction::Print);

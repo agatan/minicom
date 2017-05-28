@@ -22,6 +22,13 @@ extern {
         "/" => Token::Div,
         "=" => Token::Equals,
 
+        "==" => Token::EqEq,
+        "!=" => Token::Neq,
+        "<=" => Token::LE,
+        "<" => Token::LT,
+        ">=" => Token::GE,
+        ">" => Token::GT,
+
         "if" => Token::If,
         "else" => Token::Else,
         "let" => Token::Let,
@@ -76,13 +83,13 @@ Param: (String, Type) =
 // expressions
 
 IfExpr: Node = {
-    "if" <cond:AtomicExpr> <then:BlockExpr> => {
+    "if" <cond:Expression> <then:BlockExpr> => {
         Node::new(env.next_id(), NodeKind::If(Box::new(cond), Box::new(then), None))
     },
-    "if" <cond:AtomicExpr> <then:BlockExpr> "else" <els:BlockExpr> => {
+    "if" <cond:Expression> <then:BlockExpr> "else" <els:BlockExpr> => {
         Node::new(env.next_id(), NodeKind::If(Box::new(cond), Box::new(then), Some(Box::new(els))))
     },
-    "if" <cond:AtomicExpr> <then:BlockExpr> "else" <elsif:IfExpr> => {
+    "if" <cond:Expression> <then:BlockExpr> "else" <elsif:IfExpr> => {
         Node::new(env.next_id(), NodeKind::If(Box::new(cond), Box::new(then), Some(Box::new(elsif))))
     },
 };
@@ -111,10 +118,33 @@ Factor = {
     AtomicExpr,
 };
 
-Expression: Node = {
-    <l:Expression> "+" <r:Factor> => Node::new(env.next_id(), NodeKind::Infix(Box::new(l), Operator::Add, Box::new(r))),
-    <l:Expression> "-" <r:Factor> => Node::new(env.next_id(), NodeKind::Infix(Box::new(l), Operator::Sub, Box::new(r))),
+AdditiveOp: Operator = {
+    "+" => Operator::Add,
+    "-" => Operator::Sub,
+};
+
+AdditiveExpr: Node = {
+    <l:AdditiveExpr> <op:AdditiveOp> <r:Factor> => Node::new(env.next_id(), NodeKind::Infix(Box::new(l), op, Box::new(r))),
     Factor,
+};
+
+CompareOp: Operator = {
+    "==" => Operator::Eq,
+    "!=" => Operator::Neq,
+    "<=" => Operator::LE,
+    "<" => Operator::LT,
+    ">=" => Operator::GE,
+    ">" => Operator::GT,
+};
+
+ComparativeExpr: Node = {
+    <l:AdditiveExpr> <op:CompareOp> <r:AdditiveExpr> =>
+        Node::new(env.next_id(), NodeKind::Infix(Box::new(l), op, Box::new(r))),
+    AdditiveExpr,
+};
+
+Expression: Node = {
+    ComparativeExpr,
 };
 
 // statement

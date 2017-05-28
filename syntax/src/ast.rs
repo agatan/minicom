@@ -48,6 +48,12 @@ pub enum Operator {
     Sub,
     Mul,
     Div,
+    Eq,
+    Neq,
+    LE,
+    LT,
+    GE,
+    GT,
 }
 
 #[derive(Debug, Clone, PartialEq)]

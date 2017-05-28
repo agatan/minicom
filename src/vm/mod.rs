@@ -147,6 +147,45 @@ impl Machine {
                 }
                 self.pc.next();
             }
+            Not => {
+                let v = self.stack.pop();
+                if v == Value::Int(0) {
+                    self.stack.push(Value::Int(1))
+                } else {
+                    self.stack.push(Value::Int(0))
+                }
+                self.pc.next();
+            }
+            Eq => {
+                let v1 = self.stack.pop();
+                let v2 = self.stack.pop();
+                if v1 == v2 {
+                    self.stack.push(Value::Int(1))
+                } else {
+                    self.stack.push(Value::Int(0))
+                }
+                self.pc.next();
+            }
+            LE => {
+                let v1 = self.stack.pop();
+                let v2 = self.stack.pop();
+                if v1 <= v2 {
+                    self.stack.push(Value::Int(1))
+                } else {
+                    self.stack.push(Value::Int(0))
+                }
+                self.pc.next();
+            }
+            LT => {
+                let v1 = self.stack.pop();
+                let v2 = self.stack.pop();
+                if v1 < v2 {
+                    self.stack.push(Value::Int(1))
+                } else {
+                    self.stack.push(Value::Int(0))
+                }
+                self.pc.next();
+            }
             Jump(offset) => self.pc.jump(offset),
             JumpIfZero(offset) => {
                 let v = self.stack.pop();

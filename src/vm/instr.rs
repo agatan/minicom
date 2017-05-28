@@ -15,6 +15,11 @@ pub enum Instruction {
     MulFloat,
     DivFloat,
 
+    Not,
+    Eq,
+    LE,
+    LT,
+
     Jump(i32),
     JumpIfZero(i32),
 
