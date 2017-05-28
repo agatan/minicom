@@ -119,10 +119,10 @@ impl Compiler {
                     None => instrs.push(Instruction::PushUnit),
                     Some((last, nodes)) => {
                         for node in nodes {
-                            self.compile_node(instrs, node, false);
+                            self.compile_node(instrs, node, is_root);
                             instrs.push(Instruction::Pop);
                         }
-                        self.compile_node(instrs, last, false);
+                        self.compile_node(instrs, last, is_root);
                     }
                 }
             }
@@ -146,12 +146,12 @@ impl Compiler {
             NodeKind::While(ref cond, ref body) => {
                 let cond_instrs = {
                     let mut instrs = Vec::new();
-                    self.compile_node(&mut instrs, cond, false);
+                    self.compile_node(&mut instrs, cond, is_root);
                     instrs
                 };
                 let mut body_instrs = {
                     let mut instrs = Vec::new();
-                    self.compile_node(&mut instrs, body, false);
+                    self.compile_node(&mut instrs, body, is_root);
                     instrs
                 };
                 let jumpback_size = (cond_instrs.len() + 1 + body_instrs.len()) as isize;
@@ -160,6 +160,7 @@ impl Compiler {
                 instrs.extend(cond_instrs);
                 instrs.push(Instruction::JumpIfZero(break_size));
                 instrs.extend(body_instrs);
+                instrs.push(Instruction::PushUnit)
             }
             NodeKind::Let(ref let_) => {
                 self.compile_node(instrs, &let_.value, is_root);

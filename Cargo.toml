@@ -10,3 +10,6 @@ error-chain = "0.10"
 rustyline = "1.0"
 
 minivm-syntax = { path = "./syntax" }
+
+[profile.release]
+debug = true

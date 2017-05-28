@@ -1,0 +1,11 @@
+let n = 0
+while n < 10000 {
+  let x = 0
+  let sum = 0
+  while x < n {
+    sum = sum + x
+    x = x + 1
+  }
+  n = n + 1
+}
+print(n)
