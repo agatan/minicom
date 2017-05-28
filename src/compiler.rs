@@ -18,8 +18,15 @@ impl Compiler {
         self.compile_nodes(nodes, true)
     }
 
-    pub fn funcs(&self) -> HashMap<u32, Rc<instr::Function>> {
-        self.functions.clone()
+    pub fn funcs(&self) -> Vec<Rc<instr::Function>> {
+        let mut vec = Vec::new();
+        for (&k, f) in self.functions.iter() {
+            if vec.len() < 1 + k as usize {
+                vec.resize(k as usize + 1, f.clone());
+            }
+            vec[k as usize] = f.clone();
+        }
+        vec
     }
 
     fn compile_node(&mut self, instrs: &mut Vec<Instruction>, node: &Node, is_root: bool) {

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::rc::Rc;
 
 pub mod instr;
@@ -15,7 +14,7 @@ pub struct Machine {
     stack: stack::Stack,
     global_vars: Vec<Value>,
     frames: Vec<Frame>,
-    funcs: HashMap<u32, Rc<Function>>,
+    funcs: Vec<Rc<Function>>,
 }
 
 impl Machine {
@@ -26,7 +25,7 @@ impl Machine {
             stack: stack::Stack::new(),
             global_vars: Vec::new(),
             frames: Vec::new(),
-            funcs: HashMap::new(),
+            funcs: Vec::new(),
         }
     }
 
@@ -196,7 +195,7 @@ impl Machine {
                 }
             }
             Call { id, n_args } => {
-                let f = self.funcs.get(&id).expect("function id should be valid");
+                let f = &self.funcs[id as usize];
                 let fp = self.stack.len() - n_args as usize;
                 let frame = Frame {
                     pc: self.pc,
@@ -264,7 +263,7 @@ impl Machine {
         self.pc == self.end
     }
 
-    pub fn run(&mut self, funcs: HashMap<u32, Rc<Function>>, instrs: &[Instruction]) -> Value {
+    pub fn run(&mut self, funcs: Vec<Rc<Function>>, instrs: &[Instruction]) -> Value {
         self.pc = ProgramCounter::new(instrs.as_ptr());
         self.end = unsafe { ProgramCounter::new(instrs.as_ptr().offset(instrs.len() as isize)) };
         self.frames.push(Frame {
