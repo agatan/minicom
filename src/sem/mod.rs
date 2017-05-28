@@ -243,6 +243,7 @@ impl Context {
                 let typ = nodes.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
                 Ok(Node::new(NodeKind::Block(nodes), typ))
             }
+            AstNodeKind::If(_, _, _) => unimplemented!(),
             AstNodeKind::Let(ref l) => {
                 let value = self.transform_node(&l.value)?;
                 if let Some(ref typ) = l.typ {

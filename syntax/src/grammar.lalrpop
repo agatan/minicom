@@ -22,6 +22,8 @@ extern {
         "/" => Token::Div,
         "=" => Token::Equals,
 
+        "if" => Token::If,
+        "else" => Token::Else,
         "let" => Token::Let,
         "def" => Token::Def,
         "print" => Token::Print,
@@ -73,6 +75,22 @@ Param: (String, Type) =
 
 // expressions
 
+IfExpr: Node = {
+    "if" <cond:AtomicExpr> <then:BlockExpr> => {
+        Node::new(env.next_id(), NodeKind::If(Box::new(cond), Box::new(then), None))
+    },
+    "if" <cond:AtomicExpr> <then:BlockExpr> "else" <els:BlockExpr> => {
+        Node::new(env.next_id(), NodeKind::If(Box::new(cond), Box::new(then), Some(Box::new(els))))
+    },
+    "if" <cond:AtomicExpr> <then:BlockExpr> "else" <elsif:IfExpr> => {
+        Node::new(env.next_id(), NodeKind::If(Box::new(cond), Box::new(then), Some(Box::new(elsif))))
+    },
+};
+
+BlockExpr: Node = {
+    "{" <nodes:Nodes> "}" => Node::new(env.next_id(), NodeKind::Block(nodes)),
+};
+
 AtomicExpr: Node = {
     "identifier" => Node::new(env.next_id(), NodeKind::Ident(<>.to_string())),
     "print" "(" <expr:Expression> ")" => Node::new(env.next_id(), NodeKind::Print(Box::new(expr))),
@@ -83,7 +101,8 @@ AtomicExpr: Node = {
     "false" => Node::new(env.next_id(), NodeKind::Bool(false)),
     "(" ")" => Node::new(env.next_id(), NodeKind::Unit),
     "(" <expr:Expression> ")" => Node::new(env.next_id(), NodeKind::Parens(Box::new(expr))),
-    "{" <nodes:Nodes> "}" => Node::new(env.next_id(), NodeKind::Block(nodes)),
+    BlockExpr,
+    IfExpr,
 };
 
 Factor = {

@@ -18,6 +18,8 @@ pub enum Token<'input> {
     Div,
     Equals,
 
+    If,
+    Else,
     Let,
     Def,
     Print,
@@ -58,6 +60,8 @@ impl<'input> fmt::Display for Token<'input> {
             Mul => f.write_str("*"),
             Div => f.write_str("/"),
             Equals => f.write_str("="),
+            If => f.write_str("if"),
+            Else => f.write_str("else"),
             Let => f.write_str("let"),
             Def => f.write_str("def"),
             Print => f.write_str("print"),
@@ -190,6 +194,8 @@ impl<'input> Tokenizer<'input> {
         let token = match ident {
             "true" => Token::True,
             "false" => Token::False,
+            "if" => Token::If,
+            "else" => Token::Else,
             "let" => Token::Let,
             "def" => Token::Def,
             "print" => Token::Print,

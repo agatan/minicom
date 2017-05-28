@@ -74,6 +74,12 @@ impl<'a> Alpha<'a> {
                 let nodes = nodes.into_iter().map(|n| scope.apply(n)).collect();
                 NodeKind::Block(nodes)
             }
+            NodeKind::If(cond, then, els) => {
+                let cond = self.apply(*cond);
+                let then = self.apply(*then); // `then` is always Block, so new scope will be created
+                let els = els.map(|n| Box::new(self.apply(*n)));
+                NodeKind::If(Box::new(cond), Box::new(then), els)
+            }
             NodeKind::Let(let_) => {
                 let mut let_ = *let_;
                 let_.value = self.apply(let_.value);

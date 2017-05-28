@@ -18,6 +18,7 @@ pub enum NodeKind {
     Infix(Box<Node>, Operator, Box<Node>),
     Parens(Box<Node>),
     Block(Vec<Node>),
+    If(Box<Node>, Box<Node>, Option<Box<Node>>),
     // FIXME(agatan): temporary builtin command
     Print(Box<Node>),
     Let(Box<Let>),
