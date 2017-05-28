@@ -44,6 +44,7 @@ pub enum NodeKind {
     DivFloat(Box<Node>, Box<Node>),
     Print(Box<Node>),
     Block(Vec<Node>),
+    If(Box<Node>, Box<Node>, Option<Box<Node>>),
 
     Let(Box<Let>),
     Assign(Level<Var>, Box<Node>),

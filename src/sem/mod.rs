@@ -243,7 +243,22 @@ impl Context {
                 let typ = nodes.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
                 Ok(Node::new(NodeKind::Block(nodes), typ))
             }
-            AstNodeKind::If(_, _, _) => unimplemented!(),
+            AstNodeKind::If(ref cond, ref then, ref els) => {
+                let cond = self.transform_node(cond)?;
+                let then = self.transform_node(then)?;
+                let (els, typ) = match *els {
+                    None => (None, Type::Unit),
+                    Some(ref els) => {
+                        let els = self.transform_node(els)?;
+                        let typ = els.typ.clone();
+                        (Some(Box::new(els)), typ)
+                    }
+                };
+                if then.typ != typ {
+                    bail!(ErrorKind::InvalidTypeUnification(then.typ, typ));
+                }
+                Ok(Node::new(NodeKind::If(Box::new(cond), Box::new(then), els), typ))
+            }
             AstNodeKind::Let(ref l) => {
                 let value = self.transform_node(&l.value)?;
                 if let Some(ref typ) = l.typ {

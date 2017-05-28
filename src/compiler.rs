@@ -100,6 +100,7 @@ impl Compiler {
                     }
                 }
             }
+            NodeKind::If(ref cond, ref then, ref els) => unimplemented!(),
             NodeKind::Let(ref let_) => {
                 self.compile_node(instrs, &let_.value, is_root);
                 if is_root {
