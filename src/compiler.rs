@@ -37,9 +37,9 @@ impl Compiler {
             NodeKind::Bool(b) => instrs.push(Instruction::PushInt(if b { 1 } else { 0 })),
             NodeKind::Ident(ref lv_var) => {
                 instrs.push(Instruction::GetLocal {
-                    id: lv_var.value.index,
-                    level: lv_var.level,
-                })
+                                id: lv_var.value.index,
+                                level: lv_var.level,
+                            })
             }
             NodeKind::GlobalIdent(ref var) => instrs.push(Instruction::GetGlobal(var.index)),
             NodeKind::Call(index, ref args) => {
@@ -47,9 +47,9 @@ impl Compiler {
                     self.compile_node(instrs, arg, is_root);
                 }
                 instrs.push(Instruction::Call {
-                    id: index,
-                    n_args: args.len() as u32,
-                })
+                                id: index,
+                                n_args: args.len() as u32,
+                            })
             }
             NodeKind::AddInt(ref l, ref r) => {
                 self.compile_node(instrs, r, is_root);
@@ -154,6 +154,7 @@ impl Compiler {
                     self.compile_node(&mut instrs, body, is_root);
                     instrs
                 };
+                body_instrs.push(Instruction::Pop);
                 let jumpback_size = (cond_instrs.len() + 1 + body_instrs.len()) as isize;
                 body_instrs.push(Instruction::Jump(-jumpback_size as i32));
                 let break_size = body_instrs.len() as i32 + 1;
@@ -168,17 +169,17 @@ impl Compiler {
                     instrs.push(Instruction::SetGlobal(let_.id))
                 } else {
                     instrs.push(Instruction::SetLocal {
-                        id: let_.id,
-                        level: 0,
-                    })
+                                    id: let_.id,
+                                    level: 0,
+                                })
                 }
             }
             NodeKind::Assign(ref lv_var, ref value) => {
                 self.compile_node(instrs, value, is_root);
                 instrs.push(Instruction::SetLocal {
-                    id: lv_var.value.index,
-                    level: lv_var.level,
-                })
+                                id: lv_var.value.index,
+                                level: lv_var.level,
+                            })
             }
             NodeKind::AssignGlobal(ref var, ref value) => {
                 self.compile_node(instrs, value, is_root);
@@ -197,11 +198,12 @@ impl Compiler {
         let mut instrs = self.compile_nodes(&f.body, false);
         instrs.push(Instruction::Ret);
         let n_locals = f.env.n_locals();
-        self.functions.insert(id,
-                              Rc::new(instr::Function {
-                                  instrs: instrs,
-                                  n_locals: n_locals,
-                              }));
+        self.functions
+            .insert(id,
+                    Rc::new(instr::Function {
+                                instrs: instrs,
+                                n_locals: n_locals,
+                            }));
     }
 
     fn compile_root(&mut self, env: &LocalEnv) {
