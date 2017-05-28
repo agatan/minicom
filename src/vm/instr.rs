@@ -60,7 +60,6 @@ impl ProgramCounter {
     }
 
     pub fn fetch(&self) -> Instruction {
-        debug!("fetch: {:?}", unsafe { *self.0 });
         unsafe { *self.0 }
     }
 
