@@ -183,4 +183,24 @@ mod tests {
             assert_eq!(value, expected);
         }
     }
+
+    #[test]
+    fn test_if() {
+        let tests = &[(r#"
+                            def fib(n: int): int {
+                                if n <= 1 {
+                                    n
+                                } else {
+                                    fib(n-2) + fib(n-1)
+                                }
+                            }
+                            fib(8)
+         "#,
+                       Value::Int(21))];
+
+        for &(input, expected) in tests {
+            let value = run(input).unwrap();
+            assert_eq!(value, expected);
+        }
+    }
 }

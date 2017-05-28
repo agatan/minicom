@@ -35,11 +35,11 @@ impl<'a> Alpha<'a> {
     }
 
     pub fn transform(&mut self, name: String) -> String {
-        let n = self.get_dupnum(&name) - 1;
-        if n == 0 {
+        let n = self.get_dupnum(&name);
+        if n <= 1 {
             name
         } else {
-            format!("{}#{}", name, n)
+            format!("{}#{}", name, n - 1)
         }
     }
 
