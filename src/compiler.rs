@@ -143,6 +143,24 @@ impl Compiler {
                 instrs.extend(then_instrs);
                 instrs.extend(els_instrs);
             }
+            NodeKind::While(ref cond, ref body) => {
+                let cond_instrs = {
+                    let mut instrs = Vec::new();
+                    self.compile_node(&mut instrs, cond, false);
+                    instrs
+                };
+                let mut body_instrs = {
+                    let mut instrs = Vec::new();
+                    self.compile_node(&mut instrs, body, false);
+                    instrs
+                };
+                let jumpback_size = (cond_instrs.len() + 1 + body_instrs.len()) as isize;
+                body_instrs.push(Instruction::Jump(-jumpback_size as i32));
+                let break_size = body_instrs.len() as i32;
+                instrs.extend(cond_instrs);
+                instrs.push(Instruction::JumpIfZero(break_size));
+                instrs.extend(body_instrs);
+            }
             NodeKind::Let(ref let_) => {
                 self.compile_node(instrs, &let_.value, is_root);
                 if is_root {

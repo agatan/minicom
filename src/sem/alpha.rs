@@ -80,6 +80,11 @@ impl<'a> Alpha<'a> {
                 let els = els.map(|n| Box::new(self.apply(*n)));
                 NodeKind::If(Box::new(cond), Box::new(then), els)
             }
+            NodeKind::While(cond, body) => {
+                let cond = self.apply(*cond);
+                let body = self.apply(*body);
+                NodeKind::While(Box::new(cond), Box::new(body))
+            }
             NodeKind::Let(let_) => {
                 let mut let_ = *let_;
                 let_.value = self.apply(let_.value);

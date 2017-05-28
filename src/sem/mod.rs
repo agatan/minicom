@@ -283,6 +283,15 @@ impl Context {
                 }
                 Ok(Node::new(NodeKind::If(Box::new(cond), Box::new(then), els), typ))
             }
+            AstNodeKind::While(ref cond, ref body) => {
+                let cond = self.transform_node(cond)?;
+                if cond.typ != Type::Bool {
+                    bail!(ErrorKind::InvalidTypeUnification(cond.typ, Type::Bool));
+                }
+                let body = self.transform_node(body)?;
+                let typ = body.typ.clone();
+                Ok(Node::new(NodeKind::While(Box::new(cond), Box::new(body)), typ))
+            }
             AstNodeKind::Let(ref l) => {
                 let value = self.transform_node(&l.value)?;
                 if let Some(ref typ) = l.typ {
