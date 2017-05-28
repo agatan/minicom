@@ -15,6 +15,9 @@ pub enum Instruction {
     MulFloat,
     DivFloat,
 
+    Jump(i32),
+    JumpIfZero(i32),
+
     Call { id: u32, n_args: u32 },
     Ret,
 
@@ -58,5 +61,9 @@ impl ProgramCounter {
 
     pub fn next(&mut self) {
         self.0 = unsafe { self.0.offset(1) }
+    }
+
+    pub fn jump(&mut self, offset: i32) {
+        self.0 = unsafe { self.0.offset(offset as isize) }
     }
 }

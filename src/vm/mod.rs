@@ -147,6 +147,15 @@ impl Machine {
                 }
                 self.pc.next();
             }
+            Jump(offset) => self.pc.jump(offset),
+            JumpIfZero(offset) => {
+                let v = self.stack.pop();
+                if v == Value::Int(0) {
+                    self.pc.jump(offset)
+                } else {
+                    self.pc.next()
+                }
+            }
             Call { id, n_args } => {
                 let f = self.funcs.get(&id).expect("function id should be valid");
                 let fp = self.stack.len() - n_args as usize;

@@ -1,0 +1,17 @@
+if true {
+  print(1)
+} else {
+  print(2)
+}
+
+if false {
+  print(1)
+} else {
+  print(2)
+}
+
+let x = if true { 1 } else { 2 }
+print(x)
+
+let y = if false { 1 } else { 2 }
+print(y)

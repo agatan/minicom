@@ -93,14 +93,30 @@ impl Compiler {
                     None => instrs.push(Instruction::PushUnit),
                     Some((last, nodes)) => {
                         for node in nodes {
-                            self.compile_node(instrs, node, is_root);
+                            self.compile_node(instrs, node, false);
                             instrs.push(Instruction::Pop);
                         }
-                        self.compile_node(instrs, last, is_root);
+                        self.compile_node(instrs, last, false);
                     }
                 }
             }
-            NodeKind::If(ref cond, ref then, ref els) => unimplemented!(),
+            NodeKind::If(ref cond, ref then, ref els) => {
+                self.compile_node(instrs, cond, is_root);
+                let mut then_instrs = Vec::new();
+                self.compile_node(&mut then_instrs, then, is_root);
+                let els_instrs = match *els {
+                    None => vec![Instruction::PushUnit],
+                    Some(ref n) => {
+                        let mut els_instrs = Vec::new();
+                        self.compile_node(&mut els_instrs, n, is_root);
+                        els_instrs
+                    }
+                };
+                instrs.push(Instruction::JumpIfZero(then_instrs.len() as i32 + 2));
+                then_instrs.push(Instruction::Jump(els_instrs.len() as i32 + 1));
+                instrs.extend(then_instrs);
+                instrs.extend(els_instrs);
+            }
             NodeKind::Let(ref let_) => {
                 self.compile_node(instrs, &let_.value, is_root);
                 if is_root {
