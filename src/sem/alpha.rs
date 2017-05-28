@@ -58,17 +58,8 @@ impl<'a> Alpha<'a> {
             NodeKind::Int(n) => NodeKind::Int(n),
             NodeKind::Float(n) => NodeKind::Float(n),
             NodeKind::Ident(name) => NodeKind::Ident(self.transform(name)),
-            NodeKind::Add(l, r) => {
-                NodeKind::Add(Box::new(self.apply(*l)), Box::new(self.apply(*r)))
-            }
-            NodeKind::Sub(l, r) => {
-                NodeKind::Sub(Box::new(self.apply(*l)), Box::new(self.apply(*r)))
-            }
-            NodeKind::Mul(l, r) => {
-                NodeKind::Mul(Box::new(self.apply(*l)), Box::new(self.apply(*r)))
-            }
-            NodeKind::Div(l, r) => {
-                NodeKind::Div(Box::new(self.apply(*l)), Box::new(self.apply(*r)))
+            NodeKind::Infix(l, op, r) => {
+                NodeKind::Infix(Box::new(self.apply(*l)), op, Box::new(self.apply(*r)))
             }
             NodeKind::Parens(e) => NodeKind::Parens(Box::new(self.apply(*e))),
             NodeKind::Print(e) => NodeKind::Print(Box::new(self.apply(*e))),

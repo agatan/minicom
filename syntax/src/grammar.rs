@@ -1,6 +1,6 @@
 use pos::Location;
 use token::Token;
-use ast::{Node, NodeKind, Type, Let, Def};
+use ast::{Node, NodeKind, Type, Let, Def, Operator};
 use MutNodeEnv;
 extern crate lalrpop_util as __lalrpop_util;
 
@@ -9,7 +9,7 @@ mod __parse__Toplevel {
 
     use pos::Location;
     use token::Token;
-    use ast::{Node, NodeKind, Type, Let, Def};
+    use ast::{Node, NodeKind, Type, Let, Def, Operator};
     use MutNodeEnv;
     extern crate lalrpop_util as __lalrpop_util;
     use super::__ToTriple;
@@ -2706,7 +2706,7 @@ pub fn __action12<
     (_, r, _): (Location, Node, Location),
 ) -> Node
 {
-    Node::new(env.next_id(), NodeKind::Mul(Box::new(l), Box::new(r)))
+    Node::new(env.next_id(), NodeKind::Infix(Box::new(l), Operator::Mul, Box::new(r)))
 }
 
 #[allow(unused_variables)]
@@ -2721,7 +2721,7 @@ pub fn __action13<
     (_, r, _): (Location, Node, Location),
 ) -> Node
 {
-    Node::new(env.next_id(), NodeKind::Div(Box::new(l), Box::new(r)))
+    Node::new(env.next_id(), NodeKind::Infix(Box::new(l), Operator::Div, Box::new(r)))
 }
 
 #[allow(unused_variables)]
@@ -2749,7 +2749,7 @@ pub fn __action15<
     (_, r, _): (Location, Node, Location),
 ) -> Node
 {
-    Node::new(env.next_id(), NodeKind::Add(Box::new(l), Box::new(r)))
+    Node::new(env.next_id(), NodeKind::Infix(Box::new(l), Operator::Add, Box::new(r)))
 }
 
 #[allow(unused_variables)]
@@ -2764,7 +2764,7 @@ pub fn __action16<
     (_, r, _): (Location, Node, Location),
 ) -> Node
 {
-    Node::new(env.next_id(), NodeKind::Sub(Box::new(l), Box::new(r)))
+    Node::new(env.next_id(), NodeKind::Infix(Box::new(l), Operator::Sub, Box::new(r)))
 }
 
 #[allow(unused_variables)]

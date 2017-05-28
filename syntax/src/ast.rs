@@ -13,10 +13,7 @@ pub enum NodeKind {
     Float(f64),
     Ident(String),
     Call(String, Vec<Node>),
-    Add(Box<Node>, Box<Node>),
-    Sub(Box<Node>, Box<Node>),
-    Mul(Box<Node>, Box<Node>),
-    Div(Box<Node>, Box<Node>),
+    Infix(Box<Node>, Operator, Box<Node>),
     Parens(Box<Node>),
     Block(Vec<Node>),
     // FIXME(agatan): temporary builtin command
@@ -40,6 +37,14 @@ impl Node {
             kind: kind,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Operator {
+    Add,
+    Sub,
+    Mul,
+    Div,
 }
 
 #[derive(Debug, Clone, PartialEq)]

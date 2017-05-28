@@ -8,7 +8,7 @@ mod alpha;
 mod tyenv;
 
 use self::ir::*;
-use ast::{self, Node as AstNode, NodeKind as AstNodeKind};
+use ast::{self, Node as AstNode, NodeKind as AstNodeKind, Operator};
 pub use self::typing::TypeMap;
 // use self::venv::VariableEnv;
 use self::tyenv::TypeEnv;
@@ -184,65 +184,50 @@ impl Context {
                 }
                 Ok(Node::new(NodeKind::Call(finfo.index, args), finfo.ret.clone()))
             }
-            AstNodeKind::Add(ref l, ref r) => {
-                let left = self.transform_node(l)?;
-                let right = self.transform_node(r)?;
+            AstNodeKind::Infix(ref l, op, ref r) => {
+                let left = Box::new(self.transform_node(l)?);
+                let right = Box::new(self.transform_node(r)?);
                 let lty = left.typ.clone();
                 let rty = right.typ.clone();
-                if lty != rty {
-                    bail!(ErrorKind::InvalidTypeUnification(lty, rty));
-                }
-                if lty == Type::Int {
-                    Ok(Node::new(NodeKind::AddInt(Box::new(left), Box::new(right)), Type::Int))
-                } else {
-                    Ok(Node::new(NodeKind::AddFloat(Box::new(left), Box::new(right)),
-                                 Type::Float))
-                }
-            }
-            AstNodeKind::Sub(ref l, ref r) => {
-                let left = self.transform_node(l)?;
-                let right = self.transform_node(r)?;
-                let lty = left.typ.clone();
-                let rty = right.typ.clone();
-                if lty != rty {
-                    bail!(ErrorKind::InvalidTypeUnification(lty, rty));
-                }
-                if lty == Type::Int {
-                    Ok(Node::new(NodeKind::SubInt(Box::new(left), Box::new(right)), Type::Int))
-                } else {
-                    Ok(Node::new(NodeKind::SubFloat(Box::new(left), Box::new(right)),
-                                 Type::Float))
-                }
-            }
-            AstNodeKind::Mul(ref l, ref r) => {
-                let left = self.transform_node(l)?;
-                let right = self.transform_node(r)?;
-                let lty = left.typ.clone();
-                let rty = right.typ.clone();
-                if lty != rty {
-                    bail!(ErrorKind::InvalidTypeUnification(lty, rty));
-                }
-                if lty == Type::Int {
-                    Ok(Node::new(NodeKind::MulInt(Box::new(left), Box::new(right)), Type::Int))
-                } else {
-                    Ok(Node::new(NodeKind::MulFloat(Box::new(left), Box::new(right)),
-                                 Type::Float))
-                }
-            }
-            AstNodeKind::Div(ref l, ref r) => {
-                let left = self.transform_node(l)?;
-                let right = self.transform_node(r)?;
-                let lty = left.typ.clone();
-                let rty = right.typ.clone();
-                if lty != rty {
-                    bail!(ErrorKind::InvalidTypeUnification(lty, rty));
-                }
-                if lty == Type::Int {
-                    Ok(Node::new(NodeKind::DivInt(Box::new(left), Box::new(right)), Type::Int))
-                } else {
-                    Ok(Node::new(NodeKind::DivFloat(Box::new(left), Box::new(right)),
-                                 Type::Float))
-                }
+                let (kind, typ) = match op {
+                    Operator::Add => {
+                        match (lty, rty) {
+                            (Type::Int, Type::Int) => (NodeKind::AddInt(left, right), Type::Int),
+                            (Type::Float, Type::Float) => {
+                                (NodeKind::AddFloat(left, right), Type::Float)
+                            }
+                            (lty, rty) => bail!(ErrorKind::InvalidTypeUnification(lty, rty)),
+                        }
+                    }
+                    Operator::Sub => {
+                        match (lty, rty) {
+                            (Type::Int, Type::Int) => (NodeKind::SubInt(left, right), Type::Int),
+                            (Type::Float, Type::Float) => {
+                                (NodeKind::SubFloat(left, right), Type::Float)
+                            }
+                            (lty, rty) => bail!(ErrorKind::InvalidTypeUnification(lty, rty)),
+                        }
+                    }
+                    Operator::Mul => {
+                        match (lty, rty) {
+                            (Type::Int, Type::Int) => (NodeKind::MulInt(left, right), Type::Int),
+                            (Type::Float, Type::Float) => {
+                                (NodeKind::MulFloat(left, right), Type::Float)
+                            }
+                            (lty, rty) => bail!(ErrorKind::InvalidTypeUnification(lty, rty)),
+                        }
+                    }
+                    Operator::Div => {
+                        match (lty, rty) {
+                            (Type::Int, Type::Int) => (NodeKind::DivInt(left, right), Type::Int),
+                            (Type::Float, Type::Float) => {
+                                (NodeKind::DivFloat(left, right), Type::Float)
+                            }
+                            (lty, rty) => bail!(ErrorKind::InvalidTypeUnification(lty, rty)),
+                        }
+                    }
+                };
+                Ok(Node::new(kind, typ))
             }
             AstNodeKind::Parens(ref e) => self.transform_node(e),
             AstNodeKind::Print(ref e) => {
