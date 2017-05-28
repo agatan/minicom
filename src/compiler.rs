@@ -27,6 +27,7 @@ impl Compiler {
             NodeKind::Unit => instrs.push(Instruction::PushUnit),
             NodeKind::Int(n) => instrs.push(Instruction::PushInt(n)),
             NodeKind::Float(n) => instrs.push(Instruction::PushFloat(n)),
+            NodeKind::Bool(b) => instrs.push(Instruction::PushInt(if b { 1 } else { 0 })),
             NodeKind::Ident(ref lv_var) => {
                 instrs.push(Instruction::GetLocal {
                     id: lv_var.value.index,

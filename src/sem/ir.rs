@@ -6,6 +6,7 @@ use std::iter::Iterator;
 pub enum Type {
     Int,
     Float,
+    Bool,
     Unit,
 }
 
@@ -29,6 +30,7 @@ pub enum NodeKind {
     Unit,
     Int(i64),
     Float(f64),
+    Bool(bool),
     Ident(Level<Var>),
     GlobalIdent(Var),
     Call(u32, Vec<Node>),

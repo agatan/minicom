@@ -13,7 +13,8 @@ impl TypeEnv {
         let mut env = TypeEnv { table: HashMap::new() };
         env.insert("int".to_string(), Type::Int);
         env.insert("float".to_string(), Type::Float);
-        env.insert("unit".to_string(), Type::Unit);
+        env.insert("bool".to_string(), Type::Bool);
+        env.insert("()".to_string(), Type::Unit);
         env
     }
 

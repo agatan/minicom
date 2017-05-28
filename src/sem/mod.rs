@@ -153,6 +153,7 @@ impl Context {
         match node.kind {
             AstNodeKind::Int(n) => Ok(Node::new(NodeKind::Int(n), Type::Int)),
             AstNodeKind::Float(f) => Ok(Node::new(NodeKind::Float(f), Type::Float)),
+            AstNodeKind::Bool(b) => Ok(Node::new(NodeKind::Bool(b), Type::Bool)),
             AstNodeKind::Ident(ref name) => {
                 match self.get_var(name) {
                     None => bail!(ErrorKind::Undefined(name.clone())),

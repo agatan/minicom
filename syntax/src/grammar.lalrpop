@@ -13,6 +13,8 @@ extern {
         "identifier" => Token::Identifier(<&'input str>),
         "int literal" => Token::IntLiteral(<i64>),
         "float literal" => Token::FloatLiteral(<f64>),
+        "true" => Token::True,
+        "false" => Token::False,
 
         "+" => Token::Add,
         "-" => Token::Sub,
@@ -73,6 +75,8 @@ AtomicExpr: Node = {
     <name:"identifier"> "(" <args:Comma<Expression>> ")" => Node::new(env.next_id(), NodeKind::Call(name.to_string(), args)),
     "int literal" => Node::new(env.next_id(), NodeKind::Int(<>)),
     "float literal" => Node::new(env.next_id(), NodeKind::Float(<>)),
+    "true" => Node::new(env.next_id(), NodeKind::Bool(true)),
+    "false" => Node::new(env.next_id(), NodeKind::Bool(false)),
     "(" <expr:Expression> ")" => Node::new(env.next_id(), NodeKind::Parens(Box::new(expr))),
     "{" <nodes:Nodes> "}" => Node::new(env.next_id(), NodeKind::Block(nodes)),
 };

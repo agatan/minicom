@@ -11,6 +11,7 @@ impl NodeId {
 pub enum NodeKind {
     Int(i64),
     Float(f64),
+    Bool(bool),
     Ident(String),
     Call(String, Vec<Node>),
     Infix(Box<Node>, Operator, Box<Node>),

@@ -57,6 +57,7 @@ impl<'a> Alpha<'a> {
         node.kind = match node.kind {
             NodeKind::Int(n) => NodeKind::Int(n),
             NodeKind::Float(n) => NodeKind::Float(n),
+            NodeKind::Bool(b) => NodeKind::Bool(b),
             NodeKind::Ident(name) => NodeKind::Ident(self.transform(name)),
             NodeKind::Infix(l, op, r) => {
                 NodeKind::Infix(Box::new(self.apply(*l)), op, Box::new(self.apply(*r)))
