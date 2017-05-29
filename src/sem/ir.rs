@@ -77,6 +77,7 @@ pub struct Let {
 
 #[derive(Debug)]
 pub struct Function {
+    pub id: u32,
     pub env: LocalEnv,
     pub args: Vec<Type>,
     pub ret_typ: Type,
@@ -105,18 +106,8 @@ impl LocalEnv {
         n
     }
 
-    pub fn declare_function(&mut self, id: u32, name: String, args: Vec<Type>, ret: Type) {
-        self.table
-            .insert(name, Entry::ExternFunction(id, args, ret));
-    }
-
     pub fn define_function(&mut self, name: String, f: Function) {
-        let n = match self.table.get(&name) {
-            Some(&Entry::ExternFunction(n, _, _)) => n,
-            Some(_) => unimplemented!(), // FIXME(agatan): duplicated identifiers
-            None => unreachable!(), // functions should be corrected in advance.
-        };
-        self.table.insert(name, Entry::Function(n, f));
+        self.table.insert(name, Entry::Function(f));
     }
 
     pub fn get_local(&self, name: &str) -> Option<Var> {
@@ -132,18 +123,11 @@ impl LocalEnv {
         self.table
             .get(name)
             .and_then(|entry| match *entry {
-                          Entry::Function(index, ref f) => {
+                          Entry::Function(ref f) => {
                               Some(FunctionInfo {
-                                       index: index,
+                                       index: f.id,
                                        args: f.args.clone(),
                                        ret: f.ret_typ.clone(),
-                                   })
-                          }
-                          Entry::ExternFunction(index, ref args, ref ret) => {
-                              Some(FunctionInfo {
-                                       index: index,
-                                       args: args.clone(),
-                                       ret: ret.clone(),
                                    })
                           }
                           Entry::Var(_) => None,
@@ -159,7 +143,7 @@ impl LocalEnv {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionInfo {
     pub index: u32,
     pub args: Vec<Type>,
@@ -169,8 +153,7 @@ pub struct FunctionInfo {
 #[derive(Debug)]
 pub enum Entry {
     Var(Var),
-    Function(u32, Function),
-    ExternFunction(u32, Vec<Type>, Type),
+    Function(Function),
 }
 
 pub struct Functions<'a> {
@@ -178,11 +161,11 @@ pub struct Functions<'a> {
 }
 
 impl<'a> Iterator for Functions<'a> {
-    type Item = (u32, &'a Function);
+    type Item = &'a Function;
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(entry) = self.entries.next() {
-            if let Entry::Function(index, ref f) = *entry {
-                return Some((index, f));
+            if let Entry::Function(ref f) = *entry {
+                return Some(f);
             }
         }
         None

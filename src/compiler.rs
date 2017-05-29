@@ -181,8 +181,8 @@ impl Compiler {
         if self.functions.contains_key(&id) {
             return;
         }
-        for (id, f) in f.env.functions() {
-            self.compile_function(id, f);
+        for f in f.env.functions() {
+            self.compile_function(f.id, f);
         }
         let mut instrs = self.compile_nodes(&f.body, false);
         instrs.push(Instruction::Ret);
@@ -196,8 +196,8 @@ impl Compiler {
     }
 
     fn compile_root(&mut self, env: &LocalEnv) {
-        for (id, f) in env.functions() {
-            self.compile_function(id, f);
+        for f in env.functions() {
+            self.compile_function(f.id, f);
         }
     }
 

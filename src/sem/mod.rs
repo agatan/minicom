@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
 pub mod ir;
@@ -42,6 +43,7 @@ pub struct Context {
     envchain: Vec<LocalEnv>,
     tyenv: Rc<TypeEnv>,
     function_id: u32,
+    forward_decls: HashMap<String, FunctionInfo>,
 }
 
 impl Context {
@@ -52,6 +54,7 @@ impl Context {
             envchain: Vec::new(),
             tyenv: Rc::new(TypeEnv::new()),
             function_id: 0,
+            forward_decls: HashMap::new(),
         }
     }
 
@@ -105,6 +108,13 @@ impl Context {
     }
 
     fn get_function_info(&self, name: &str) -> Option<FunctionInfo> {
+        if let Some(fd) = self.forward_decls.get(name) {
+            return Some(FunctionInfo {
+                            index: fd.index,
+                            args: fd.args.clone(),
+                            ret: fd.ret.clone(),
+                        });
+        }
         for env in self.envchain.iter().rev() {
             if let Some(finfo) = env.get_function_info(name) {
                 return Some(finfo);
@@ -126,8 +136,12 @@ impl Context {
                         .map(|&(_, ref typ)| self.tyenv.get(&typ.name))
                         .collect::<Result<Vec<_>>>()?;
                     let id = self.next_function_id();
-                    self.current_env()
-                        .declare_function(id, def.name.clone(), args, ret);
+                    let fd = FunctionInfo {
+                        index: id,
+                        args: args,
+                        ret: ret,
+                    };
+                    self.forward_decls.insert(def.name.clone(), fd);
                 }
                 _ => continue,
             }
@@ -352,29 +366,30 @@ impl Context {
     }
 
     fn transform_def(&mut self, def: &ast::Def) -> Result<Function> {
+        let fd = self.forward_decls
+            .get(&def.name)
+            .expect("forward declared")
+            .clone();
         let mut scoped = self.enter_scope();
-        let mut args = Vec::new();
-        for &(ref name, ref typ) in def.args.iter() {
-            let typ = scoped.tyenv.get(&typ.name)?;
-            scoped.current_env().define_local(name.clone(), typ.clone());
-            args.push(typ);
+        for (name, ty) in def.args
+                .iter()
+                .map(|&(ref name, _)| name)
+                .zip(fd.args.iter()) {
+            scoped.current_env().define_local(name.clone(), ty.clone());
         }
         let body = def.body
             .iter()
             .map(|node| scoped.transform_node(node))
             .collect::<Result<Vec<_>>>()?;
-        let ret_typ = def.ret
-            .as_ref()
-            .map(|ret| scoped.tyenv.get(&ret.name))
-            .unwrap_or(Ok(Type::Unit))?;
         let body_typ = body.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
-        if ret_typ != body_typ {
-            bail!(ErrorKind::InvalidTypeUnification(ret_typ, body_typ));
+        if fd.ret != body_typ {
+            bail!(ErrorKind::InvalidTypeUnification(fd.ret, body_typ));
         }
         let env = scoped.exit_and_pop();
         let function = Function {
-            args: args,
-            ret_typ: ret_typ,
+            id: fd.index,
+            args: fd.args,
+            ret_typ: fd.ret,
             body: body,
             env: env,
         };
