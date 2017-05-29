@@ -191,15 +191,9 @@ Def: Def= {
     },
 };
 
-Definition: Node =
-    Def => Node::new(env.next_id(), NodeKind::Def(Box::new(<>)))
-    ;
-
-
 // nodes
 
 AnyNode: Node = {
-    Definition,
     Statement,
     Expression,
 };

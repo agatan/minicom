@@ -43,8 +43,6 @@ pub enum NodeKind {
     Print(Box<Node>),
     Let(Box<Let>),
     Assign(String, Box<Node>),
-
-    Def(Box<Def>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

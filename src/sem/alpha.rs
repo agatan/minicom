@@ -123,17 +123,6 @@ impl<'a> Alpha<'a> {
                 let value = self.apply(*value);
                 NodeKind::Assign(name, Box::new(value))
             }
-            NodeKind::Def(def) => {
-                let mut def = *def;
-                def.name = self.define(def.name);
-                let mut scoped = self.scope();
-                def.args = def.args
-                    .into_iter()
-                    .map(|(name, typ)| (scoped.define(name), typ))
-                    .collect();
-                def.body = def.body.into_iter().map(|n| scoped.apply(n)).collect();
-                NodeKind::Def(Box::new(def))
-            }
         };
         node
     }

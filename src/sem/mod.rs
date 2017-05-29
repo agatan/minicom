@@ -362,11 +362,6 @@ impl Context {
                     Ok(Node::new(NodeKind::Assign(lv_var, Box::new(value)), Type::Unit))
                 }
             }
-            AstNodeKind::Def(ref def) => {
-                let function = self.transform_def(def)?;
-                self.define_function(def.name.clone(), function);
-                Ok(Node::new(NodeKind::Unit, Type::Unit))
-            }
         }
     }
 
