@@ -225,4 +225,8 @@ ToplevelKind: ToplevelKind = {
     Expression => ToplevelKind::Expr(Box::new(<>)),
 };
 
-pub Toplevel = Nodes;
+Toplevel: Toplevel =
+    ToplevelKind => Toplevel::new(env.next_id(),  <>)
+    ;
+
+pub Program = SepSeq<Toplevel>;

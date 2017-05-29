@@ -11,7 +11,7 @@ mod grammar;
 
 use std::convert::From;
 
-use ast::Node;
+use ast::Toplevel;
 use pos::Location;
 use token::{Token, Tokenizer, Error as TokenizeError};
 
@@ -72,10 +72,10 @@ impl NodeEnv {
         ast::NodeId::new(n)
     }
 
-    pub fn parse(&mut self, input: &str) -> Result<Vec<Node>, Error> {
+    pub fn parse(&mut self, input: &str) -> Result<Vec<Toplevel>, Error> {
         let tokens = Tokenizer::new(input).collect::<Result<Vec<_>, _>>().map_err(|err| err.value)?;
 
-        grammar::parse_Toplevel(input, self, tokens.into_iter().map(|sp| {
+        grammar::parse_Program(input, self, tokens.into_iter().map(|sp| {
             let span = sp.span;
             (span.start, sp.value, span.end)
         })).map_err(Error::from)
@@ -84,7 +84,7 @@ impl NodeEnv {
 
 type MutNodeEnv<'a> = &'a mut NodeEnv;
 
-pub fn parse(input: &str) -> Result<Vec<Node>, Error> {
+pub fn parse(input: &str) -> Result<Vec<Toplevel>, Error> {
     let mut env = NodeEnv::new();
     env.parse(input)
 }
@@ -95,15 +95,15 @@ fn test_parse() {
     let mut env = NodeEnv::new();
     let input = r#"
     let x: int = 1;
-    let y = 2;
+    let y: int = 2;
     def add(x: int, y: int): int {
         let z = x + y;
         z
     }
         "#;
     let tokens = Tokenizer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
-    grammar::parse_Toplevel(input, &mut env, tokens.into_iter().map(|sp| {
+    grammar::parse_Program(input, &mut env, tokens.into_iter().map(|sp| {
         let span = sp.span;
         (span.start, sp.value, span.end)
-    }));
+    })).unwrap();
 }
