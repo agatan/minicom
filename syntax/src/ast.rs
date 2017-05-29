@@ -8,6 +8,25 @@ impl NodeId {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum ToplevelKind {
+    Def(Box<Def>),
+    Let(Box<Let>),
+    Expr(Box<Node>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Toplevel {
+    pub id: NodeId,
+    pub kind: ToplevelKind,
+}
+
+impl Toplevel {
+    pub fn new(id: NodeId, kind: ToplevelKind) -> Self {
+        Toplevel { id: id, kind: kind }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum NodeKind {
     Unit,
     Int(i64),
@@ -36,10 +55,7 @@ pub struct Node {
 
 impl Node {
     pub fn new(id: NodeId, kind: NodeKind) -> Self {
-        Node {
-            id: id,
-            kind: kind,
-        }
+        Node { id: id, kind: kind }
     }
 }
 

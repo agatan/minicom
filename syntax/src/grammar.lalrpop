@@ -1,6 +1,6 @@
 use pos::Location;
 use token::Token;
-use ast::{Node, NodeKind, Type, Let, Def, Operator};
+use ast::{Node, NodeKind, Type, Let, Def, Operator, Toplevel, ToplevelKind};
 
 use MutNodeEnv;
 
@@ -180,17 +180,21 @@ Statement: Node = {
 
 // definition
 
-Definition: Node = {
+Def: Def= {
     "def" <name:"identifier"> "(" <args:Comma<Param>> ")" <ret:TypeSpec?> "{" <body:Nodes> "}" => {
-        let def = Def {
+        Def {
             name: name.to_string(),
             args: args,
             ret: ret,
             body: body,
-        };
-        Node::new(env.next_id(), NodeKind::Def(Box::new(def)))
+        }
     },
 };
+
+Definition: Node =
+    Def => Node::new(env.next_id(), NodeKind::Def(Box::new(<>)))
+    ;
+
 
 // nodes
 
@@ -201,5 +205,24 @@ AnyNode: Node = {
 };
 
 Nodes: Vec<Node> = SepSeq<AnyNode>;
+
+// toplevels
+
+ToplevelLet: ToplevelKind = {
+    "let" <name:"identifier"> <typ:TypeSpec> "=" <value:Expression> => {
+        let let_ = Let {
+            name: name.to_string(),
+            typ: Some(typ),
+            value: value,
+        };
+        ToplevelKind::Let(Box::new(let_))
+    },
+};
+
+ToplevelKind: ToplevelKind = {
+    Def => ToplevelKind::Def(Box::new(<>)),
+    ToplevelLet,
+    Expression => ToplevelKind::Expr(Box::new(<>)),
+};
 
 pub Toplevel = Nodes;
