@@ -35,12 +35,7 @@ impl Compiler {
             NodeKind::Int(n) => instrs.push(Instruction::PushInt(n)),
             NodeKind::Float(n) => instrs.push(Instruction::PushFloat(n)),
             NodeKind::Bool(b) => instrs.push(Instruction::PushInt(if b { 1 } else { 0 })),
-            NodeKind::Ident(ref lv_var) => {
-                instrs.push(Instruction::GetLocal {
-                                id: lv_var.value.index,
-                                level: lv_var.level,
-                            })
-            }
+            NodeKind::Ident(ref lv_var) => instrs.push(Instruction::GetLocal(lv_var.index)),
             NodeKind::GlobalIdent(ref var) => instrs.push(Instruction::GetGlobal(var.index)),
             NodeKind::Call(index, ref args) => {
                 for arg in args {
@@ -168,18 +163,12 @@ impl Compiler {
                 if is_root {
                     instrs.push(Instruction::SetGlobal(let_.id))
                 } else {
-                    instrs.push(Instruction::SetLocal {
-                                    id: let_.id,
-                                    level: 0,
-                                })
+                    instrs.push(Instruction::SetLocal(let_.id))
                 }
             }
             NodeKind::Assign(ref lv_var, ref value) => {
                 self.compile_node(instrs, value, is_root);
-                instrs.push(Instruction::SetLocal {
-                                id: lv_var.value.index,
-                                level: lv_var.level,
-                            })
+                instrs.push(Instruction::SetLocal(lv_var.index))
             }
             NodeKind::AssignGlobal(ref var, ref value) => {
                 self.compile_node(instrs, value, is_root);

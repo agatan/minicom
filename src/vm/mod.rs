@@ -221,16 +221,14 @@ impl Machine {
                 self.stack.push(Value::Unit);
                 self.pc.next();
             }
-            SetLocal { id, level } => {
+            SetLocal(id) => {
                 let v = self.stack.pop();
-                debug_assert_eq!(level, 0);
                 let fp = self.current_frame().fp;
                 self.stack[fp + id as usize] = v;
                 self.stack.push(Value::Unit);
                 self.pc.next();
             }
-            GetLocal { id, level } => {
-                debug_assert_eq!(level, 0);
+            GetLocal(id) => {
                 let fp = self.current_frame().fp;
                 let v = self.stack[fp + id as usize];
                 self.stack.push(v);

@@ -87,37 +87,21 @@ impl Context {
         }
     }
 
-    fn current_depth(&self) -> u32 {
-        self.envchain.len() as u32
-    }
-
-    fn is_root(&self, level: u32) -> bool {
-        level == self.current_depth()
-    }
-
     fn next_function_id(&mut self) -> u32 {
         let n = self.function_id;
         self.function_id += 1;
         n
     }
 
-    fn get_var(&self, name: &str) -> Option<Level<Var>> {
-        for (env, level) in self.envchain.iter().rev().zip(0..) {
+    fn get_var(&self, name: &str) -> Option<(Var, VarKind)> {
+        for env in self.envchain.iter().rev() {
             if let Some(var) = env.get_local(name) {
-                return Some(Level {
-                                value: var,
-                                level: level,
-                            });
+                return Some((var, VarKind::Local));
             }
         }
         self.rootenv
             .get_local(name)
-            .map(|var| {
-                     Level {
-                         value: var,
-                         level: self.envchain.len() as u32,
-                     }
-                 })
+            .map(|var| (var, VarKind::Global))
     }
 
     fn get_function_info(&self, name: &str) -> Option<FunctionInfo> {
@@ -194,12 +178,11 @@ impl Context {
             AstNodeKind::Ident(ref name) => {
                 match self.get_var(name) {
                     None => bail!(ErrorKind::Undefined(name.clone())),
-                    Some(lv_var) => {
-                        let typ = lv_var.value.typ.clone();
-                        if self.is_root(lv_var.level) {
-                            Ok(Node::new(NodeKind::GlobalIdent(lv_var.value), typ))
-                        } else {
-                            Ok(Node::new(NodeKind::Ident(lv_var), typ))
+                    Some((lv_var, var_kind)) => {
+                        let typ = lv_var.typ.clone();
+                        match var_kind {
+                            VarKind::Global => Ok(Node::new(NodeKind::GlobalIdent(lv_var), typ)),
+                            VarKind::Local => Ok(Node::new(NodeKind::Ident(lv_var), typ)),
                         }
                     }
                 }
@@ -348,18 +331,21 @@ impl Context {
                              Type::Unit))
             }
             AstNodeKind::Assign(ref var, ref value) => {
-                let lv_var = self.get_var(var)
-                    .ok_or(Error::from(ErrorKind::Undefined(var.clone())))?;
-                let typ = lv_var.value.typ.clone();
+                let (lv_var, var_kind) =
+                    self.get_var(var)
+                        .ok_or(Error::from(ErrorKind::Undefined(var.clone())))?;
+                let typ = lv_var.typ.clone();
                 let value = self.transform_node(value)?;
                 if typ != value.typ {
                     bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                 }
-                if self.is_root(lv_var.level) {
-                    Ok(Node::new(NodeKind::AssignGlobal(lv_var.value, Box::new(value)),
-                                 Type::Unit))
-                } else {
-                    Ok(Node::new(NodeKind::Assign(lv_var, Box::new(value)), Type::Unit))
+                match var_kind {
+                    VarKind::Global => {
+                        Ok(Node::new(NodeKind::AssignGlobal(lv_var, Box::new(value)), Type::Unit))
+                    }
+                    VarKind::Local => {
+                        Ok(Node::new(NodeKind::Assign(lv_var, Box::new(value)), Type::Unit))
+                    }
                 }
             }
         }

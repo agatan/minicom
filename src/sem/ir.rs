@@ -31,7 +31,7 @@ pub enum NodeKind {
     Int(i64),
     Float(f64),
     Bool(bool),
-    Ident(Level<Var>),
+    Ident(Var),
     GlobalIdent(Var),
     Call(u32, Vec<Node>),
     AddInt(Box<Node>, Box<Node>),
@@ -52,7 +52,7 @@ pub enum NodeKind {
     While(Box<Node>, Box<Node>),
 
     Let(Box<Let>),
-    Assign(Level<Var>, Box<Node>),
+    Assign(Var, Box<Node>),
     AssignGlobal(Var, Box<Node>),
 }
 
@@ -60,6 +60,12 @@ pub enum NodeKind {
 pub struct Var {
     pub index: u32,
     pub typ: Type,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum VarKind {
+    Global,
+    Local,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -165,12 +171,6 @@ pub enum Entry {
     Var(Var),
     Function(u32, Function),
     ExternFunction(u32, Vec<Type>, Type),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Level<T> {
-    pub value: T,
-    pub level: u32,
 }
 
 pub struct Functions<'a> {

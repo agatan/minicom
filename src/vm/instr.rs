@@ -28,8 +28,8 @@ pub enum Instruction {
 
     Print,
 
-    SetLocal { id: u32, level: u32 },
-    GetLocal { id: u32, level: u32 },
+    SetLocal(u32),
+    GetLocal(u32),
 
     SetGlobal(u32),
     GetGlobal(u32),
