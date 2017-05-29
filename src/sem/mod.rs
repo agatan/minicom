@@ -8,7 +8,7 @@ mod alpha;
 mod tyenv;
 
 use self::ir::*;
-use ast::{self, Node as AstNode, NodeKind as AstNodeKind, Operator};
+use ast::{self, Toplevel, ToplevelKind, Node as AstNode, NodeKind as AstNodeKind, Operator};
 pub use self::typing::TypeMap;
 // use self::venv::VariableEnv;
 use self::tyenv::TypeEnv;
@@ -55,13 +55,19 @@ impl Context {
         }
     }
 
-    pub fn transform(&mut self, nodes: Vec<AstNode>) -> Result<Vec<Node>> {
+    pub fn transform(&mut self, nodes: Vec<Toplevel>) -> Result<Vec<Node>> {
         let mut alp = Alpha::new();
         debug!("before: {:?}", nodes);
-        let nodes = nodes.into_iter().map(|n| alp.apply(n)).collect::<Vec<_>>();
+        let nodes = nodes
+            .into_iter()
+            .map(|n| alp.apply_toplevel(n))
+            .collect::<Vec<_>>();
         debug!("alpha: {:?}", nodes);
         self.collect_types(&nodes)?;
-        nodes.iter().map(|n| self.transform_node(n)).collect::<Result<_>>()
+        nodes
+            .iter()
+            .map(|n| self.transform_toplevel(n))
+            .collect::<Result<_>>()
     }
 
     fn enter_scope(&mut self) -> Scoped {
@@ -99,17 +105,19 @@ impl Context {
         for (env, level) in self.envchain.iter().rev().zip(0..) {
             if let Some(var) = env.get_local(name) {
                 return Some(Level {
-                    value: var,
-                    level: level,
-                });
+                                value: var,
+                                level: level,
+                            });
             }
         }
-        self.rootenv.get_local(name).map(|var| {
-            Level {
-                value: var,
-                level: self.envchain.len() as u32,
-            }
-        })
+        self.rootenv
+            .get_local(name)
+            .map(|var| {
+                     Level {
+                         value: var,
+                         level: self.envchain.len() as u32,
+                     }
+                 })
     }
 
     fn get_function_info(&self, name: &str) -> Option<FunctionInfo> {
@@ -121,10 +129,10 @@ impl Context {
         self.rootenv.get_function_info(name)
     }
 
-    fn collect_types(&mut self, nodes: &[AstNode]) -> Result<()> {
+    fn collect_types(&mut self, nodes: &[Toplevel]) -> Result<()> {
         for node in nodes {
             match node.kind {
-                AstNodeKind::Def(ref def) => {
+                ToplevelKind::Def(ref def) => {
                     let ret = def.ret
                         .as_ref()
                         .map(|typ| self.tyenv.get(&typ.name))
@@ -141,6 +149,34 @@ impl Context {
             }
         }
         Ok(())
+    }
+
+    pub fn transform_toplevel(&mut self, toplevel: &Toplevel) -> Result<Node> {
+        match toplevel.kind {
+            ToplevelKind::Def(ref def) => {
+                let function = self.transform_def(def)?;
+                self.define_function(def.name.clone(), function);
+                Ok(Node::new(NodeKind::Unit, Type::Unit))
+            }
+            ToplevelKind::Let(ref l) => {
+                let value = self.transform_node(&l.value)?;
+                if let Some(ref typ) = l.typ {
+                    let typ = self.tyenv.get(&typ.name)?;
+                    if typ != value.typ {
+                        bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
+                    }
+                }
+                let id = self.current_env()
+                    .define_local(l.name.clone(), value.typ.clone());
+                Ok(Node::new(NodeKind::Let(Box::new(Let {
+                                                        id: id,
+                                                        typ: value.typ.clone(),
+                                                        value: value,
+                                                    })),
+                             Type::Unit))
+            }
+            ToplevelKind::Expr(ref e) => self.transform_node(e),
+        }
     }
 
     pub fn transform_node(&mut self, node: &AstNode) -> Result<Node> {
@@ -262,8 +298,10 @@ impl Context {
                 Ok(Node::new(NodeKind::Print(Box::new(e)), ty))
             }
             AstNodeKind::Block(ref nodes) => {
-                let nodes =
-                    nodes.into_iter().map(|n| self.transform_node(n)).collect::<Result<Vec<_>>>()?;
+                let nodes = nodes
+                    .into_iter()
+                    .map(|n| self.transform_node(n))
+                    .collect::<Result<Vec<_>>>()?;
                 let typ = nodes.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
                 Ok(Node::new(NodeKind::Block(nodes), typ))
             }
@@ -300,12 +338,13 @@ impl Context {
                         bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
                 }
-                let id = self.current_env().define_local(l.name.clone(), value.typ.clone());
+                let id = self.current_env()
+                    .define_local(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
-                                 id: id,
-                                 typ: value.typ.clone(),
-                                 value: value,
-                             })),
+                                                        id: id,
+                                                        typ: value.typ.clone(),
+                                                        value: value,
+                                                    })),
                              Type::Unit))
             }
             AstNodeKind::Assign(ref var, ref value) => {

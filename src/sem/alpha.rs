@@ -53,6 +53,33 @@ impl<'a> Alpha<'a> {
         0
     }
 
+    pub fn apply_toplevel(&mut self, mut toplevel: Toplevel) -> Toplevel {
+        toplevel.kind = match toplevel.kind {
+            ToplevelKind::Def(def) => {
+                let mut def = *def;
+                def.name = self.define(def.name);
+                let mut scoped = self.scope();
+                def.args = def.args
+                    .into_iter()
+                    .map(|(name, typ)| (scoped.define(name), typ))
+                    .collect();
+                def.body = def.body.into_iter().map(|n| scoped.apply(n)).collect();
+                ToplevelKind::Def(Box::new(def))
+            }
+            ToplevelKind::Let(let_) => {
+                let mut let_ = *let_;
+                let_.value = self.apply(let_.value);
+                let_.name = self.define(let_.name);
+                ToplevelKind::Let(Box::new(let_))
+            }
+            ToplevelKind::Expr(e) => {
+                let e = self.apply(*e);
+                ToplevelKind::Expr(Box::new(e))
+            }
+        };
+        toplevel
+    }
+
     pub fn apply(&mut self, mut node: Node) -> Node {
         node.kind = match node.kind {
             NodeKind::Unit => NodeKind::Unit,
@@ -100,8 +127,10 @@ impl<'a> Alpha<'a> {
                 let mut def = *def;
                 def.name = self.define(def.name);
                 let mut scoped = self.scope();
-                def.args =
-                    def.args.into_iter().map(|(name, typ)| (scoped.define(name), typ)).collect();
+                def.args = def.args
+                    .into_iter()
+                    .map(|(name, typ)| (scoped.define(name), typ))
+                    .collect();
                 def.body = def.body.into_iter().map(|n| scoped.apply(n)).collect();
                 NodeKind::Def(Box::new(def))
             }

@@ -94,16 +94,14 @@ impl LocalEnv {
     pub fn define_local(&mut self, name: String, typ: Type) -> u32 {
         let n = self.locals.len() as u32;
         self.locals.push(name.clone());
-        self.table.insert(name,
-                          Entry::Var(Var {
-                              index: n,
-                              typ: typ,
-                          }));
+        self.table
+            .insert(name, Entry::Var(Var { index: n, typ: typ }));
         n
     }
 
     pub fn declare_function(&mut self, id: u32, name: String, args: Vec<Type>, ret: Type) {
-        self.table.insert(name, Entry::ExternFunction(id, args, ret));
+        self.table
+            .insert(name, Entry::ExternFunction(id, args, ret));
     }
 
     pub fn define_function(&mut self, name: String, f: Function) {
@@ -116,30 +114,34 @@ impl LocalEnv {
     }
 
     pub fn get_local(&self, name: &str) -> Option<Var> {
-        self.table.get(name).and_then(|entry| match *entry {
-            Entry::Var(ref var) => Some(var.clone()),
-            _ => None,
-        })
+        self.table
+            .get(name)
+            .and_then(|entry| match *entry {
+                          Entry::Var(ref var) => Some(var.clone()),
+                          _ => None,
+                      })
     }
 
     pub fn get_function_info(&self, name: &str) -> Option<FunctionInfo> {
-        self.table.get(name).and_then(|entry| match *entry {
-            Entry::Function(index, ref f) => {
-                Some(FunctionInfo {
-                    index: index,
-                    args: f.args.clone(),
-                    ret: f.ret_typ.clone(),
-                })
-            }
-            Entry::ExternFunction(index, ref args, ref ret) => {
-                Some(FunctionInfo {
-                    index: index,
-                    args: args.clone(),
-                    ret: ret.clone(),
-                })
-            }
-            Entry::Var(_) => None,
-        })
+        self.table
+            .get(name)
+            .and_then(|entry| match *entry {
+                          Entry::Function(index, ref f) => {
+                              Some(FunctionInfo {
+                                       index: index,
+                                       args: f.args.clone(),
+                                       ret: f.ret_typ.clone(),
+                                   })
+                          }
+                          Entry::ExternFunction(index, ref args, ref ret) => {
+                              Some(FunctionInfo {
+                                       index: index,
+                                       args: args.clone(),
+                                       ret: ret.clone(),
+                                   })
+                          }
+                          Entry::Var(_) => None,
+                      })
     }
 
     pub fn functions(&self) -> Functions {

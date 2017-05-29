@@ -130,18 +130,10 @@ mod tests {
     #[test]
     fn test_locals() {
         let tests = &[(r#" let x: int = 0; x "#, Value::Int(0)),
-                      (" let x = 0; x ", Value::Int(0)),
                       (r#"
-                            let x = 1;
+                            let x: int = 1;
                             let y: int = 2;
                             x + y
-         "#,
-                       Value::Int(3)),
-                      (r#"
-                            let x = 1;
-                            let y = x + 1;
-                            x = x + y;
-                            x
          "#,
                        Value::Int(3))];
 
@@ -169,7 +161,7 @@ mod tests {
          "#,
                        Value::Int(3)),
                       (r#"
-                            let global = 0;
+                            let global: int = 0;
                             def assign(x: int, y: int) {
                                 global = x + y;
                             };

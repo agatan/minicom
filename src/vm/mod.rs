@@ -266,10 +266,11 @@ impl Machine {
     pub fn run(&mut self, funcs: Vec<Rc<Function>>, instrs: &[Instruction]) -> Value {
         self.pc = ProgramCounter::new(instrs.as_ptr());
         self.end = unsafe { ProgramCounter::new(instrs.as_ptr().offset(instrs.len() as isize)) };
-        self.frames.push(Frame {
-            pc: self.pc,
-            fp: self.stack.len(),
-        });
+        self.frames
+            .push(Frame {
+                      pc: self.pc,
+                      fp: self.stack.len(),
+                  });
         self.funcs = funcs;
         while !self.is_finished() {
             self.eval_instr();
