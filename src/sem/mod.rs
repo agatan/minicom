@@ -44,6 +44,7 @@ pub struct Context {
     tyenv: Rc<TypeEnv>,
     function_id: u32,
     forward_decls: HashMap<String, FunctionInfo>,
+    program: Program,
 }
 
 impl Context {
@@ -55,6 +56,7 @@ impl Context {
             tyenv: Rc::new(TypeEnv::new()),
             function_id: 0,
             forward_decls: HashMap::new(),
+            program: Program::new(),
         }
     }
 
@@ -164,8 +166,7 @@ impl Context {
                         bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
                 }
-                let id = self.current_env()
-                    .define_local(l.name.clone(), value.typ.clone());
+                let id = self.define_var(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                                         id: id,
                                                         typ: value.typ.clone(),
@@ -335,8 +336,7 @@ impl Context {
                         bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
                 }
-                let id = self.current_env()
-                    .define_local(l.name.clone(), value.typ.clone());
+                let id = self.define_var(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                                         id: id,
                                                         typ: value.typ.clone(),
@@ -375,7 +375,7 @@ impl Context {
                 .iter()
                 .map(|&(ref name, _)| name)
                 .zip(fd.args.iter()) {
-            scoped.current_env().define_local(name.clone(), ty.clone());
+            scoped.define_var(name.clone(), ty.clone());
         }
         let body = def.body
             .iter()
@@ -396,8 +396,23 @@ impl Context {
         Ok(function)
     }
 
+    fn is_root(&self) -> bool {
+        self.envchain.is_empty()
+    }
+
+    fn define_var(&mut self, name: String, typ: Type) -> u32 {
+        if self.is_root() {
+            let id = self.current_env().define_local(name.clone(), typ.clone());
+            self.program.define_global(id, name, typ);
+            id
+        } else {
+            self.current_env().define_local(name.clone(), typ.clone())
+        }
+    }
+
     fn define_function(&mut self, name: String, f: Function) {
-        self.current_env().define_function(name, f);
+        self.current_env().define_function(name.clone(), f.clone());
+        self.program.define_function(name, f);
     }
 }
 

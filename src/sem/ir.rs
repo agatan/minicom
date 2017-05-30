@@ -2,6 +2,34 @@ use std::collections::HashMap;
 use std::collections::hash_map::Values;
 use std::iter::Iterator;
 
+#[derive(Debug)]
+pub struct Program {
+    pub entries: HashMap<String, Entry>,
+    pub toplevels: Vec<Node>,
+}
+
+impl Program {
+    pub fn new() -> Self {
+        Program {
+            entries: HashMap::new(),
+            toplevels: Vec::new(),
+        }
+    }
+
+    pub fn define_function(&mut self, name: String, f: Function) {
+        self.entries.insert(name, Entry::Function(f));
+    }
+
+    pub fn define_global(&mut self, id: u32, name: String, typ: Type) {
+        self.entries
+            .insert(name,
+                    Entry::Var(Var {
+                                   index: id,
+                                   typ: typ,
+                               }));
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,
@@ -75,7 +103,7 @@ pub struct Let {
     pub value: Node,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Function {
     pub id: u32,
     pub env: LocalEnv,
@@ -84,7 +112,7 @@ pub struct Function {
     pub body: Vec<Node>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LocalEnv {
     locals: Vec<String>,
     table: HashMap<String, Entry>,
@@ -150,7 +178,7 @@ pub struct FunctionInfo {
     pub ret: Type,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Entry {
     Var(Var),
     Function(Function),
