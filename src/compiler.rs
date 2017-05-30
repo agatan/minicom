@@ -13,9 +13,14 @@ impl Compiler {
         Compiler { functions: HashMap::new() }
     }
 
-    pub fn compile(&mut self, rootenv: &LocalEnv, nodes: &[Node]) -> Vec<Instruction> {
-        self.compile_root(rootenv);
-        self.compile_nodes(nodes, true)
+    pub fn compile(&mut self, program: &Program) -> Vec<Instruction> {
+        for entry in program.entries.values() {
+            match *entry {
+                Entry::Function(ref f) => self.compile_function(f.id, f),
+                _ => continue,
+            }
+        }
+        self.compile_nodes(&program.toplevels, true)
     }
 
     pub fn funcs(&self) -> Vec<Rc<instr::Function>> {
@@ -190,12 +195,6 @@ impl Compiler {
                                 instrs: instrs,
                                 n_locals: n_locals,
                             }));
-    }
-
-    fn compile_root(&mut self, env: &LocalEnv) {
-        for f in env.functions() {
-            self.compile_function(f.id, f);
-        }
     }
 
     fn compile_nodes(&mut self, nodes: &[Node], is_root: bool) -> Vec<Instruction> {

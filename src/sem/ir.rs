@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::collections::hash_map::Values;
-use std::iter::Iterator;
 
 #[derive(Debug)]
 pub struct Program {
@@ -162,10 +160,6 @@ impl LocalEnv {
                       })
     }
 
-    pub fn functions(&self) -> Functions {
-        Functions { entries: self.table.values() }
-    }
-
     pub fn n_locals(&self) -> u32 {
         self.locals.len() as u32
     }
@@ -182,20 +176,4 @@ pub struct FunctionInfo {
 pub enum Entry {
     Var(Var),
     Function(Function),
-}
-
-pub struct Functions<'a> {
-    entries: Values<'a, String, Entry>,
-}
-
-impl<'a> Iterator for Functions<'a> {
-    type Item = &'a Function;
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(entry) = self.entries.next() {
-            if let Entry::Function(ref f) = *entry {
-                return Some(f);
-            }
-        }
-        None
-    }
 }

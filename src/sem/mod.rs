@@ -60,7 +60,7 @@ impl Context {
         }
     }
 
-    pub fn transform(&mut self, nodes: Vec<Toplevel>) -> Result<Vec<Node>> {
+    pub fn transform(&mut self, nodes: Vec<Toplevel>) -> Result<Program> {
         let mut alp = Alpha::new();
         debug!("before: {:?}", nodes);
         let nodes = nodes
@@ -69,20 +69,17 @@ impl Context {
             .collect::<Vec<_>>();
         debug!("alpha: {:?}", nodes);
         self.collect_types(&nodes)?;
-        nodes
+        self.program.toplevels = nodes
             .iter()
             .map(|n| self.transform_toplevel(n))
-            .collect::<Result<_>>()
+            .collect::<Result<_>>()?;
+        Ok(::std::mem::replace(&mut self.program, Program::new()))
     }
 
     fn enter_scope(&mut self) -> Scoped {
         let e = LocalEnv::new();
         self.envchain.push(e);
         Scoped(self)
-    }
-
-    pub fn root(&self) -> &LocalEnv {
-        &self.rootenv
     }
 
     fn current_env(&mut self) -> &mut LocalEnv {

@@ -67,7 +67,7 @@ fn run(machine: &mut Machine,
     debug!("nodes: {:?}", nodes);
     let prog = ctx.transform(nodes).map_err(|err| format!("{}", err))?;
     debug!("program: {:?}", prog);
-    let instrs = compiler.compile(ctx.root(), &prog);
+    let instrs = compiler.compile(&prog);
     debug!("instrs: {:?}", instrs);
     Ok(machine.run(compiler.funcs(), &instrs))
 }
@@ -110,7 +110,7 @@ mod tests {
         let mut ctx = Context::new();
         let nodes = syntax::parse(input).map_err(|err| format!("{}", err))?;
         let prog = ctx.transform(nodes).map_err(|err| format!("{}", err))?;
-        let instrs = compiler.compile(ctx.root(), &prog);
+        let instrs = compiler.compile(&prog);
         Ok(machine.run(compiler.funcs(), &instrs))
     }
 
