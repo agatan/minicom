@@ -1,4 +1,4 @@
-#![feature(box_syntax, box_patterns)]
+#![feature(box_syntax, box_patterns, libc)]
 
 #[macro_use]
 extern crate log;
@@ -6,6 +6,8 @@ extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
 extern crate rustyline;
+extern crate llvm_sys;
+extern crate libc;
 
 extern crate minivm_syntax as syntax;
 
@@ -15,6 +17,7 @@ use rustyline::error::ReadlineError;
 mod sem;
 mod compiler;
 mod vm;
+mod llvm;
 
 use std::io::prelude::*;
 use std::fs::File;
@@ -39,6 +42,7 @@ macro_rules! try_or_exit {
 }
 
 fn main() {
+    llvm::run();
     try_or_exit!(env_logger::init());
 
     let mut ctx = Context::new();
