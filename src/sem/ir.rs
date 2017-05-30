@@ -106,9 +106,9 @@ pub struct Let {
 #[derive(Debug, Clone)]
 pub struct Function {
     pub id: u32,
-    pub env: LocalEnv,
     pub args: Vec<Type>,
     pub ret_typ: Type,
+    pub n_locals: u32,
     pub body: Vec<Node>,
 }
 

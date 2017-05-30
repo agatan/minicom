@@ -181,12 +181,9 @@ impl Compiler {
         if self.functions.contains_key(&id) {
             return;
         }
-        for f in f.env.functions() {
-            self.compile_function(f.id, f);
-        }
         let mut instrs = self.compile_nodes(&f.body, false);
         instrs.push(Instruction::Ret);
-        let n_locals = f.env.n_locals();
+        let n_locals = f.n_locals;
         self.functions
             .insert(id,
                     Rc::new(instr::Function {

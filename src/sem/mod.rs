@@ -390,8 +390,8 @@ impl Context {
             id: fd.index,
             args: fd.args,
             ret_typ: fd.ret,
+            n_locals: env.n_locals(),
             body: body,
-            env: env,
         };
         Ok(function)
     }
