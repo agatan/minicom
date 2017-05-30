@@ -8,6 +8,8 @@ use llvm_sys::target;
 use llvm_sys::execution_engine;
 use llvm_sys::analysis;
 
+pub mod engine;
+
 pub fn init() {
     unsafe {
         target::LLVMInitializeX86TargetInfo();
@@ -129,7 +131,7 @@ impl Module {
         }
     }
 
-    fn get(&self) -> LLVMModuleRef {
+    pub fn get(&self) -> LLVMModuleRef {
         self.llmodule
     }
 
@@ -201,6 +203,10 @@ impl IsValue for Function {
 }
 
 impl Function {
+    pub fn get(&self) -> LLVMValueRef {
+        self.0
+    }
+
     fn append_basic_block(&mut self, name: &str) -> BasicBlock {
         unsafe {
             let module = core::LLVMGetGlobalParent(self.to_value());
@@ -236,9 +242,16 @@ pub fn run() {
     builder.store(iv, a);
     builder.store(context.int64_type().const_int(11), b);
     let new_a = builder.load(a, "new_a");
-    let new_b = builder.load(a, "new_b");
+    let new_b = builder.load(b, "new_b");
     let ret = builder.add(new_a, new_b, "add");
     builder.ret(ret);
 
+    if !module.is_valid() {
+        panic!("module is not valid");
+    }
     module.dump();
+
+    init();
+    let ee = engine::ExecutionEngine::create_jit_compiler(&module, 0).unwrap();
+    println!("call main: {}", ee.run(fun).to_int());
 }
