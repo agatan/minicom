@@ -4,6 +4,21 @@ use std::ops::Drop;
 
 use llvm_sys::prelude::*;
 use llvm_sys::core;
+use llvm_sys::target;
+use llvm_sys::execution_engine;
+use llvm_sys::analysis;
+
+pub fn init() {
+    unsafe {
+        target::LLVMInitializeX86TargetInfo();
+        target::LLVMInitializeX86Target();
+        target::LLVMInitializeX86TargetMC();
+        target::LLVMInitializeX86AsmPrinter();
+        target::LLVMInitializeX86AsmParser();
+        target::LLVMInitializeX86Disassembler();
+        execution_engine::LLVMLinkInMCJIT();
+    }
+}
 
 pub struct Context(LLVMContextRef);
 
@@ -127,6 +142,16 @@ impl Module {
     pub fn dump(&self) {
         unsafe { core::LLVMDumpModule(self.get()) }
     }
+
+    pub fn is_valid(&self) -> bool {
+        unsafe {
+            let ret = analysis::LLVMVerifyModule(
+                self.get(),
+                analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction,
+                    ::std::ptr::null_mut());
+            ret != 1
+        }
+    }
 }
 
 impl Drop for Module {
@@ -202,7 +227,6 @@ pub fn run() {
     let int_ty = context.int64_type();
     let fun_ty = context.function_type(int_ty, &[], false);
     let mut fun = module.add_function("main", fun_ty);
-    fun.dump();
     let bb = fun.append_basic_block("entry");
     let mut builder = Builder::new(context.clone());
     builder.position_at_end(&bb);
