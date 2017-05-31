@@ -15,10 +15,10 @@ use rustyline::Editor;
 use rustyline::error::ReadlineError;
 
 mod sem;
-mod compiler;
+mod bytecode_compiler;
 mod vm;
 mod llvm;
-mod codegen;
+mod compiler;
 
 use std::io::prelude::*;
 use std::fs::File;
@@ -27,7 +27,7 @@ use std::error::Error;
 use syntax::ast;
 
 use sem::Context;
-use compiler::Compiler;
+use bytecode_compiler::Compiler;
 use vm::{Value, Machine};
 
 macro_rules! try_or_exit {
@@ -43,7 +43,7 @@ macro_rules! try_or_exit {
 }
 
 fn main() {
-    let mut c = codegen::Compiler::new();
+    let mut c = compiler::Compiler::new();
     c.test_run().unwrap();
     c.dump_module();
     return;
@@ -109,7 +109,7 @@ fn repl(machine: &mut Machine,
 mod tests {
     use syntax;
     use sem::Context;
-    use compiler::Compiler;
+    use bytecode_compiler::Compiler;
     use vm::{Value, Machine};
 
     fn run(input: &str) -> Result<Value, String> {
