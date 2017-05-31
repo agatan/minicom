@@ -62,6 +62,10 @@ impl Context {
         Type(unsafe { core::LLVMInt1TypeInContext(self.get()) })
     }
 
+    pub fn bool_type(&self) -> Type {
+        Type(unsafe { core::LLVMInt1TypeInContext(self.get()) })
+    }
+
     pub fn int32_type(&self) -> Type {
         Type(unsafe { core::LLVMInt32TypeInContext(self.get()) })
     }
@@ -173,6 +177,12 @@ impl Module {
         Function(value)
     }
 
+    pub fn add_global(&mut self, name: &str, ty: Type) -> Value {
+        let name = CString::new(name).unwrap();
+        let value = unsafe { core::LLVMAddGlobal(self.get(), ty.get(), name.as_ptr()) };
+        Value(value)
+    }
+
     pub fn dump(&self) {
         unsafe { core::LLVMDumpModule(self.get()) }
     }
@@ -227,6 +237,16 @@ pub struct Value(LLVMValueRef);
 impl IsValue for Value {
     fn to_value(&self) -> LLVMValueRef {
         self.0
+    }
+}
+
+impl Value {
+    pub fn get(&self) -> LLVMValueRef {
+        self.0
+    }
+
+    pub fn set_initializer(&self, init: Value) {
+        unsafe { core::LLVMSetInitializer(self.get(), init.get()) }
     }
 }
 

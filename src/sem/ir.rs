@@ -20,9 +20,10 @@ impl Program {
 
     pub fn define_global(&mut self, id: u32, name: String, typ: Type) {
         self.entries
-            .insert(name,
+            .insert(name.clone(),
                     Entry::Var(Var {
                                    index: id,
+                                   name: name,
                                    typ: typ,
                                }));
     }
@@ -85,6 +86,7 @@ pub enum NodeKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Var {
     pub index: u32,
+    pub name: String,
     pub typ: Type,
 }
 
@@ -97,6 +99,7 @@ pub enum VarKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Let {
     pub id: u32,
+    pub name: String,
     pub typ: Type,
     pub value: Node,
 }
@@ -104,6 +107,7 @@ pub struct Let {
 #[derive(Debug, Clone)]
 pub struct Function {
     pub id: u32,
+    pub name: String,
     pub args: Vec<Type>,
     pub ret_typ: Type,
     pub n_locals: u32,
@@ -128,7 +132,12 @@ impl LocalEnv {
         let n = self.locals.len() as u32;
         self.locals.push(name.clone());
         self.table
-            .insert(name, Entry::Var(Var { index: n, typ: typ }));
+            .insert(name.clone(),
+                    Entry::Var(Var {
+                                   index: n,
+                                   name: name,
+                                   typ: typ,
+                               }));
         n
     }
 

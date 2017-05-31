@@ -166,6 +166,7 @@ impl Context {
                 let id = self.define_var(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                                         id: id,
+                                                        name: l.name.clone(),
                                                         typ: value.typ.clone(),
                                                         value: value,
                                                     })),
@@ -336,6 +337,7 @@ impl Context {
                 let id = self.define_var(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                                         id: id,
+                                                        name: l.name.clone(),
                                                         typ: value.typ.clone(),
                                                         value: value,
                                                     })),
@@ -385,6 +387,7 @@ impl Context {
         let env = scoped.exit_and_pop();
         let function = Function {
             id: fd.index,
+            name: def.name.clone(),
             args: fd.args,
             ret_typ: fd.ret,
             n_locals: env.n_locals(),

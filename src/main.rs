@@ -43,10 +43,6 @@ macro_rules! try_or_exit {
 }
 
 fn main() {
-    let mut c = compiler::Compiler::new();
-    c.test_run().unwrap();
-    c.dump_module();
-    return;
     try_or_exit!(env_logger::init());
 
     let mut ctx = Context::new();
@@ -75,6 +71,9 @@ fn run(machine: &mut Machine,
     debug!("nodes: {:?}", nodes);
     let prog = ctx.transform(nodes).map_err(|err| format!("{}", err))?;
     debug!("program: {:?}", prog);
+    let mut c = compiler::Compiler::new();
+    let module = c.compile_program(&prog).unwrap();
+    module.dump();
     let instrs = compiler.compile(&prog);
     debug!("instrs: {:?}", instrs);
     Ok(machine.run(compiler.funcs(), &instrs))
