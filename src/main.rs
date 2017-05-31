@@ -18,6 +18,7 @@ mod sem;
 mod compiler;
 mod vm;
 mod llvm;
+mod codegen;
 
 use std::io::prelude::*;
 use std::fs::File;
@@ -42,7 +43,10 @@ macro_rules! try_or_exit {
 }
 
 fn main() {
-    llvm::run();
+    let mut c = codegen::Compiler::new();
+    c.test_run().unwrap();
+    c.dump_module();
+    return;
     try_or_exit!(env_logger::init());
 
     let mut ctx = Context::new();

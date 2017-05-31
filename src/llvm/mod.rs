@@ -232,7 +232,7 @@ impl Function {
         self.0
     }
 
-    fn append_basic_block(&mut self, name: &str) -> BasicBlock {
+    pub fn append_basic_block(&mut self, name: &str) -> BasicBlock {
         unsafe {
             let module = core::LLVMGetGlobalParent(self.to_value());
             let ctx = core::LLVMGetModuleContext(module);
