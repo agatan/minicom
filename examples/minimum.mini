@@ -1,3 +1,5 @@
 let x: int = 1
 
-def fun(): int { 3 }
+def f(): int { 3 + 2 }
+
+def g(): float { 1.2 / 3.4 * 5.6 + 7.8 }

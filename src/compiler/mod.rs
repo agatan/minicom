@@ -83,6 +83,47 @@ impl Compiler {
             NodeKind::Unit => self.unit(),
             NodeKind::Int(n) => self.int(n),
             NodeKind::Float(f) => self.float(f),
+            NodeKind::Bool(b) => self.bool(b),
+            NodeKind::AddInt(ref l, ref r) => {
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                self.builder.add(l, r, "addtmp")
+            }
+            NodeKind::SubInt(ref l, ref r) => {
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                self.builder.sub(l, r, "subtmp")
+            }
+            NodeKind::MulInt(ref l, ref r) => {
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                self.builder.mul(l, r, "multmp")
+            }
+            NodeKind::DivInt(ref l, ref r) => {
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                self.builder.div(l, r, "divtmp")
+            }
+            NodeKind::AddFloat(ref l, ref r) => {
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                self.builder.fadd(l, r, "addtmp")
+            }
+            NodeKind::SubFloat(ref l, ref r) => {
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                self.builder.fsub(l, r, "subtmp")
+            }
+            NodeKind::MulFloat(ref l, ref r) => {
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                self.builder.fmul(l, r, "multmp")
+            }
+            NodeKind::DivFloat(ref l, ref r) => {
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                self.builder.fdiv(l, r, "divtmp")
+            }
             NodeKind::Let(ref let_) => {
                 let ptr = self.getvar(&let_.name);
                 let value = self.compile_node(&let_.value);

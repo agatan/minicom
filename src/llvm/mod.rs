@@ -143,6 +143,41 @@ impl Builder {
         let name = CString::new(name).unwrap();
         unsafe { Value(core::LLVMBuildAdd(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
     }
+
+    pub fn sub(&mut self, a: Value, b: Value, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildSub(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+    }
+
+    pub fn mul(&mut self, a: Value, b: Value, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildMul(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+    }
+
+    pub fn div(&mut self, a: Value, b: Value, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildSDiv(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+    }
+
+    pub fn fadd(&mut self, a: Value, b: Value, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildFAdd(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+    }
+
+    pub fn fsub(&mut self, a: Value, b: Value, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildFSub(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+    }
+
+    pub fn fmul(&mut self, a: Value, b: Value, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildFMul(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+    }
+
+    pub fn fdiv(&mut self, a: Value, b: Value, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildFDiv(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+    }
 }
 
 impl Drop for Builder {
