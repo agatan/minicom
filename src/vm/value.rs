@@ -2,7 +2,7 @@ use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Value {
-    Int(i64),
+    Int(i32),
     Float(f64),
     Unit,
 }

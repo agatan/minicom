@@ -3,7 +3,7 @@ pub enum Instruction {
     PushUnit,
     Pop,
 
-    PushInt(i64),
+    PushInt(i32),
     AddInt,
     SubInt,
     MulInt,

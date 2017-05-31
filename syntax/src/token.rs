@@ -7,7 +7,7 @@ use pos::{Byte, Line, Column, Location, Spanned};
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token<'input> {
     Identifier(&'input str),
-    IntLiteral(i64),
+    IntLiteral(i32),
     FloatLiteral(f64),
     True,
     False,
@@ -135,11 +135,13 @@ impl<'input> Iterator for CharLocations<'input> {
     type Item = (Location, char);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.chars.next().map(|ch| {
-            let loc = self.location;
-            self.location = self.location.shift(ch);
-            (loc, ch)
-        })
+        self.chars
+            .next()
+            .map(|ch| {
+                     let loc = self.location;
+                     self.location = self.location.shift(ch);
+                     (loc, ch)
+                 })
     }
 }
 
@@ -193,7 +195,10 @@ impl<'input> Tokenizer<'input> {
     fn test_lookahead<F>(&self, mut f: F) -> bool
         where F: FnMut(char) -> bool
     {
-        self.lookahead.as_ref().map(|&(_, ch)| f(ch)).unwrap_or(false)
+        self.lookahead
+            .as_ref()
+            .map(|&(_, ch)| f(ch))
+            .unwrap_or(false)
     }
 
     fn take_while<F>(&mut self, start: Location, mut f: F) -> (Location, &'input str)
@@ -246,66 +251,66 @@ impl<'input> Tokenizer<'input> {
     fn next_token(&mut self) -> Option<Result<SpannedToken<'input>, SpannedError>> {
         while let Some((start, ch)) = self.bump() {
             return match ch {
-                ',' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Comma))),
-                ':' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Colon))),
-                ';' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Semi))),
-                '(' => Some(Ok(Spanned::new(start, start.shift(ch), Token::LParen))),
-                ')' => Some(Ok(Spanned::new(start, start.shift(ch), Token::RParen))),
-                '{' => Some(Ok(Spanned::new(start, start.shift(ch), Token::LBrace))),
-                '}' => Some(Ok(Spanned::new(start, start.shift(ch), Token::RBrace))),
-                '+' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Add))),
-                '-' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Sub))),
-                '*' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Mul))),
-                '/' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Div))),
-                '=' => {
-                    let sp = if self.test_lookahead(|ch| ch == '=') {
-                        self.bump();
-                        Spanned::new(start, start.shift(ch).shift('='), Token::EqEq)
-                    } else {
-                        Spanned::new(start, start.shift(ch), Token::Equals)
-                    };
-                    Some(Ok(sp))
-                }
-                '!' => {
-                    let sp = if self.test_lookahead(|ch| ch == '=') {
-                        self.bump();
-                        Spanned::new(start, start.shift(ch).shift('='), Token::Neq)
-                    } else {
-                        return Some(self.error(start, Error::UnexpectedChar(ch)));
-                    };
-                    Some(Ok(sp))
-                }
-                '<' => {
-                    let sp = if self.test_lookahead(|ch| ch == '=') {
-                        self.bump();
-                        Spanned::new(start, start.shift(ch).shift('='), Token::LE)
-                    } else {
-                        Spanned::new(start, start.shift(ch), Token::LT)
-                    };
-                    Some(Ok(sp))
-                }
-                '>' => {
-                    let sp = if self.test_lookahead(|ch| ch == '=') {
-                        self.bump();
-                        Spanned::new(start, start.shift(ch).shift('='), Token::GE)
-                    } else {
-                        Spanned::new(start, start.shift(ch), Token::GT)
-                    };
-                    Some(Ok(sp))
-                }
-                ch if is_ident_start(ch) => Some(Ok(self.identifier(start))),
-                ch if ch.is_digit(10) => Some(self.numeric_literal(start)),
-                '\n' => {
-                    match self.last {
-                        Some(ref tok) if tok.follows_implicit_semi() => {
-                            Some(Ok(Spanned::new(start, start, Token::ImplicitSemi)))
-                        }
-                        _ => continue,
-                    }
-                }
-                ch if ch.is_whitespace() => continue,
-                ch => Some(self.error(start, Error::UnexpectedChar(ch))),
-            };
+                       ',' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Comma))),
+                       ':' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Colon))),
+                       ';' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Semi))),
+                       '(' => Some(Ok(Spanned::new(start, start.shift(ch), Token::LParen))),
+                       ')' => Some(Ok(Spanned::new(start, start.shift(ch), Token::RParen))),
+                       '{' => Some(Ok(Spanned::new(start, start.shift(ch), Token::LBrace))),
+                       '}' => Some(Ok(Spanned::new(start, start.shift(ch), Token::RBrace))),
+                       '+' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Add))),
+                       '-' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Sub))),
+                       '*' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Mul))),
+                       '/' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Div))),
+                       '=' => {
+                           let sp = if self.test_lookahead(|ch| ch == '=') {
+                               self.bump();
+                               Spanned::new(start, start.shift(ch).shift('='), Token::EqEq)
+                           } else {
+                               Spanned::new(start, start.shift(ch), Token::Equals)
+                           };
+                           Some(Ok(sp))
+                       }
+                       '!' => {
+                           let sp = if self.test_lookahead(|ch| ch == '=') {
+                               self.bump();
+                               Spanned::new(start, start.shift(ch).shift('='), Token::Neq)
+                           } else {
+                               return Some(self.error(start, Error::UnexpectedChar(ch)));
+                           };
+                           Some(Ok(sp))
+                       }
+                       '<' => {
+                           let sp = if self.test_lookahead(|ch| ch == '=') {
+                               self.bump();
+                               Spanned::new(start, start.shift(ch).shift('='), Token::LE)
+                           } else {
+                               Spanned::new(start, start.shift(ch), Token::LT)
+                           };
+                           Some(Ok(sp))
+                       }
+                       '>' => {
+                           let sp = if self.test_lookahead(|ch| ch == '=') {
+                               self.bump();
+                               Spanned::new(start, start.shift(ch).shift('='), Token::GE)
+                           } else {
+                               Spanned::new(start, start.shift(ch), Token::GT)
+                           };
+                           Some(Ok(sp))
+                       }
+                       ch if is_ident_start(ch) => Some(Ok(self.identifier(start))),
+                       ch if ch.is_digit(10) => Some(self.numeric_literal(start)),
+                       '\n' => {
+                           match self.last {
+                               Some(ref tok) if tok.follows_implicit_semi() => {
+                                   Some(Ok(Spanned::new(start, start, Token::ImplicitSemi)))
+                               }
+                               _ => continue,
+                           }
+                       }
+                       ch if ch.is_whitespace() => continue,
+                       ch => Some(self.error(start, Error::UnexpectedChar(ch))),
+                   };
         }
         None
     }

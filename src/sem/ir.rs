@@ -54,7 +54,7 @@ impl Node {
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeKind {
     Unit,
-    Int(i64),
+    Int(i32),
     Float(f64),
     Bool(bool),
     Ident(Var),

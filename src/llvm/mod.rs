@@ -58,8 +58,16 @@ impl Context {
         self.0
     }
 
-    pub fn int64_type(&self) -> Type {
-        Type(unsafe { core::LLVMInt64TypeInContext(self.get()) })
+    pub fn unit_type(&self) -> Type {
+        Type(unsafe { core::LLVMInt1TypeInContext(self.get()) })
+    }
+
+    pub fn int32_type(&self) -> Type {
+        Type(unsafe { core::LLVMInt32TypeInContext(self.get()) })
+    }
+
+    pub fn float_type(&self) -> Type {
+        Type(unsafe { core::LLVMFloatTypeInContext(self.get()) })
     }
 
     pub fn function_type(&self, ret: Type, params: &[Type], is_var_arg: bool) -> Type {
@@ -200,6 +208,10 @@ impl Type {
     pub fn const_int(&self, n: u64) -> Value {
         unsafe { Value(core::LLVMConstInt(self.get(), n, 0)) }
     }
+
+    pub fn const_float(&self, f: f64) -> Value {
+        Value(unsafe { core::LLVMConstReal(self.get(), f) })
+    }
 }
 
 trait IsValue {
@@ -255,7 +267,7 @@ impl BasicBlock {
 pub fn run() {
     let context = Context::new();
     let mut module = Module::new(context.clone(), "main");
-    let int_ty = context.int64_type();
+    let int_ty = context.int32_type();
     let fun_ty = context.function_type(int_ty, &[], false);
     let mut fun = module.add_function("main", fun_ty);
     let bb = fun.append_basic_block("entry");
@@ -263,9 +275,10 @@ pub fn run() {
     builder.position_at_end(&bb);
     let a = builder.alloca(int_ty, "a");
     let b = builder.alloca(int_ty, "b");
-    let iv = context.int64_type().const_int(10);
+    let x: i32 = -10000;
+    let iv = context.int32_type().const_int(x as u64);
     builder.store(iv, a);
-    builder.store(context.int64_type().const_int(11), b);
+    builder.store(context.int32_type().const_int(11), b);
     let new_a = builder.load(a, "new_a");
     let new_b = builder.load(b, "new_b");
     let ret = builder.add(new_a, new_b, "add");
