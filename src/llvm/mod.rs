@@ -1,6 +1,7 @@
 use std::ffi::CString;
 use std::rc::Rc;
 use std::ops::Drop;
+use std::fmt;
 
 use llvm_sys::prelude::*;
 use llvm_sys::core;
@@ -19,6 +20,29 @@ pub fn init() {
         target::LLVMInitializeX86AsmParser();
         target::LLVMInitializeX86Disassembler();
         execution_engine::LLVMLinkInMCJIT();
+    }
+}
+
+#[derive(Debug)]
+pub struct Message(*mut ::libc::c_char);
+
+impl Message {
+    pub fn get_mut_ptr(&mut self) -> *mut *mut ::libc::c_char {
+        &mut self.0 as *mut *mut _
+    }
+}
+
+impl fmt::Display for Message {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        unsafe { CString::from_raw(self.0) }
+            .to_string_lossy()
+            .fmt(f)
+    }
+}
+
+impl Drop for Message {
+    fn drop(&mut self) {
+        unsafe { core::LLVMDisposeMessage(self.0) };
     }
 }
 
@@ -145,13 +169,14 @@ impl Module {
         unsafe { core::LLVMDumpModule(self.get()) }
     }
 
-    pub fn is_valid(&self) -> bool {
+    pub fn verify(&self) -> Result<(), Message> {
         unsafe {
+            let mut msg: Message = ::std::mem::uninitialized();
             let ret = analysis::LLVMVerifyModule(
                 self.get(),
                 analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction,
-                    ::std::ptr::null_mut());
-            ret != 1
+                    msg.get_mut_ptr());
+            if ret == 1 { Err(msg) } else { Ok(()) }
         }
     }
 }
@@ -246,8 +271,8 @@ pub fn run() {
     let ret = builder.add(new_a, new_b, "add");
     builder.ret(ret);
 
-    if !module.is_valid() {
-        panic!("module is not valid");
+    if let Err(msg) = module.verify() {
+        panic!("{}", msg);
     }
     module.dump();
 
