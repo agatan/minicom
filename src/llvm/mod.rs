@@ -97,7 +97,7 @@ impl Context {
     }
 
     pub fn float_type(&self) -> Type {
-        Type(unsafe { core::LLVMFloatTypeInContext(self.get()) })
+        Type(unsafe { core::LLVMDoubleTypeInContext(self.get()) })
     }
 
     pub fn function_type(&self, ret: Type, params: &[Type], is_var_arg: bool) -> Type {
