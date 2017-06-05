@@ -35,3 +35,30 @@ def block_sample(x: int): int {
 }
 
 print(block_sample(2));
+
+def if_sample(x: bool) : int {
+  if x {
+    0
+  } else {
+    100
+  }
+}
+
+print(if_sample(true));
+print(if_sample(false));
+
+def fib(n: int): int {
+  if n < 2 {
+    n
+  } else {
+    fib(n-2) + fib(n-1)
+  }
+}
+
+print(fib(1));
+print(fib(2));
+print(fib(3));
+print(fib(4));
+print(fib(5));
+print(fib(6));
+print(fib(7));

@@ -152,6 +152,15 @@ impl Builder {
         unsafe { Value(core::LLVMBuildBr(self.get(), bb.get())) }
     }
 
+    pub fn cond_br(&mut self, cond: Value, then: &BasicBlock, els: &BasicBlock) -> Value {
+        unsafe { Value(core::LLVMBuildCondBr(self.get(), cond.get(), then.get(), els.get())) }
+    }
+
+    pub fn phi(&mut self, typ: Type, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildPhi(self.get(), typ.get(), name.as_ptr())) }
+    }
+
     pub fn ret(&mut self, v: Value) -> Value {
         unsafe { Value(core::LLVMBuildRet(self.get(), v.to_value())) }
     }
@@ -386,6 +395,18 @@ impl Value {
     pub fn get_type(&self) -> Type {
         unsafe { Type(core::LLVMTypeOf(self.get())) }
     }
+
+    pub fn add_incoming(&mut self, incomings: &[(BasicBlock, Value)]) {
+        let blocks = incomings.iter().map(|x| x.0.get()).collect::<Vec<_>>();
+        let values = incomings.iter().map(|x| x.1.get()).collect::<Vec<_>>();
+        let count = incomings.len() as ::libc::c_uint;
+        unsafe {
+            core::LLVMAddIncoming(self.get(),
+                                  values.as_ptr() as *mut _,
+                                  blocks.as_ptr() as *mut _,
+                                  count)
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -423,5 +444,9 @@ pub struct BasicBlock(LLVMBasicBlockRef);
 impl BasicBlock {
     pub fn get(&self) -> LLVMBasicBlockRef {
         self.0
+    }
+
+    pub fn parent(&self) -> Function {
+        Function(unsafe { core::LLVMGetBasicBlockParent(self.get()) })
     }
 }

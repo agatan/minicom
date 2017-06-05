@@ -338,6 +338,31 @@ impl<'a, 's> FunBuilder<'a, 's> {
                     }
                 }
             }
+            NodeKind::If(ref cond, ref then, ref els) => {
+                let cond = self.compile_node(cond);
+                let mut fun = self.compiler.builder.get_insert_block().parent();
+                let mut then_bb = fun.append_basic_block("then");
+                let mut els_bb = fun.append_basic_block("else");
+                let merge_bb = fun.append_basic_block("ifcont");
+                self.compiler.builder.cond_br(cond, &then_bb, &els_bb);
+                self.compiler.builder.position_at_end(&then_bb);
+                let then_value = self.compile_node(then);
+                self.compiler.builder.br(&merge_bb);
+                // insertion block can be changed while compiling then block.
+                then_bb = self.compiler.builder.get_insert_block();
+                self.compiler.builder.position_at_end(&els_bb);
+                let els_value = match *els {
+                    Some(ref els) => self.compile_node(els),
+                    None => self.compiler.unit(),
+                };
+                self.compiler.builder.br(&merge_bb);
+                els_bb = self.compiler.builder.get_insert_block();
+                self.compiler.builder.position_at_end(&merge_bb);
+                let phi_type = self.compiler.compile_type(&node.typ);
+                let mut phi = self.compiler.builder.phi(phi_type, "iftmp");
+                phi.add_incoming(&[(then_bb, then_value), (els_bb, els_value)]);
+                phi
+            }
             _ => unimplemented!(),
         }
     }
