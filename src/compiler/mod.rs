@@ -128,6 +128,20 @@ impl Compiler {
                 let r = self.compile_node(r);
                 self.builder.fdiv(l, r, "divtmp")
             }
+            NodeKind::Not(ref e) => {
+                let e = self.compile_node(e);
+                self.builder.not(e, "nottmp")
+            }
+            NodeKind::Eq(ref l, ref r) => {
+                let typ = l.typ.clone();
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                if typ == Type::Int {
+                    self.builder.icmp(llvm::LLVMIntEQ, l, r, "eqtmp")
+                } else {
+                    self.builder.fcmp(llvm::LLVMRealOEQ, l, r, "eqtmp")
+                }
+            }
             NodeKind::Let(ref let_) => {
                 let ptr = self.getvar(&let_.name);
                 let value = self.compile_node(&let_.value);

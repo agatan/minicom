@@ -11,6 +11,11 @@ use llvm_sys::target_machine::{self, LLVMCodeGenOptLevel, LLVMRelocMode, LLVMCod
 use llvm_sys::execution_engine;
 use llvm_sys::analysis;
 
+pub use llvm_sys::LLVMIntPredicate;
+pub use llvm_sys::LLVMIntPredicate::*;
+pub use llvm_sys::LLVMRealPredicate;
+pub use llvm_sys::LLVMRealPredicate::*;
+
 pub mod target;
 pub mod engine;
 
@@ -186,6 +191,25 @@ impl Builder {
     pub fn fdiv(&mut self, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         unsafe { Value(core::LLVMBuildFDiv(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+    }
+
+    pub fn not(&mut self, a: Value, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildNot(self.get(), a.to_value(), name.as_ptr())) }
+    }
+
+    pub fn icmp(&mut self, op: LLVMIntPredicate, a: Value, b: Value, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe {
+            Value(core::LLVMBuildICmp(self.get(), op, a.to_value(), b.to_value(), name.as_ptr()))
+        }
+    }
+
+    pub fn fcmp(&mut self, op: LLVMRealPredicate, a: Value, b: Value, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe {
+            Value(core::LLVMBuildFCmp(self.get(), op, a.to_value(), b.to_value(), name.as_ptr()))
+        }
     }
 }
 
