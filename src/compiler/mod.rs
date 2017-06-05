@@ -142,6 +142,26 @@ impl Compiler {
                     self.builder.fcmp(llvm::LLVMRealOEQ, l, r, "eqtmp")
                 }
             }
+            NodeKind::LE(ref l, ref r) => {
+                let typ = l.typ.clone();
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                if typ == Type::Int {
+                    self.builder.icmp(llvm::LLVMIntSLE, l, r, "letmp")
+                } else {
+                    self.builder.fcmp(llvm::LLVMRealOLE, l, r, "letmp")
+                }
+            }
+            NodeKind::LT(ref l, ref r) => {
+                let typ = l.typ.clone();
+                let l = self.compile_node(l);
+                let r = self.compile_node(r);
+                if typ == Type::Int {
+                    self.builder.icmp(llvm::LLVMIntSLT, l, r, "lttmp")
+                } else {
+                    self.builder.fcmp(llvm::LLVMRealOLT, l, r, "lttmp")
+                }
+            }
             NodeKind::Let(ref let_) => {
                 let ptr = self.getvar(&let_.name);
                 let value = self.compile_node(&let_.value);
