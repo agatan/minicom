@@ -276,11 +276,11 @@ impl Context {
                             Operator::LE => NodeKind::LE(left, right),
                             Operator::LT => NodeKind::LT(left, right),
                             Operator::GE => {
-                                NodeKind::Not(Box::new(Node::new(NodeKind::LT(right, left),
+                                NodeKind::Not(Box::new(Node::new(NodeKind::LT(left, right),
                                                                  Type::Bool)))
                             }
                             Operator::GT => {
-                                NodeKind::Not(Box::new(Node::new(NodeKind::LE(right, left),
+                                NodeKind::Not(Box::new(Node::new(NodeKind::LE(left, right),
                                                                  Type::Bool)))
                             }
                             _ => unreachable!(),

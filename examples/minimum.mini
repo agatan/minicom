@@ -4,7 +4,7 @@ def f(): int { 3 + 2 }
 
 def g(): float { 1.2 / 3.4 * 5.6 + 7.8 }
 
-def h(x: int): bool { x > 0 }
+def h(x: int): bool { x > 1 }
 
 def let_sample(x: int): int {
   let y = x;
@@ -20,3 +20,7 @@ print(true);
 print(false);
 print(2.3);
 print_sample(3);
+
+print(h(1))
+print(h(2))
+print(h(3))
