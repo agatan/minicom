@@ -219,7 +219,7 @@ impl Context {
                         bail!(ErrorKind::InvalidTypeUnification(required.clone(), given.clone()));
                     }
                 }
-                Ok(Node::new(NodeKind::Call(finfo.index, args), finfo.ret.clone()))
+                Ok(Node::new(NodeKind::Call(fname.clone(), args), finfo.ret.clone()))
             }
             AstNodeKind::Infix(ref l, op, ref r) => {
                 let left = Box::new(self.transform_node(l)?);

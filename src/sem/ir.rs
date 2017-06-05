@@ -60,7 +60,7 @@ pub enum NodeKind {
     Bool(bool),
     Ident(Var),
     GlobalIdent(Var),
-    Call(u32, Vec<Node>),
+    Call(String, Vec<Node>),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
     MulInt(Box<Node>, Box<Node>),

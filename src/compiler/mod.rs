@@ -215,6 +215,16 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 let ptr = self.compiler.getvar(&var.name);
                 self.compiler.builder.load(ptr, "loadtmp")
             }
+            NodeKind::Call(ref f, ref args) => {
+                let f = self.compiler
+                    .module
+                    .get_function(f)
+                    .expect("function should be defined");
+                let args = args.iter()
+                    .map(|arg| self.compile_node(arg))
+                    .collect::<Vec<_>>();
+                self.compiler.builder.call(f, &args, "calltmp")
+            }
             NodeKind::AddInt(ref l, ref r) => {
                 let l = self.compile_node(l);
                 let r = self.compile_node(r);
