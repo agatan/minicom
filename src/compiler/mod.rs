@@ -161,13 +161,22 @@ impl<'a, 's> FunBuilder<'a, 's> {
     }
 
     pub fn getvar(&self, name: &'s str) -> Value {
-        self.local_vars
-            .get(name)
-            .cloned()
-            .unwrap_or_else(|| self.compiler.getvar(name))
+        self.local_vars[name]
     }
 
-    pub fn compile_node(&mut self, node: &Node) -> Value {
+    pub fn getvar_opt(&self, name: &'s str) -> Option<Value> {
+        self.local_vars.get(name).cloned()
+    }
+
+    pub fn alloca(&mut self, name: &'s str, typ: llvm::Type) -> Value {
+        let saved = self.compiler.builder.get_insert_block();
+        self.compiler.builder.position_at_end(self.alloc_block);
+        let alloca = self.compiler.builder.alloca(typ, name);
+        self.compiler.builder.position_at_end(&saved);
+        alloca
+    }
+
+    pub fn compile_node(&mut self, node: &'s Node) -> Value {
         match node.kind {
             NodeKind::Unit => self.compiler.unit(),
             NodeKind::Int(n) => self.compiler.int(n),
@@ -256,7 +265,15 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 }
             }
             NodeKind::Let(ref let_) => {
-                let ptr = self.getvar(&let_.name);
+                let ptr = match self.getvar_opt(&let_.name) {
+                    Some(ptr) => ptr,
+                    None => {
+                        let typ = self.compiler.compile_type(&let_.typ);
+                        let ptr = self.alloca(&let_.name, typ);
+                        self.add_local(&let_.name, ptr);
+                        ptr
+                    }
+                };
                 let value = self.compile_node(&let_.value);
                 self.compiler.builder.store(value, ptr)
             }
