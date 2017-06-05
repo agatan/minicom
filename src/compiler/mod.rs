@@ -47,13 +47,11 @@ impl Compiler {
         let mut fun = self.module.add_function(&f.name, fun_ty);
         let alloc = fun.append_basic_block("entry");
         let start = fun.append_basic_block("start");
-        self.builder.position_at_end(&alloc);
-        self.builder.br(&start);
         self.builder.position_at_end(&start);
         let last_value = {
             let mut fbuilder = FunBuilder::new(&alloc, self);
             for (name, i) in f.args.iter().map(|x| &x.0).zip(0..) {
-                fbuilder.add_local(name, fun.param(i));
+                fbuilder.define_arg(name, fun.param(i));
             }
             let mut ret = None;
             for node in f.body.iter() {
@@ -63,6 +61,8 @@ impl Compiler {
         };
         let ret = last_value.unwrap_or_else(|| self.unit());
         self.builder.ret(ret);
+        self.builder.position_at_end(&alloc);
+        self.builder.br(&start);
         fun
     }
 
@@ -80,12 +80,10 @@ impl Compiler {
                 }
             }
         }
-        let fun_ty = self.ctx.function_type(self.ctx.unit_type(), &[], false);
+        let fun_ty = self.ctx.function_type(self.ctx.int32_type(), &[], false);
         let mut fun = self.module.add_function("main", fun_ty);
         let entry = fun.append_basic_block("entry");
         let start = fun.append_basic_block("start");
-        self.builder.position_at_end(&entry);
-        self.builder.br(&start);
         self.builder.position_at_end(&start);
         {
             let mut fbuilder = FunBuilder::new(&entry, self);
@@ -93,8 +91,10 @@ impl Compiler {
                 fbuilder.compile_node(node);
             }
         }
-        let ret = self.unit();
+        let ret = self.int(0);
         self.builder.ret(ret);
+        self.builder.position_at_end(&entry);
+        self.builder.br(&start);
         self.module.verify()?;
         Ok(&self.module)
     }
@@ -147,6 +147,15 @@ impl<'a, 's> FunBuilder<'a, 's> {
         }
     }
 
+    pub fn define_arg(&mut self, name: &'s str, value: Value) {
+        let saved = self.compiler.builder.get_insert_block();
+        self.compiler.builder.position_at_end(self.alloc_block);
+        let alloca = self.compiler.builder.alloca(value.get_type(), name);
+        self.compiler.builder.store(value, alloca);
+        self.add_local(name, alloca);
+        self.compiler.builder.position_at_end(&saved);
+    }
+
     pub fn add_local(&mut self, name: &'s str, value: Value) {
         self.local_vars.insert(name, value);
     }
@@ -164,6 +173,10 @@ impl<'a, 's> FunBuilder<'a, 's> {
             NodeKind::Int(n) => self.compiler.int(n),
             NodeKind::Float(f) => self.compiler.float(f),
             NodeKind::Bool(b) => self.compiler.bool(b),
+            NodeKind::Ident(ref var) => {
+                let ptr = self.getvar(&var.name);
+                self.compiler.builder.load(ptr, "loadtmp")
+            }
             NodeKind::GlobalIdent(ref var) => {
                 let ptr = self.compiler.getvar(&var.name);
                 self.compiler.builder.load(ptr, "loadtmp")

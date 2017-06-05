@@ -4,4 +4,4 @@ def f(): int { 3 + 2 }
 
 def g(): float { 1.2 / 3.4 * 5.6 + 7.8 }
 
-def h(): bool { 1.2 < 2.0 }
+def h(x: int): bool { x > 0 }

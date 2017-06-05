@@ -140,6 +140,10 @@ impl Builder {
         self.llbuilder
     }
 
+    pub fn get_insert_block(&self) -> BasicBlock {
+        unsafe { BasicBlock(core::LLVMGetInsertBlock(self.get())) }
+    }
+
     pub fn position_at_end(&mut self, bb: &BasicBlock) {
         unsafe { core::LLVMPositionBuilderAtEnd(self.get(), bb.get()) }
     }
@@ -364,6 +368,10 @@ impl Value {
 
     pub fn set_initializer(&self, init: Value) {
         unsafe { core::LLVMSetInitializer(self.get(), init.get()) }
+    }
+
+    pub fn get_type(&self) -> Type {
+        unsafe { Type(core::LLVMTypeOf(self.get())) }
     }
 }
 
