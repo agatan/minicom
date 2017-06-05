@@ -24,3 +24,14 @@ print_sample(3);
 print(h(1))
 print(h(2))
 print(h(3))
+
+def block_sample(x: int): int {
+  let x = {
+    print(1);
+    print(2);
+    x + 1
+  };
+  x
+}
+
+print(block_sample(2));

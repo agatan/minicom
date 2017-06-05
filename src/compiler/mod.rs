@@ -327,6 +327,17 @@ impl<'a, 's> FunBuilder<'a, 's> {
                     .expect("predefined builtin functions");
                 self.compiler.builder.call(f, &[e], "calltmp")
             }
+            NodeKind::Block(ref es) => {
+                match es.split_last() {
+                    None => self.compiler.unit(),
+                    Some((last, init)) => {
+                        for n in init {
+                            self.compile_node(n);
+                        }
+                        self.compile_node(last)
+                    }
+                }
+            }
             _ => unimplemented!(),
         }
     }
