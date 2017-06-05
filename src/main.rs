@@ -75,7 +75,7 @@ fn run(machine: &mut Machine,
     debug!("nodes: {:?}", nodes);
     let prog = ctx.transform(nodes).map_err(|err| format!("{}", err))?;
     debug!("program: {:?}", prog);
-    let module = compiler.compile_program(&prog).unwrap();
+    let module = try_or_exit!(compiler.compile_program(&prog));
     module.dump();
     match module.emit_object() {
         Ok(obj) => {

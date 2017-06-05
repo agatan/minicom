@@ -132,6 +132,10 @@ impl Builder {
         unsafe { core::LLVMPositionBuilderAtEnd(self.get(), bb.get()) }
     }
 
+    pub fn br(&mut self, bb: &BasicBlock) -> Value {
+        unsafe { Value(core::LLVMBuildBr(self.get(), bb.get())) }
+    }
+
     pub fn ret(&mut self, v: Value) -> Value {
         unsafe { Value(core::LLVMBuildRet(self.get(), v.to_value())) }
     }
@@ -363,6 +367,10 @@ impl IsValue for Function {
 impl Function {
     pub fn get(&self) -> LLVMValueRef {
         self.0
+    }
+
+    pub fn param(&self, i: i32) -> Value {
+        Value(unsafe { core::LLVMGetParam(self.get(), i as ::libc::c_uint) })
     }
 
     pub fn append_basic_block(&mut self, name: &str) -> BasicBlock {

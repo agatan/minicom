@@ -132,7 +132,9 @@ impl Context {
                         .unwrap_or(Ok(Type::Unit))?;
                     let args = def.args
                         .iter()
-                        .map(|&(_, ref typ)| self.tyenv.get(&typ.name))
+                        .map(|&(ref name, ref typ)| {
+                                 self.tyenv.get(&typ.name).map(|ty| (name.clone(), ty))
+                             })
                         .collect::<Result<Vec<_>>>()?;
                     let id = self.next_function_id();
                     let fd = FunctionInfo {
@@ -211,7 +213,8 @@ impl Context {
                 if args.len() != finfo.args.len() {
                     bail!(ErrorKind::InvalidArguments(fname.clone(), finfo.args.len(), args.len()));
                 }
-                for (required, given) in finfo.args.iter().zip(args.iter().map(|n| &n.typ)) {
+                for (&(_, ref required), given) in
+                    finfo.args.iter().zip(args.iter().map(|n| &n.typ)) {
                     if required != given {
                         bail!(ErrorKind::InvalidTypeUnification(required.clone(), given.clone()));
                     }
@@ -370,10 +373,7 @@ impl Context {
             .expect("forward declared")
             .clone();
         let mut scoped = self.enter_scope();
-        for (name, ty) in def.args
-                .iter()
-                .map(|&(ref name, _)| name)
-                .zip(fd.args.iter()) {
+        for &(ref name, ref ty) in fd.args.iter() {
             scoped.define_var(name.clone(), ty.clone());
         }
         let body = def.body

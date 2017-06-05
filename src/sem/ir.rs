@@ -108,7 +108,7 @@ pub struct Let {
 pub struct Function {
     pub id: u32,
     pub name: String,
-    pub args: Vec<Type>,
+    pub args: Vec<(String, Type)>,
     pub ret_typ: Type,
     pub n_locals: u32,
     pub body: Vec<Node>,
@@ -177,7 +177,7 @@ impl LocalEnv {
 #[derive(Debug, Clone)]
 pub struct FunctionInfo {
     pub index: u32,
-    pub args: Vec<Type>,
+    pub args: Vec<(String, Type)>,
     pub ret: Type,
 }
 
