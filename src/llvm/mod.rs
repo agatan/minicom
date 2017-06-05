@@ -31,7 +31,6 @@ pub fn init() {
     }
 }
 
-#[derive(Debug)]
 pub struct Message(*mut ::libc::c_char);
 
 impl Message {
@@ -44,8 +43,21 @@ impl Message {
     }
 }
 
+impl fmt::Debug for Message {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.0.is_null() {
+            f.write_str("(null)")
+        } else {
+            write!(f, "Message({:?})", unsafe { CString::from_raw(self.0) })
+        }
+    }
+}
+
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.0.is_null() {
+            return f.write_str("(null)");
+        }
         unsafe { CString::from_raw(self.0) }
             .to_string_lossy()
             .fmt(f)
