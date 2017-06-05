@@ -5,14 +5,10 @@ extern crate log;
 extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
-extern crate rustyline;
 extern crate llvm_sys;
 extern crate libc;
 
 extern crate minivm_syntax as syntax;
-
-use rustyline::Editor;
-use rustyline::error::ReadlineError;
 
 mod sem;
 mod bytecode_compiler;
@@ -22,7 +18,6 @@ mod compiler;
 
 use std::io::prelude::*;
 use std::fs::File;
-use std::error::Error;
 
 use syntax::ast;
 
@@ -46,24 +41,33 @@ fn main() {
     try_or_exit!(env_logger::init());
 
     let mut ctx = Context::new();
-    let mut compiler = Compiler::new();
+    let mut bcompiler = Compiler::new();
+    let mut compiler = compiler::Compiler::new();
     let mut machine = Machine::new();
 
-    match ::std::env::args().nth(1) {
+    let contents = match ::std::env::args().nth(1) {
         None => {
-            try_or_exit!(repl(&mut machine, &mut compiler, &mut ctx));
+            let mut contents = String::new();
+            try_or_exit!(::std::io::stdin().read_to_string(&mut contents));
+            contents
         }
         Some(filename) => {
             let mut file = try_or_exit!(File::open(filename));
             let mut contents = String::new();
             try_or_exit!(file.read_to_string(&mut contents));
-            try_or_exit!(run(&mut machine, &mut compiler, &mut ctx, &contents));
+            contents
         }
     };
+    try_or_exit!(run(&mut machine,
+                     &mut bcompiler,
+                     &mut compiler,
+                     &mut ctx,
+                     &contents));
 }
 
 fn run(machine: &mut Machine,
-       compiler: &mut Compiler,
+       bcompiler: &mut Compiler,
+       compiler: &mut compiler::Compiler,
        ctx: &mut Context,
        input: &str)
        -> Result<Value, String> {
@@ -71,37 +75,11 @@ fn run(machine: &mut Machine,
     debug!("nodes: {:?}", nodes);
     let prog = ctx.transform(nodes).map_err(|err| format!("{}", err))?;
     debug!("program: {:?}", prog);
-    let mut c = compiler::Compiler::new();
-    let module = c.compile_program(&prog).unwrap();
+    let module = compiler.compile_program(&prog).unwrap();
     module.dump();
-    let instrs = compiler.compile(&prog);
+    let instrs = bcompiler.compile(&prog);
     debug!("instrs: {:?}", instrs);
-    Ok(machine.run(compiler.funcs(), &instrs))
-}
-
-fn repl(machine: &mut Machine,
-        compiler: &mut Compiler,
-        ctx: &mut Context)
-        -> Result<(), Box<Error>> {
-    let mut rl = Editor::<()>::new();
-    loop {
-        let readline = rl.readline(">> ");
-        match readline {
-            Ok(line) => {
-                if line == "quit" || line == "q" || line == "exit" {
-                    return Ok(());
-                }
-                rl.add_history_entry(&line);
-                match run(machine, compiler, ctx, &line) {
-                    Ok(value) => println!("=> {}", value),
-                    Err(err) => println!("{}", err),
-                }
-            }
-            Err(ReadlineError::Eof) |
-            Err(ReadlineError::Interrupted) => return Ok(()),
-            Err(err) => return Err(Box::new(err)),
-        }
-    }
+    Ok(machine.run(bcompiler.funcs(), &instrs))
 }
 
 #[cfg(test)]
