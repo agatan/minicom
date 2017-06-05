@@ -90,7 +90,6 @@ impl Compiler {
         {
             let mut fbuilder = FunBuilder::new(&entry, self);
             for node in program.toplevels.iter() {
-                println!("{:?}", node);
                 fbuilder.compile_node(node);
             }
         }
