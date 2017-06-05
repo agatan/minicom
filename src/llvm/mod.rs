@@ -5,20 +5,23 @@ use std::fmt;
 
 use llvm_sys::prelude::*;
 use llvm_sys::core;
-use llvm_sys::target;
+use llvm_sys::target as lltarget;
+use llvm_sys::target_machine::{self, LLVMCodeGenOptLevel, LLVMRelocMode, LLVMCodeModel,
+                               LLVMCodeGenFileType};
 use llvm_sys::execution_engine;
 use llvm_sys::analysis;
 
+pub mod target;
 pub mod engine;
 
 pub fn init() {
     unsafe {
-        target::LLVMInitializeX86TargetInfo();
-        target::LLVMInitializeX86Target();
-        target::LLVMInitializeX86TargetMC();
-        target::LLVMInitializeX86AsmPrinter();
-        target::LLVMInitializeX86AsmParser();
-        target::LLVMInitializeX86Disassembler();
+        lltarget::LLVMInitializeX86TargetInfo();
+        lltarget::LLVMInitializeX86Target();
+        lltarget::LLVMInitializeX86TargetMC();
+        lltarget::LLVMInitializeX86AsmPrinter();
+        lltarget::LLVMInitializeX86AsmParser();
+        lltarget::LLVMInitializeX86Disassembler();
         execution_engine::LLVMLinkInMCJIT();
     }
 }
@@ -27,6 +30,10 @@ pub fn init() {
 pub struct Message(*mut ::libc::c_char);
 
 impl Message {
+    pub fn with_null() -> Self {
+        Message(::std::ptr::null_mut())
+    }
+
     pub fn get_mut_ptr(&mut self) -> *mut *mut ::libc::c_char {
         &mut self.0 as *mut *mut _
     }
@@ -42,7 +49,9 @@ impl fmt::Display for Message {
 
 impl Drop for Message {
     fn drop(&mut self) {
-        unsafe { core::LLVMDisposeMessage(self.0) };
+        if !self.0.is_null() {
+            unsafe { core::LLVMDisposeMessage(self.0) };
+        }
     }
 }
 
@@ -224,13 +233,46 @@ impl Module {
 
     pub fn verify(&self) -> Result<(), Message> {
         unsafe {
-            let mut msg: Message = ::std::mem::uninitialized();
+            let mut msg: Message = Message::with_null();
             let ret = analysis::LLVMVerifyModule(
                 self.get(),
                 analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction,
                     msg.get_mut_ptr());
             if ret == 1 { Err(msg) } else { Ok(()) }
         }
+    }
+
+    pub fn emit_object(&self) -> Result<Vec<u8>, Message> {
+        let triple = target::get_default_target_triple();
+        let tar = target::get_target_from_triple(triple)?;
+        let machine = unsafe {
+            target_machine::LLVMCreateTargetMachine(tar,
+                                                    triple,
+                                                    "".as_ptr() as *const i8, // cpu
+                                                    "".as_ptr() as *const i8, // features
+                                                    LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
+                                                    LLVMRelocMode::LLVMRelocDefault,
+                                                    LLVMCodeModel::LLVMCodeModelDefault)
+        };
+        let mut err: Message = Message::with_null();
+        let mut membuf: LLVMMemoryBufferRef = unsafe { ::std::mem::uninitialized() };
+        let failed = unsafe {
+            target_machine::LLVMTargetMachineEmitToMemoryBuffer(
+                machine,
+                self.get(),
+                LLVMCodeGenFileType::LLVMObjectFile,
+                err.get_mut_ptr(),
+                &mut membuf as *mut _)
+        };
+        if failed == 1 {
+            return Err(err);
+        }
+        let result = unsafe {
+            let start = core::LLVMGetBufferStart(membuf) as *const u8;
+            let size = core::LLVMGetBufferSize(membuf);
+            ::std::slice::from_raw_parts(start, size).to_vec()
+        };
+        Ok(result)
     }
 }
 

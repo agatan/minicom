@@ -77,6 +77,13 @@ fn run(machine: &mut Machine,
     debug!("program: {:?}", prog);
     let module = compiler.compile_program(&prog).unwrap();
     module.dump();
+    match module.emit_object() {
+        Ok(obj) => {
+            let mut f = File::create("/tmp/module.o").unwrap();
+            f.write_all(&obj).unwrap();
+        }
+        Err(err) => println!("{}", err),
+    }
     let instrs = bcompiler.compile(&prog);
     debug!("instrs: {:?}", instrs);
     Ok(machine.run(bcompiler.funcs(), &instrs))
