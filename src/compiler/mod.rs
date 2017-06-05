@@ -84,6 +84,10 @@ impl Compiler {
             NodeKind::Int(n) => self.int(n),
             NodeKind::Float(f) => self.float(f),
             NodeKind::Bool(b) => self.bool(b),
+            NodeKind::GlobalIdent(ref var) => {
+                let ptr = self.getvar(&var.name);
+                self.builder.load(ptr, "loadtmp")
+            }
             NodeKind::AddInt(ref l, ref r) => {
                 let l = self.compile_node(l);
                 let r = self.compile_node(r);
@@ -133,7 +137,7 @@ impl Compiler {
         }
     }
 
-    pub fn compile_program(mut self, program: &Program) -> Result<Module, Message> {
+    pub fn compile_program(&mut self, program: &Program) -> Result<&Module, Message> {
         for entry in program.entries.values() {
             match *entry {
                 Entry::Var(ref var) => {
@@ -157,11 +161,13 @@ impl Compiler {
         let ret = self.unit();
         self.builder.ret(ret);
         self.module.verify()?;
-        Ok(self.module)
+        Ok(&self.module)
     }
 
     fn getvar(&self, name: &str) -> Value {
-        *self.globals.get(name).expect("undefined variable")
+        *self.globals
+             .get(name)
+             .expect(&format!("undefined variable: {}", name))
     }
 
     // helpers
