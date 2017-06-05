@@ -392,33 +392,3 @@ impl BasicBlock {
         self.0
     }
 }
-
-pub fn run() {
-    let context = Context::new();
-    let mut module = Module::new(context.clone(), "main");
-    let int_ty = context.int32_type();
-    let fun_ty = context.function_type(int_ty, &[], false);
-    let mut fun = module.add_function("main", fun_ty);
-    let bb = fun.append_basic_block("entry");
-    let mut builder = Builder::new(context.clone());
-    builder.position_at_end(&bb);
-    let a = builder.alloca(int_ty, "a");
-    let b = builder.alloca(int_ty, "b");
-    let x: i32 = -10000;
-    let iv = context.int32_type().const_int(x as u64);
-    builder.store(iv, a);
-    builder.store(context.int32_type().const_int(11), b);
-    let new_a = builder.load(a, "new_a");
-    let new_b = builder.load(b, "new_b");
-    let ret = builder.add(new_a, new_b, "add");
-    builder.ret(ret);
-
-    if let Err(msg) = module.verify() {
-        panic!("{}", msg);
-    }
-    module.dump();
-
-    init();
-    let ee = engine::ExecutionEngine::create_jit_compiler(&module, 0).unwrap();
-    println!("call main: {}", ee.run(fun).to_int());
-}
