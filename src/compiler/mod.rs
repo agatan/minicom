@@ -67,6 +67,31 @@ impl Compiler {
     }
 
     pub fn compile_program(&mut self, program: &Program) -> Result<&Module, Message> {
+        // FIXME(agatan): language items
+        {
+            // prunit_unit
+            let fun_ty = self.ctx
+                .function_type(self.ctx.unit_type(), &[self.ctx.unit_type()], false);
+            self.module.add_function("prunit_unit", fun_ty);
+        }
+        {
+            // print_int
+            let fun_ty = self.ctx
+                .function_type(self.ctx.int32_type(), &[self.ctx.int32_type()], false);
+            self.module.add_function("print_int", fun_ty);
+        }
+        {
+            // print_bool
+            let fun_ty = self.ctx
+                .function_type(self.ctx.bool_type(), &[self.ctx.bool_type()], false);
+            self.module.add_function("print_bool", fun_ty);
+        }
+        {
+            // print_float
+            let fun_ty = self.ctx
+                .function_type(self.ctx.float_type(), &[self.ctx.float_type()], false);
+            self.module.add_function("print_float", fun_ty);
+        }
         for entry in program.entries.values() {
             match *entry {
                 Entry::Var(ref var) => {
@@ -276,6 +301,21 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 };
                 let value = self.compile_node(&let_.value);
                 self.compiler.builder.store(value, ptr)
+            }
+            NodeKind::Print(ref e) => {
+                let typ = &e.typ;
+                let e = self.compile_node(e);
+                let fname = match *typ {
+                    Type::Unit => "print_unit",
+                    Type::Int => "print_int",
+                    Type::Bool => "print_bool",
+                    Type::Float => "print_float",
+                };
+                let f = self.compiler
+                    .module
+                    .get_function(fname)
+                    .expect("predefined builtin functions");
+                self.compiler.builder.call(f, &[e], "calltmp")
             }
             _ => unimplemented!(),
         }

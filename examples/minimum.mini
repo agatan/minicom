@@ -10,3 +10,12 @@ def let_sample(x: int): int {
   let y = x;
   x + y
 }
+
+def print_sample(x: int): int {
+  print(x)
+}
+
+print(43);
+print(true);
+print(false);
+print(2.3);

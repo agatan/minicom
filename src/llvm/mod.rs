@@ -156,6 +156,13 @@ impl Builder {
         unsafe { Value(core::LLVMBuildRet(self.get(), v.to_value())) }
     }
 
+    pub fn call(&mut self, f: Function, args: &[Value], name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        let num_args = args.len() as ::libc::c_uint;
+        let args = args.as_ptr() as *mut _;
+        unsafe { Value(core::LLVMBuildCall(self.get(), f.get(), args, num_args, name.as_ptr())) }
+    }
+
     pub fn alloca(&mut self, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         unsafe {
@@ -263,6 +270,12 @@ impl Module {
         let name = CString::new(name).unwrap();
         let value = unsafe { core::LLVMAddFunction(self.get(), name.as_ptr(), fun_type.get()) };
         Function(value)
+    }
+
+    pub fn get_function(&self, name: &str) -> Option<Function> {
+        let name = CString::new(name).unwrap();
+        let f = unsafe { core::LLVMGetNamedFunction(self.get(), name.as_ptr()) };
+        if f.is_null() { None } else { Some(Function(f)) }
     }
 
     pub fn add_global(&mut self, name: &str, ty: Type) -> Value {
