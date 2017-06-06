@@ -20,9 +20,10 @@ impl Program {
 
     pub fn define_global(&mut self, id: u32, name: String, typ: Type) {
         self.entries
-            .insert(name,
+            .insert(name.clone(),
                     Entry::Var(Var {
                                    index: id,
+                                   name: name,
                                    typ: typ,
                                }));
     }
@@ -54,12 +55,12 @@ impl Node {
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeKind {
     Unit,
-    Int(i64),
+    Int(i32),
     Float(f64),
     Bool(bool),
     Ident(Var),
     GlobalIdent(Var),
-    Call(u32, Vec<Node>),
+    Call(String, Vec<Node>),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
     MulInt(Box<Node>, Box<Node>),
@@ -85,6 +86,7 @@ pub enum NodeKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Var {
     pub index: u32,
+    pub name: String,
     pub typ: Type,
 }
 
@@ -97,6 +99,7 @@ pub enum VarKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Let {
     pub id: u32,
+    pub name: String,
     pub typ: Type,
     pub value: Node,
 }
@@ -104,7 +107,8 @@ pub struct Let {
 #[derive(Debug, Clone)]
 pub struct Function {
     pub id: u32,
-    pub args: Vec<Type>,
+    pub name: String,
+    pub args: Vec<(String, Type)>,
     pub ret_typ: Type,
     pub n_locals: u32,
     pub body: Vec<Node>,
@@ -128,7 +132,12 @@ impl LocalEnv {
         let n = self.locals.len() as u32;
         self.locals.push(name.clone());
         self.table
-            .insert(name, Entry::Var(Var { index: n, typ: typ }));
+            .insert(name.clone(),
+                    Entry::Var(Var {
+                                   index: n,
+                                   name: name,
+                                   typ: typ,
+                               }));
         n
     }
 
@@ -168,7 +177,7 @@ impl LocalEnv {
 #[derive(Debug, Clone)]
 pub struct FunctionInfo {
     pub index: u32,
-    pub args: Vec<Type>,
+    pub args: Vec<(String, Type)>,
     pub ret: Type,
 }
 

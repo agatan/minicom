@@ -1,4 +1,4 @@
-let n = 0
+let n:int = 0
 while n < 10000 {
   let x = 0
   let sum = 0

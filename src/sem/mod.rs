@@ -132,7 +132,9 @@ impl Context {
                         .unwrap_or(Ok(Type::Unit))?;
                     let args = def.args
                         .iter()
-                        .map(|&(_, ref typ)| self.tyenv.get(&typ.name))
+                        .map(|&(ref name, ref typ)| {
+                                 self.tyenv.get(&typ.name).map(|ty| (name.clone(), ty))
+                             })
                         .collect::<Result<Vec<_>>>()?;
                     let id = self.next_function_id();
                     let fd = FunctionInfo {
@@ -166,6 +168,7 @@ impl Context {
                 let id = self.define_var(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                                         id: id,
+                                                        name: l.name.clone(),
                                                         typ: value.typ.clone(),
                                                         value: value,
                                                     })),
@@ -210,12 +213,13 @@ impl Context {
                 if args.len() != finfo.args.len() {
                     bail!(ErrorKind::InvalidArguments(fname.clone(), finfo.args.len(), args.len()));
                 }
-                for (required, given) in finfo.args.iter().zip(args.iter().map(|n| &n.typ)) {
+                for (&(_, ref required), given) in
+                    finfo.args.iter().zip(args.iter().map(|n| &n.typ)) {
                     if required != given {
                         bail!(ErrorKind::InvalidTypeUnification(required.clone(), given.clone()));
                     }
                 }
-                Ok(Node::new(NodeKind::Call(finfo.index, args), finfo.ret.clone()))
+                Ok(Node::new(NodeKind::Call(fname.clone(), args), finfo.ret.clone()))
             }
             AstNodeKind::Infix(ref l, op, ref r) => {
                 let left = Box::new(self.transform_node(l)?);
@@ -272,11 +276,11 @@ impl Context {
                             Operator::LE => NodeKind::LE(left, right),
                             Operator::LT => NodeKind::LT(left, right),
                             Operator::GE => {
-                                NodeKind::Not(Box::new(Node::new(NodeKind::LT(right, left),
+                                NodeKind::Not(Box::new(Node::new(NodeKind::LT(left, right),
                                                                  Type::Bool)))
                             }
                             Operator::GT => {
-                                NodeKind::Not(Box::new(Node::new(NodeKind::LE(right, left),
+                                NodeKind::Not(Box::new(Node::new(NodeKind::LE(left, right),
                                                                  Type::Bool)))
                             }
                             _ => unreachable!(),
@@ -336,6 +340,7 @@ impl Context {
                 let id = self.define_var(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
                                                         id: id,
+                                                        name: l.name.clone(),
                                                         typ: value.typ.clone(),
                                                         value: value,
                                                     })),
@@ -368,10 +373,7 @@ impl Context {
             .expect("forward declared")
             .clone();
         let mut scoped = self.enter_scope();
-        for (name, ty) in def.args
-                .iter()
-                .map(|&(ref name, _)| name)
-                .zip(fd.args.iter()) {
+        for &(ref name, ref ty) in fd.args.iter() {
             scoped.define_var(name.clone(), ty.clone());
         }
         let body = def.body
@@ -385,6 +387,7 @@ impl Context {
         let env = scoped.exit_and_pop();
         let function = Function {
             id: fd.index,
+            name: def.name.clone(),
             args: fd.args,
             ret_typ: fd.ret,
             n_locals: env.n_locals(),

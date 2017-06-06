@@ -6,7 +6,7 @@ def fib(n: int): int {
   }
 }
 
-let n = 0
+let n: int = 0
 while n < 38 {
   print(fib(n))
   n = n + 1

@@ -11,7 +11,7 @@ extern {
 
     enum Token<'input> {
         "identifier" => Token::Identifier(<&'input str>),
-        "int literal" => Token::IntLiteral(<i64>),
+        "int literal" => Token::IntLiteral(<i32>),
         "float literal" => Token::FloatLiteral(<f64>),
         "true" => Token::True,
         "false" => Token::False,

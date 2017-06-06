@@ -1,4 +1,4 @@
-let x = 0
+let x: int = 0
 
 def sample(x: int, y: int): int {
   let z = {
