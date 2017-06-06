@@ -69,10 +69,10 @@ impl Compiler {
     pub fn compile_program(&mut self, program: &Program) -> Result<&Module, Message> {
         // FIXME(agatan): language items
         {
-            // prunit_unit
+            // print_unit
             let fun_ty = self.ctx
                 .function_type(self.ctx.unit_type(), &[self.ctx.unit_type()], false);
-            self.module.add_function("prunit_unit", fun_ty);
+            self.module.add_function("print_unit", fun_ty);
         }
         {
             // print_int

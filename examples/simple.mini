@@ -4,6 +4,6 @@ print(1 + 2 * 3);
 print(true);
 print(false)
 
-let x = ();
+let x: () = ();
 print(());
 print(x);
