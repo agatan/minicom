@@ -8,7 +8,6 @@ use llvm_sys::core;
 use llvm_sys::target as lltarget;
 use llvm_sys::target_machine::{self, LLVMCodeGenOptLevel, LLVMRelocMode, LLVMCodeModel,
                                LLVMCodeGenFileType};
-use llvm_sys::execution_engine;
 use llvm_sys::analysis;
 
 pub use llvm_sys::LLVMIntPredicate;
@@ -17,7 +16,6 @@ pub use llvm_sys::LLVMRealPredicate;
 pub use llvm_sys::LLVMRealPredicate::*;
 
 pub mod target;
-pub mod engine;
 
 pub fn init() {
     unsafe {
@@ -27,7 +25,6 @@ pub fn init() {
         lltarget::LLVMInitializeX86AsmPrinter();
         lltarget::LLVMInitializeX86AsmParser();
         lltarget::LLVMInitializeX86Disassembler();
-        execution_engine::LLVMLinkInMCJIT();
     }
 }
 
