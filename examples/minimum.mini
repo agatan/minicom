@@ -14,3 +14,14 @@ print(fib(5));
 print(fib(6));
 print(fib(7));
 print(fib(8));
+
+def sum(n: int): int {
+  let acc = 0;
+  while n > 0 {
+    acc = acc + n
+    n = n - 1
+  }
+  acc
+}
+
+print(sum(10))

@@ -299,19 +299,6 @@ impl<'a, 's> FunBuilder<'a, 's> {
                     self.compiler.builder.fcmp(llvm::LLVMRealOLT, l, r, "lttmp")
                 }
             }
-            NodeKind::Let(ref let_) => {
-                let ptr = match self.getvar_opt(&let_.name) {
-                    Some(ptr) => ptr,
-                    None => {
-                        let typ = self.compiler.compile_type(&let_.typ);
-                        let ptr = self.alloca(&let_.name, typ);
-                        self.add_local(&let_.name, ptr);
-                        ptr
-                    }
-                };
-                let value = self.compile_node(&let_.value);
-                self.compiler.builder.store(value, ptr)
-            }
             NodeKind::Print(ref e) => {
                 let typ = &e.typ;
                 let e = self.compile_node(e);
@@ -362,6 +349,41 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 let mut phi = self.compiler.builder.phi(phi_type, "iftmp");
                 phi.add_incoming(&[(then_bb, then_value), (els_bb, els_value)]);
                 phi
+            }
+            NodeKind::While(ref cond, ref body) => {
+                let mut fun = self.compiler.builder.get_insert_block().parent();
+                let cond_bb = fun.append_basic_block("cond");
+                self.compiler.builder.br(&cond_bb);
+                let body_bb = fun.append_basic_block("body");
+                let exit_bb = fun.append_basic_block("exit");
+                self.compiler.builder.position_at_end(&cond_bb);
+                let cond_value = self.compile_node(cond);
+                self.compiler
+                    .builder
+                    .cond_br(cond_value, &body_bb, &exit_bb);
+                self.compiler.builder.position_at_end(&body_bb);
+                self.compile_node(body);
+                self.compiler.builder.br(&cond_bb);
+                self.compiler.builder.position_at_end(&exit_bb);
+                self.compiler.unit()
+            }
+            NodeKind::Let(ref let_) => {
+                let ptr = match self.getvar_opt(&let_.name) {
+                    Some(ptr) => ptr,
+                    None => {
+                        let typ = self.compiler.compile_type(&let_.typ);
+                        let ptr = self.alloca(&let_.name, typ);
+                        self.add_local(&let_.name, ptr);
+                        ptr
+                    }
+                };
+                let value = self.compile_node(&let_.value);
+                self.compiler.builder.store(value, ptr)
+            }
+            NodeKind::Assign(ref var, ref value) => {
+                let ptr = self.getvar(&var.name);
+                let value = self.compile_node(value);
+                self.compiler.builder.store(value, ptr)
             }
             _ => unimplemented!(),
         }
