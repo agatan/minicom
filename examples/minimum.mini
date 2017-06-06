@@ -15,13 +15,17 @@ print(fib(6));
 print(fib(7));
 print(fib(8));
 
+let last_sum_result: int = 0
+
 def sum(n: int): int {
   let acc = 0;
   while n > 0 {
     acc = acc + n
     n = n - 1
   }
+  last_sum_result = acc
   acc
 }
 
 print(sum(10))
+print(last_sum_result)

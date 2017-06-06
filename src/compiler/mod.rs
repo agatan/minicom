@@ -385,7 +385,11 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 let value = self.compile_node(value);
                 self.compiler.builder.store(value, ptr)
             }
-            _ => unimplemented!(),
+            NodeKind::AssignGlobal(ref var, ref value) => {
+                let ptr = self.compiler.getvar(&var.name);
+                let value = self.compile_node(value);
+                self.compiler.builder.store(value, ptr)
+            }
         }
     }
 }
