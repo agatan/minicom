@@ -166,12 +166,12 @@ impl Context {
                     }
                 }
                 let id = self.define_var(l.name.clone(), value.typ.clone());
-                Ok(Node::new(NodeKind::Let(Box::new(Let {
-                                                        id: id,
+                Ok(Node::new(NodeKind::AssignGlobal(Var {
+                                                        index: id,
                                                         name: l.name.clone(),
                                                         typ: value.typ.clone(),
-                                                        value: value,
-                                                    })),
+                                                    },
+                                                    Box::new(value)),
                              Type::Unit))
             }
             ToplevelKind::Expr(ref e) => self.transform_node(e),
