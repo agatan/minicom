@@ -38,8 +38,7 @@ error_chain! {
     }
 }
 
-type StdResult<T, E> = ::std::result::Result<T, E>;
-type Result<T> = StdResult<T, Spanned<Error>>;
+type Result<T> = ::std::result::Result<T, Spanned<Error>>;
 
 macro_rules! bail_with {
     ($span:expr, $kind:expr) => {
@@ -230,7 +229,7 @@ impl Context {
                 };
                 let args = args.iter()
                     .map(|n| self.transform_node(n))
-                    .collect::<StdResult<Vec<_>, _>>()?;
+                    .collect::<Result<Vec<_>>>()?;
                 if args.len() != finfo.args.len() {
                     bail_with!(node.span,
                                ErrorKind::InvalidArguments(fname.clone(),
@@ -334,7 +333,7 @@ impl Context {
                 let nodes = nodes
                     .into_iter()
                     .map(|n| self.transform_node(n))
-                    .collect::<StdResult<Vec<_>, _>>()?;
+                    .collect::<Result<Vec<_>>>()?;
                 let typ = nodes.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
                 Ok(Node::new(NodeKind::Block(nodes), typ))
             }
