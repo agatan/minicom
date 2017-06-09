@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Byte(pub usize);
 
@@ -54,5 +56,30 @@ impl<T> Spanned<T> {
             span: Span::new(start, end),
             value: value,
         }
+    }
+
+    pub fn span(span: Span, value: T) -> Self {
+        Spanned {
+            span: span,
+            value: value,
+        }
+    }
+
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Spanned<U> {
+        let Spanned { span, value } = self;
+        Spanned {
+            span: span,
+            value: f(value),
+        }
+    }
+}
+
+impl<T: fmt::Display> fmt::Display for Spanned<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,
+               "{}:{}: {}",
+               self.span.start.line.0,
+               self.span.start.column.0,
+               self.value)
     }
 }

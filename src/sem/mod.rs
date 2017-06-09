@@ -8,6 +8,7 @@ mod typing;
 mod alpha;
 mod tyenv;
 
+use syntax::pos::Spanned;
 use syntax::ast::{self, Toplevel, ToplevelKind, Node as AstNode, NodeKind as AstNodeKind, Operator};
 
 use self::ir::*;
@@ -18,7 +19,7 @@ use self::alpha::Alpha;
 
 error_chain! {
     types {
-        Error, ErrorKind, ResultExt, Result;
+        Error, ErrorKind, ResultExt;
     }
 
     errors {
@@ -36,6 +37,9 @@ error_chain! {
         }
     }
 }
+
+type StdResult<T, E> = ::std::result::Result<T, E>;
+type Result<T> = StdResult<T, Spanned<Error>>;
 
 #[derive(Debug)]
 pub struct Context {
@@ -61,12 +65,12 @@ impl Context {
         }
     }
 
-    pub fn transform(&mut self, nodes: Vec<Toplevel>) -> Result<Program> {
+    pub fn transform(&mut self, nodes: Vec<Spanned<Toplevel>>) -> Result<Program> {
         let mut alp = Alpha::new();
         debug!("before: {:?}", nodes);
         let nodes = nodes
             .into_iter()
-            .map(|n| alp.apply_toplevel(n))
+            .map(|n| n.map(|n| alp.apply_toplevel(n)))
             .collect::<Vec<_>>();
         debug!("alpha: {:?}", nodes);
         self.collect_types(&nodes)?;
@@ -123,18 +127,22 @@ impl Context {
         self.rootenv.get_function_info(name)
     }
 
-    fn collect_types(&mut self, nodes: &[Toplevel]) -> Result<()> {
+    fn collect_types(&mut self, nodes: &[Spanned<Toplevel>]) -> Result<()> {
         for node in nodes {
-            match node.kind {
+            match node.value.kind {
                 ToplevelKind::Def(ref def) => {
                     let ret = def.ret
                         .as_ref()
                         .map(|typ| self.tyenv.get(&typ.name))
-                        .unwrap_or(Ok(Type::Unit))?;
+                        .unwrap_or(Ok(Type::Unit))
+                        .map_err(|err| Spanned::span(node.span, err))?;
                     let args = def.args
                         .iter()
                         .map(|&(ref name, ref typ)| {
-                                 self.tyenv.get(&typ.name).map(|ty| (name.clone(), ty))
+                                 self.tyenv
+                                     .get(&typ.name)
+                                     .map(|ty| (name.clone(), ty))
+                                     .map_err(|err| Spanned::span(node.span, err))
                              })
                         .collect::<Result<Vec<_>>>()?;
                     let id = self.next_function_id();
@@ -151,19 +159,24 @@ impl Context {
         Ok(())
     }
 
-    pub fn transform_toplevel(&mut self, toplevel: &Toplevel) -> Result<Node> {
-        match toplevel.kind {
+    pub fn transform_toplevel(&mut self, toplevel: &Spanned<Toplevel>) -> Result<Node> {
+        match toplevel.value.kind {
             ToplevelKind::Def(ref def) => {
-                let function = self.transform_def(def)?;
+                let function = self.transform_def(def)
+                    .map_err(|err| Spanned::span(toplevel.span, err))?;
                 self.define_function(def.name.clone(), function);
                 Ok(Node::new(NodeKind::Unit, Type::Unit))
             }
             ToplevelKind::Let(ref l) => {
-                let value = self.transform_node(&l.value)?;
+                let value = self.transform_node(&l.value)
+                    .map_err(|err| Spanned::span(toplevel.span, err))?;
                 if let Some(ref typ) = l.typ {
-                    let typ = self.tyenv.get(&typ.name)?;
+                    let typ = self.tyenv
+                        .get(&typ.name)
+                        .map_err(|err| Spanned::span(toplevel.span, err))?;
                     if typ != value.typ {
-                        bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
+                        let err = ErrorKind::InvalidTypeUnification(typ, value.typ).into();
+                        return Err(Spanned::span(toplevel.span, err));
                     }
                 }
                 self.define_var(l.name.clone(), value.typ.clone());
@@ -174,17 +187,20 @@ impl Context {
                                                     Box::new(value)),
                              Type::Unit))
             }
-            ToplevelKind::Expr(ref e) => self.transform_node(e),
+            ToplevelKind::Expr(ref e) => {
+                self.transform_node(e)
+                    .map_err(|err| Spanned::span(toplevel.span, err))
+            }
         }
     }
 
-    pub fn transform_node(&mut self, node: &AstNode) -> Result<Node> {
+    pub fn transform_node(&mut self, node: &AstNode) -> StdResult<Node, Error> {
         let e = self.transform_node_(node)?;
         self.typemap.borrow_mut().insert(node.id, e.typ.clone());
         Ok(e)
     }
 
-    fn transform_node_(&mut self, node: &AstNode) -> Result<Node> {
+    fn transform_node_(&mut self, node: &AstNode) -> StdResult<Node, Error> {
         match node.kind {
             AstNodeKind::Unit => Ok(Node::new(NodeKind::Unit, Type::Unit)),
             AstNodeKind::Int(n) => Ok(Node::new(NodeKind::Int(n), Type::Int)),
@@ -209,7 +225,7 @@ impl Context {
                 };
                 let args = args.iter()
                     .map(|n| self.transform_node(n))
-                    .collect::<Result<Vec<_>>>()?;
+                    .collect::<StdResult<Vec<_>, _>>()?;
                 if args.len() != finfo.args.len() {
                     bail!(ErrorKind::InvalidArguments(fname.clone(), finfo.args.len(), args.len()));
                 }
@@ -300,7 +316,7 @@ impl Context {
                 let nodes = nodes
                     .into_iter()
                     .map(|n| self.transform_node(n))
-                    .collect::<Result<Vec<_>>>()?;
+                    .collect::<StdResult<Vec<_>, _>>()?;
                 let typ = nodes.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
                 Ok(Node::new(NodeKind::Block(nodes), typ))
             }
@@ -366,7 +382,7 @@ impl Context {
         }
     }
 
-    fn transform_def(&mut self, def: &ast::Def) -> Result<Function> {
+    fn transform_def(&mut self, def: &ast::Def) -> StdResult<Function, Error> {
         let fd = self.forward_decls
             .get(&def.name)
             .expect("forward declared")
@@ -378,7 +394,7 @@ impl Context {
         let body = def.body
             .iter()
             .map(|node| scoped.transform_node(node))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<StdResult<Vec<_>, _>>()?;
         let body_typ = body.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
         if fd.ret != body_typ {
             bail!(ErrorKind::InvalidTypeUnification(fd.ret, body_typ));

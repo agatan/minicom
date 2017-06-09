@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use sem::ir::Type;
-use sem::{Error, ErrorKind, Result};
+use sem::{Error, ErrorKind};
 
 #[derive(Debug)]
 pub struct TypeEnv {
@@ -22,7 +22,7 @@ impl TypeEnv {
         self.table.insert(name, typ);
     }
 
-    pub fn get(&self, name: &str) -> Result<Type> {
+    pub fn get(&self, name: &str) -> Result<Type, Error> {
         self.table
             .get(name)
             .ok_or(Error::from(ErrorKind::Undefined(name.to_string())))

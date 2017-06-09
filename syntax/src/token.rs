@@ -122,7 +122,7 @@ impl<'input> CharLocations<'input> {
     fn new(input: &'input str) -> Self {
         CharLocations {
             location: Location {
-                line: Line(0),
+                line: Line(1),
                 column: Column(1),
                 absolute: Byte(0),
             },
