@@ -18,11 +18,10 @@ impl Program {
         self.entries.insert(name, Entry::Function(f));
     }
 
-    pub fn define_global(&mut self, id: u32, name: String, typ: Type) {
+    pub fn define_global(&mut self, name: String, typ: Type) {
         self.entries
             .insert(name.clone(),
                     Entry::Var(Var {
-                                   index: id,
                                    name: name,
                                    typ: typ,
                                }));
@@ -85,7 +84,6 @@ pub enum NodeKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Var {
-    pub index: u32,
     pub name: String,
     pub typ: Type,
 }
@@ -98,7 +96,6 @@ pub enum VarKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Let {
-    pub id: u32,
     pub name: String,
     pub typ: Type,
     pub value: Node,
@@ -110,35 +107,26 @@ pub struct Function {
     pub name: String,
     pub args: Vec<(String, Type)>,
     pub ret_typ: Type,
-    pub n_locals: u32,
     pub body: Vec<Node>,
 }
 
 #[derive(Debug, Clone)]
 pub struct LocalEnv {
-    locals: Vec<String>,
     table: HashMap<String, Entry>,
 }
 
 impl LocalEnv {
     pub fn new() -> Self {
-        LocalEnv {
-            locals: Vec::new(),
-            table: HashMap::new(),
-        }
+        LocalEnv { table: HashMap::new() }
     }
 
-    pub fn define_local(&mut self, name: String, typ: Type) -> u32 {
-        let n = self.locals.len() as u32;
-        self.locals.push(name.clone());
+    pub fn define_local(&mut self, name: String, typ: Type) {
         self.table
             .insert(name.clone(),
                     Entry::Var(Var {
-                                   index: n,
                                    name: name,
                                    typ: typ,
                                }));
-        n
     }
 
     pub fn define_function(&mut self, name: String, f: Function) {
@@ -167,10 +155,6 @@ impl LocalEnv {
                           }
                           Entry::Var(_) => None,
                       })
-    }
-
-    pub fn n_locals(&self) -> u32 {
-        self.locals.len() as u32
     }
 }
 

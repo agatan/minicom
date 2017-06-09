@@ -165,9 +165,8 @@ impl Context {
                         bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
                 }
-                let id = self.define_var(l.name.clone(), value.typ.clone());
+                self.define_var(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::AssignGlobal(Var {
-                                                        index: id,
                                                         name: l.name.clone(),
                                                         typ: value.typ.clone(),
                                                     },
@@ -337,9 +336,8 @@ impl Context {
                         bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
                 }
-                let id = self.define_var(l.name.clone(), value.typ.clone());
+                self.define_var(l.name.clone(), value.typ.clone());
                 Ok(Node::new(NodeKind::Let(Box::new(Let {
-                                                        id: id,
                                                         name: l.name.clone(),
                                                         typ: value.typ.clone(),
                                                         value: value,
@@ -384,13 +382,12 @@ impl Context {
         if fd.ret != body_typ {
             bail!(ErrorKind::InvalidTypeUnification(fd.ret, body_typ));
         }
-        let env = scoped.exit_and_pop();
+        let _ = scoped.exit_and_pop();
         let function = Function {
             id: fd.index,
             name: def.name.clone(),
             args: fd.args,
             ret_typ: fd.ret,
-            n_locals: env.n_locals(),
             body: body,
         };
         Ok(function)
@@ -400,11 +397,10 @@ impl Context {
         self.envchain.is_empty()
     }
 
-    fn define_var(&mut self, name: String, typ: Type) -> u32 {
+    fn define_var(&mut self, name: String, typ: Type) {
         if self.is_root() {
-            let id = self.current_env().define_local(name.clone(), typ.clone());
-            self.program.define_global(id, name, typ);
-            id
+            self.current_env().define_local(name.clone(), typ.clone());
+            self.program.define_global(name, typ);
         } else {
             self.current_env().define_local(name.clone(), typ.clone())
         }
