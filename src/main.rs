@@ -59,6 +59,7 @@ fn main() {
 fn run(compiler: &mut Compiler, ctx: &mut Context, input: &str) -> Result<(), String> {
     let nodes = syntax::parse(input).map_err(|err| format!("{}", err))?;
     debug!("nodes: {:?}", nodes);
+    let nodes = nodes.into_iter().map(|x| x.value).collect();
     let prog = ctx.transform(nodes).map_err(|err| format!("{}", err))?;
     debug!("program: {:?}", prog);
     let module = try_or_exit!(compiler.compile_program(&prog));
