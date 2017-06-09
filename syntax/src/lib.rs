@@ -6,7 +6,7 @@ extern crate lalrpop_util;
 
 pub mod ast;
 mod token;
-mod pos;
+pub mod pos;
 mod grammar;
 
 use std::convert::From;

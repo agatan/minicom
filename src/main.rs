@@ -17,8 +17,6 @@ mod compiler;
 use std::io::prelude::*;
 use std::fs::File;
 
-use syntax::ast;
-
 use sem::Context;
 use compiler::Compiler;
 

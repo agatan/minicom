@@ -8,8 +8,9 @@ mod typing;
 mod alpha;
 mod tyenv;
 
+use syntax::ast::{self, Toplevel, ToplevelKind, Node as AstNode, NodeKind as AstNodeKind, Operator};
+
 use self::ir::*;
-use ast::{self, Toplevel, ToplevelKind, Node as AstNode, NodeKind as AstNodeKind, Operator};
 pub use self::typing::TypeMap;
 // use self::venv::VariableEnv;
 use self::tyenv::TypeEnv;

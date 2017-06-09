@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ast::*;
+use syntax::ast::*;
 
 #[derive(Debug)]
 pub struct Alpha<'a> {
