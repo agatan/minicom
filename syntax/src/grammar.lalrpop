@@ -48,7 +48,7 @@ extern {
     }
 }
 
-spanned<T>: Spanned<T> = {
+Span<T>: Spanned<T> = {
     <l: @L> <t: T> <r: @R> => { Spanned::new(l, r, t) }
 };
 
@@ -166,7 +166,7 @@ Expression: Spanned<Node> = {
 // statement
 
 LetStmt: Spanned<Node> = {
-    <l:@L> "let" <name:"identifier"> <typ:spanned<TypeSpec>?> "=" <value:Expression> <r:@R> => {
+    <l:@L> "let" <name:"identifier"> <typ:Span<TypeSpec>?> "=" <value:Expression> <r:@R> => {
         let let_ = Let {
             name: name.to_string(),
             typ: typ,
@@ -212,7 +212,7 @@ Nodes: Vec<Spanned<Node>> = SepSeq<AnyNode>;
 // toplevels
 
 ToplevelLet: ToplevelKind = {
-    "let" <name:"identifier"> <typ:spanned<TypeSpec>> "=" <value:Expression> => {
+    "let" <name:"identifier"> <typ:Span<TypeSpec>> "=" <value:Expression> => {
         let let_ = Let {
             name: name.to_string(),
             typ: Some(typ),
@@ -232,4 +232,4 @@ Toplevel: Toplevel =
     ToplevelKind => Toplevel::new(env.next_id(),  <>)
     ;
 
-pub Program = SepSeq<spanned<Toplevel>>;
+pub Program = SepSeq<Span<Toplevel>>;
