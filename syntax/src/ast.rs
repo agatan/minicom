@@ -1,3 +1,5 @@
+use pos::Spanned;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId(u32);
 
@@ -74,7 +76,7 @@ pub enum Operator {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Let {
     pub name: String,
-    pub typ: Option<Type>,
+    pub typ: Option<Spanned<Type>>,
     pub value: Node,
 }
 

@@ -161,7 +161,7 @@ Expression: Node = {
 // statement
 
 LetStmt: Node = {
-    "let" <name:"identifier"> <typ:TypeSpec?> "=" <value:Expression> => {
+    "let" <name:"identifier"> <typ:Spanned<TypeSpec>?> "=" <value:Expression> => {
         let let_ = Let {
             name: name.to_string(),
             typ: typ,
@@ -184,7 +184,7 @@ Statement: Node = {
 
 // definition
 
-Def: Def= {
+Def: Def = {
     "def" <name:"identifier"> "(" <args:Comma<Param>> ")" <ret:TypeSpec?> "{" <body:Nodes> "}" => {
         Def {
             name: name.to_string(),
@@ -207,7 +207,7 @@ Nodes: Vec<Node> = SepSeq<AnyNode>;
 // toplevels
 
 ToplevelLet: ToplevelKind = {
-    "let" <name:"identifier"> <typ:TypeSpec> "=" <value:Expression> => {
+    "let" <name:"identifier"> <typ:Spanned<TypeSpec>> "=" <value:Expression> => {
         let let_ = Let {
             name: name.to_string(),
             typ: Some(typ),

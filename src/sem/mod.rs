@@ -172,8 +172,8 @@ impl Context {
                     .map_err(|err| Spanned::span(toplevel.span, err))?;
                 if let Some(ref typ) = l.typ {
                     let typ = self.tyenv
-                        .get(&typ.name)
-                        .map_err(|err| Spanned::span(toplevel.span, err))?;
+                        .get(&typ.value.name)
+                        .map_err(|err| Spanned::span(typ.span, err))?;
                     if typ != value.typ {
                         let err = ErrorKind::InvalidTypeUnification(typ, value.typ).into();
                         return Err(Spanned::span(toplevel.span, err));
@@ -348,7 +348,7 @@ impl Context {
             AstNodeKind::Let(ref l) => {
                 let value = self.transform_node(&l.value)?;
                 if let Some(ref typ) = l.typ {
-                    let typ = self.tyenv.get(&typ.name)?;
+                    let typ = self.tyenv.get(&typ.value.name)?;
                     if typ != value.typ {
                         bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
