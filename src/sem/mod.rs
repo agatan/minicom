@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Drop};
 
 pub mod ir;
 mod typing;
@@ -382,7 +382,6 @@ impl Context {
         if fd.ret != body_typ {
             bail!(ErrorKind::InvalidTypeUnification(fd.ret, body_typ));
         }
-        let _ = scoped.exit_and_pop();
         let function = Function {
             id: fd.index,
             name: def.name.clone(),
@@ -414,12 +413,6 @@ impl Context {
 
 struct Scoped<'a>(&'a mut Context);
 
-impl<'a> Scoped<'a> {
-    fn exit_and_pop(&mut self) -> LocalEnv {
-        self.0.envchain.pop().unwrap()
-    }
-}
-
 impl<'a> Deref for Scoped<'a> {
     type Target = Context;
 
@@ -431,5 +424,12 @@ impl<'a> Deref for Scoped<'a> {
 impl<'a> DerefMut for Scoped<'a> {
     fn deref_mut(&mut self) -> &mut Context {
         self.0
+    }
+}
+
+
+impl<'a> Drop for Scoped<'a> {
+    fn drop(&mut self) {
+        self.0.envchain.pop();
     }
 }
