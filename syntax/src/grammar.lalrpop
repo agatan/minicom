@@ -1,4 +1,4 @@
-use pos::Location;
+use pos::{self, Location};
 use token::Token;
 use ast::{Node, NodeKind, Type, Let, Def, Operator, Toplevel, ToplevelKind};
 
@@ -47,6 +47,10 @@ extern {
         "newline" => Token::ImplicitSemi,
     }
 }
+
+Spanned<T>: pos::Spanned<T> = {
+    <l: @L> <t: T> <r: @R> => { pos::Spanned::new(l, r, t) }
+};
 
 Sep = {
     ";",
@@ -223,4 +227,4 @@ Toplevel: Toplevel =
     ToplevelKind => Toplevel::new(env.next_id(),  <>)
     ;
 
-pub Program = SepSeq<Toplevel>;
+pub Program = SepSeq<Spanned<Toplevel>>;
