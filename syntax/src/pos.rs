@@ -78,7 +78,7 @@ impl<T: fmt::Display> fmt::Display for Spanned<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
                "{}:{}: {}",
-               self.span.start.line.0,
+               self.span.start.line.0 + 1,
                self.span.start.column.0,
                self.value)
     }
