@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use syntax::pos::Spanned;
 use syntax::ast::*;
 
 #[derive(Debug)]
@@ -80,8 +81,8 @@ impl<'a> Alpha<'a> {
         toplevel
     }
 
-    pub fn apply(&mut self, mut node: Node) -> Node {
-        node.kind = match node.kind {
+    pub fn apply(&mut self, mut node: Spanned<Node>) -> Spanned<Node> {
+        node.value.kind = match node.value.kind {
             NodeKind::Unit => NodeKind::Unit,
             NodeKind::Int(n) => NodeKind::Int(n),
             NodeKind::Float(n) => NodeKind::Float(n),
