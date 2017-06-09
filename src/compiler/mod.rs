@@ -37,14 +37,20 @@ impl Compiler {
         }
     }
 
-    fn compile_function(&mut self, f: &Function) -> llvm::Function {
+    fn declare_function(&mut self, f: &Function) -> llvm::Function {
         let args = f.args
             .iter()
             .map(|&(_, ref ty)| self.compile_type(ty))
             .collect::<Vec<_>>();
         let ret = self.compile_type(&f.ret_typ);
         let fun_ty = self.ctx.function_type(ret, &args, false);
-        let mut fun = self.module.add_function(&f.name, fun_ty);
+        self.module.add_function(&f.name, fun_ty)
+    }
+
+    fn compile_function(&mut self, f: &Function) -> llvm::Function {
+        let mut fun = self.module
+            .get_function(&f.name)
+            .expect("undeclared function");
         let alloc = fun.append_basic_block("entry");
         let start = fun.append_basic_block("start");
         self.builder.position_at_end(&start);
@@ -92,6 +98,7 @@ impl Compiler {
                 .function_type(self.ctx.float_type(), &[self.ctx.float_type()], false);
             self.module.add_function("print_float", fun_ty);
         }
+        // declare global variables and functions
         for entry in program.entries.values() {
             match *entry {
                 Entry::Var(ref var) => {
@@ -101,8 +108,14 @@ impl Compiler {
                     self.globals.insert(var.name.clone(), v);
                 }
                 Entry::Function(ref f) => {
-                    self.compile_function(f);
+                    self.declare_function(f);
                 }
+            }
+        }
+        // compile functions
+        for entry in program.entries.values() {
+            if let Entry::Function(ref f) = *entry {
+                self.compile_function(f);
             }
         }
         let fun_ty = self.ctx.function_type(self.ctx.int32_type(), &[], false);
