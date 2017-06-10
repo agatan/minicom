@@ -28,16 +28,6 @@ impl<E, N> Error<E, N> {
     }
 }
 
-impl<E: fmt::Display, N: fmt::Display> Error<E, N> {
-    pub fn show<W: Write>(&self, mut w: W, source: &Source) -> io::Result<()> {
-        writeln!(w,
-                 "{}: error: {}",
-                 SpanWithSource::new(self.main_error.span, source),
-                 self.main_error.value)?;
-        Ok(())
-    }
-}
-
 #[derive(Debug)]
 pub struct ErrorWithSource<'a, E, N = E> {
     error: Error<E, N>,
