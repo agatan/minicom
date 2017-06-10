@@ -16,6 +16,12 @@ pub struct Location {
     pub absolute: Byte,
 }
 
+pub const DUMMY_LOCATION: Location = Location {
+    line: Line(!0),
+    column: Column(!0),
+    absolute: Byte(!0),
+};
+
 impl Location {
     pub fn shift(mut self, ch: char) -> Location {
         if ch == '\n' {
