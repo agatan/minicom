@@ -15,7 +15,7 @@ pub use source::Source;
 use std::convert::From;
 
 use ast::Toplevel;
-use pos::{Location, Spanned};
+use pos::{DUMMY_LOCATION, Location, Spanned};
 use token::{Token, Tokenizer, Error as TokenizeError};
 
 quick_error! {
@@ -45,16 +45,16 @@ quick_error! {
     }
 }
 
-impl<'input> From<lalrpop_util::ParseError<Location, Token<'input>, ()>> for Error {
-    fn from(err: lalrpop_util::ParseError<Location, Token<'input>, ()>) -> Error {
+impl Error {
+    fn from_lalrpop<'input>(err: lalrpop_util::ParseError<Location, Token<'input>, ()>) -> Spanned<Error> {
         use lalrpop_util::ParseError::*;
         match err {
-            InvalidToken { .. } => Error::InvalidToken,
-            UnrecognizedToken { token: Some((_, token, _)), expected } =>
-                Error::UnexpectedToken(token.to_string(), expected),
+            InvalidToken { location } => Spanned::new(location, location, Error::InvalidToken),
+            UnrecognizedToken { token: Some((start, token, end)), expected } =>
+                Spanned::new(start, end, Error::UnexpectedToken(token.to_string(), expected)),
             UnrecognizedToken { token: None, expected } =>
-                Error::UnexpectedEof(expected),
-            ExtraToken { token: (_, token, _) } => Error::ExtraToken(token.to_string()),
+                Spanned::new(DUMMY_LOCATION, DUMMY_LOCATION, Error::UnexpectedEof(expected)),
+            ExtraToken { token: (start, token, end) } => Spanned::new(start, end , Error::ExtraToken(token.to_string())),
             User { error: () } => unreachable!(),
         }
     }
@@ -75,19 +75,19 @@ impl NodeEnv {
         ast::NodeId::new(n)
     }
 
-    pub fn parse(&mut self, input: &str) -> Result<Vec<Spanned<Toplevel>>, Error> {
-        let tokens = Tokenizer::new(input).collect::<Result<Vec<_>, _>>().map_err(|err| err.value)?;
+    pub fn parse(&mut self, input: &str) -> Result<Vec<Spanned<Toplevel>>, Spanned<Error>> {
+        let tokens = Tokenizer::new(input).collect::<Result<Vec<_>, _>>().map_err(|err| err.map(Error::from))?;
 
         grammar::parse_Program(input, self, tokens.into_iter().map(|sp| {
             let span = sp.span;
             (span.start, sp.value, span.end)
-        })).map_err(Error::from)
+        })).map_err(Error::from_lalrpop)
     }
 }
 
 type MutNodeEnv<'a> = &'a mut NodeEnv;
 
-pub fn parse(source: &Source) -> Result<Vec<Spanned<Toplevel>>, Error> {
+pub fn parse(source: &Source) -> Result<Vec<Spanned<Toplevel>>, Spanned<Error>> {
     let mut env = NodeEnv::new();
     env.parse(&source.contents)
 }
