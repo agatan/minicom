@@ -8,8 +8,10 @@ mod typing;
 mod alpha;
 mod tyenv;
 
+use syntax::pos::Spanned;
+use syntax::ast::{self, Toplevel, ToplevelKind, Node as AstNode, NodeKind as AstNodeKind, Operator};
+
 use self::ir::*;
-use ast::{self, Toplevel, ToplevelKind, Node as AstNode, NodeKind as AstNodeKind, Operator};
 pub use self::typing::TypeMap;
 // use self::venv::VariableEnv;
 use self::tyenv::TypeEnv;
@@ -17,7 +19,7 @@ use self::alpha::Alpha;
 
 error_chain! {
     types {
-        Error, ErrorKind, ResultExt, Result;
+        Error, ErrorKind, ResultExt;
     }
 
     errors {
@@ -33,6 +35,14 @@ error_chain! {
             description("invalid arguments")
             display("invalid number of arguments for {}: required {:?}, but given {:?}", fname, required, given)
         }
+    }
+}
+
+type Result<T> = ::std::result::Result<T, Spanned<Error>>;
+
+macro_rules! bail_with {
+    ($span:expr, $kind:expr) => {
+        return Err(Spanned::span($span, $kind.into()));
     }
 }
 
@@ -60,12 +70,12 @@ impl Context {
         }
     }
 
-    pub fn transform(&mut self, nodes: Vec<Toplevel>) -> Result<Program> {
+    pub fn transform(&mut self, nodes: Vec<Spanned<Toplevel>>) -> Result<Program> {
         let mut alp = Alpha::new();
         debug!("before: {:?}", nodes);
         let nodes = nodes
             .into_iter()
-            .map(|n| alp.apply_toplevel(n))
+            .map(|n| n.map(|n| alp.apply_toplevel(n)))
             .collect::<Vec<_>>();
         debug!("alpha: {:?}", nodes);
         self.collect_types(&nodes)?;
@@ -122,18 +132,22 @@ impl Context {
         self.rootenv.get_function_info(name)
     }
 
-    fn collect_types(&mut self, nodes: &[Toplevel]) -> Result<()> {
+    fn collect_types(&mut self, nodes: &[Spanned<Toplevel>]) -> Result<()> {
         for node in nodes {
-            match node.kind {
+            match node.value.kind {
                 ToplevelKind::Def(ref def) => {
                     let ret = def.ret
                         .as_ref()
                         .map(|typ| self.tyenv.get(&typ.name))
-                        .unwrap_or(Ok(Type::Unit))?;
+                        .unwrap_or(Ok(Type::Unit))
+                        .map_err(|err| Spanned::span(node.span, err))?;
                     let args = def.args
                         .iter()
                         .map(|&(ref name, ref typ)| {
-                                 self.tyenv.get(&typ.name).map(|ty| (name.clone(), ty))
+                                 self.tyenv
+                                     .get(&typ.name)
+                                     .map(|ty| (name.clone(), ty))
+                                     .map_err(|err| Spanned::span(node.span, err))
                              })
                         .collect::<Result<Vec<_>>>()?;
                     let id = self.next_function_id();
@@ -150,8 +164,8 @@ impl Context {
         Ok(())
     }
 
-    pub fn transform_toplevel(&mut self, toplevel: &Toplevel) -> Result<Node> {
-        match toplevel.kind {
+    pub fn transform_toplevel(&mut self, toplevel: &Spanned<Toplevel>) -> Result<Node> {
+        match toplevel.value.kind {
             ToplevelKind::Def(ref def) => {
                 let function = self.transform_def(def)?;
                 self.define_function(def.name.clone(), function);
@@ -160,9 +174,12 @@ impl Context {
             ToplevelKind::Let(ref l) => {
                 let value = self.transform_node(&l.value)?;
                 if let Some(ref typ) = l.typ {
-                    let typ = self.tyenv.get(&typ.name)?;
+                    let typ = self.tyenv
+                        .get(&typ.value.name)
+                        .map_err(|err| Spanned::span(typ.span, err))?;
                     if typ != value.typ {
-                        bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
+                        let err = ErrorKind::InvalidTypeUnification(typ, value.typ).into();
+                        return Err(Spanned::span(toplevel.span, err));
                     }
                 }
                 self.define_var(l.name.clone(), value.typ.clone());
@@ -177,21 +194,25 @@ impl Context {
         }
     }
 
-    pub fn transform_node(&mut self, node: &AstNode) -> Result<Node> {
+    pub fn transform_node(&mut self, node: &Spanned<AstNode>) -> Result<Node> {
         let e = self.transform_node_(node)?;
-        self.typemap.borrow_mut().insert(node.id, e.typ.clone());
+        self.typemap
+            .borrow_mut()
+            .insert(node.value.id, e.typ.clone());
         Ok(e)
     }
 
-    fn transform_node_(&mut self, node: &AstNode) -> Result<Node> {
-        match node.kind {
+    fn transform_node_(&mut self, node: &Spanned<AstNode>) -> Result<Node> {
+        match node.value.kind {
             AstNodeKind::Unit => Ok(Node::new(NodeKind::Unit, Type::Unit)),
             AstNodeKind::Int(n) => Ok(Node::new(NodeKind::Int(n), Type::Int)),
             AstNodeKind::Float(f) => Ok(Node::new(NodeKind::Float(f), Type::Float)),
             AstNodeKind::Bool(b) => Ok(Node::new(NodeKind::Bool(b), Type::Bool)),
             AstNodeKind::Ident(ref name) => {
                 match self.get_var(name) {
-                    None => bail!(ErrorKind::Undefined(name.clone())),
+                    None => {
+                        bail_with!(node.span, ErrorKind::Undefined(name.clone()));
+                    }
                     Some((lv_var, var_kind)) => {
                         let typ = lv_var.typ.clone();
                         match var_kind {
@@ -203,19 +224,24 @@ impl Context {
             }
             AstNodeKind::Call(ref fname, ref args) => {
                 let finfo = match self.get_function_info(fname) {
-                    None => bail!(ErrorKind::Undefined(fname.clone())),
+                    None => bail_with!(node.span, ErrorKind::Undefined(fname.clone())),
                     Some(r) => r,
                 };
                 let args = args.iter()
                     .map(|n| self.transform_node(n))
                     .collect::<Result<Vec<_>>>()?;
                 if args.len() != finfo.args.len() {
-                    bail!(ErrorKind::InvalidArguments(fname.clone(), finfo.args.len(), args.len()));
+                    bail_with!(node.span,
+                               ErrorKind::InvalidArguments(fname.clone(),
+                                                           finfo.args.len(),
+                                                           args.len()));
                 }
                 for (&(_, ref required), given) in
                     finfo.args.iter().zip(args.iter().map(|n| &n.typ)) {
                     if required != given {
-                        bail!(ErrorKind::InvalidTypeUnification(required.clone(), given.clone()));
+                        bail_with!(node.span,
+                                   ErrorKind::InvalidTypeUnification(required.clone(),
+                                                                     given.clone()));
                     }
                 }
                 Ok(Node::new(NodeKind::Call(fname.clone(), args), finfo.ret.clone()))
@@ -232,7 +258,9 @@ impl Context {
                             (Type::Float, Type::Float) => {
                                 (NodeKind::AddFloat(left, right), Type::Float)
                             }
-                            (lty, rty) => bail!(ErrorKind::InvalidTypeUnification(lty, rty)),
+                            (lty, rty) => {
+                                bail_with!(node.span, ErrorKind::InvalidTypeUnification(lty, rty))
+                            }
                         }
                     }
                     Operator::Sub => {
@@ -241,7 +269,9 @@ impl Context {
                             (Type::Float, Type::Float) => {
                                 (NodeKind::SubFloat(left, right), Type::Float)
                             }
-                            (lty, rty) => bail!(ErrorKind::InvalidTypeUnification(lty, rty)),
+                            (lty, rty) => {
+                                bail_with!(node.span, ErrorKind::InvalidTypeUnification(lty, rty))
+                            }
                         }
                     }
                     Operator::Mul => {
@@ -250,7 +280,9 @@ impl Context {
                             (Type::Float, Type::Float) => {
                                 (NodeKind::MulFloat(left, right), Type::Float)
                             }
-                            (lty, rty) => bail!(ErrorKind::InvalidTypeUnification(lty, rty)),
+                            (lty, rty) => {
+                                bail_with!(node.span, ErrorKind::InvalidTypeUnification(lty, rty))
+                            }
                         }
                     }
                     Operator::Div => {
@@ -259,12 +291,14 @@ impl Context {
                             (Type::Float, Type::Float) => {
                                 (NodeKind::DivFloat(left, right), Type::Float)
                             }
-                            (lty, rty) => bail!(ErrorKind::InvalidTypeUnification(lty, rty)),
+                            (lty, rty) => {
+                                bail_with!(node.span, ErrorKind::InvalidTypeUnification(lty, rty))
+                            }
                         }
                     }
                     cmp => {
                         if lty != rty {
-                            bail!(ErrorKind::InvalidTypeUnification(lty, rty));
+                            bail_with!(node.span, ErrorKind::InvalidTypeUnification(lty, rty));
                         }
                         let kind = match cmp {
                             Operator::Eq => NodeKind::Eq(left, right),
@@ -315,14 +349,15 @@ impl Context {
                     }
                 };
                 if then.typ != typ {
-                    bail!(ErrorKind::InvalidTypeUnification(then.typ, typ));
+                    bail_with!(node.span, ErrorKind::InvalidTypeUnification(then.typ, typ));
                 }
                 Ok(Node::new(NodeKind::If(Box::new(cond), Box::new(then), els), typ))
             }
             AstNodeKind::While(ref cond, ref body) => {
                 let cond = self.transform_node(cond)?;
                 if cond.typ != Type::Bool {
-                    bail!(ErrorKind::InvalidTypeUnification(cond.typ, Type::Bool));
+                    bail_with!(node.span,
+                               ErrorKind::InvalidTypeUnification(cond.typ, Type::Bool));
                 }
                 let body = self.transform_node(body)?;
                 let typ = body.typ.clone();
@@ -331,9 +366,11 @@ impl Context {
             AstNodeKind::Let(ref l) => {
                 let value = self.transform_node(&l.value)?;
                 if let Some(ref typ) = l.typ {
-                    let typ = self.tyenv.get(&typ.name)?;
+                    let typ = self.tyenv
+                        .get(&typ.value.name)
+                        .map_err(|err| Spanned::span(node.span, err))?;
                     if typ != value.typ {
-                        bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
+                        bail_with!(node.span, ErrorKind::InvalidTypeUnification(typ, value.typ));
                     }
                 }
                 self.define_var(l.name.clone(), value.typ.clone());
@@ -347,11 +384,12 @@ impl Context {
             AstNodeKind::Assign(ref var, ref value) => {
                 let (lv_var, var_kind) =
                     self.get_var(var)
-                        .ok_or(Error::from(ErrorKind::Undefined(var.clone())))?;
+                        .ok_or(Spanned::span(node.span,
+                                             Error::from(ErrorKind::Undefined(var.clone()))))?;
                 let typ = lv_var.typ.clone();
                 let value = self.transform_node(value)?;
                 if typ != value.typ {
-                    bail!(ErrorKind::InvalidTypeUnification(typ, value.typ));
+                    bail_with!(node.span, ErrorKind::InvalidTypeUnification(typ, value.typ));
                 }
                 match var_kind {
                     VarKind::Global => {
@@ -380,7 +418,12 @@ impl Context {
             .collect::<Result<Vec<_>>>()?;
         let body_typ = body.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
         if fd.ret != body_typ {
-            bail!(ErrorKind::InvalidTypeUnification(fd.ret, body_typ));
+            let span = if let Some(last_expr) = def.body.last() {
+                last_expr.span
+            } else {
+                unimplemented!()
+            };
+            bail_with!(span, ErrorKind::InvalidTypeUnification(fd.ret, body_typ));
         }
         let function = Function {
             id: fd.index,

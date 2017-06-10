@@ -6,13 +6,13 @@ extern crate lalrpop_util;
 
 pub mod ast;
 mod token;
-mod pos;
+pub mod pos;
 mod grammar;
 
 use std::convert::From;
 
 use ast::Toplevel;
-use pos::Location;
+use pos::{Location, Spanned};
 use token::{Token, Tokenizer, Error as TokenizeError};
 
 quick_error! {
@@ -72,7 +72,7 @@ impl NodeEnv {
         ast::NodeId::new(n)
     }
 
-    pub fn parse(&mut self, input: &str) -> Result<Vec<Toplevel>, Error> {
+    pub fn parse(&mut self, input: &str) -> Result<Vec<Spanned<Toplevel>>, Error> {
         let tokens = Tokenizer::new(input).collect::<Result<Vec<_>, _>>().map_err(|err| err.value)?;
 
         grammar::parse_Program(input, self, tokens.into_iter().map(|sp| {
@@ -84,7 +84,7 @@ impl NodeEnv {
 
 type MutNodeEnv<'a> = &'a mut NodeEnv;
 
-pub fn parse(input: &str) -> Result<Vec<Toplevel>, Error> {
+pub fn parse(input: &str) -> Result<Vec<Spanned<Toplevel>>, Error> {
     let mut env = NodeEnv::new();
     env.parse(input)
 }

@@ -1,3 +1,5 @@
+use pos::Spanned;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId(u32);
 
@@ -11,7 +13,7 @@ impl NodeId {
 pub enum ToplevelKind {
     Def(Box<Def>),
     Let(Box<Let>),
-    Expr(Box<Node>),
+    Expr(Box<Spanned<Node>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -33,16 +35,16 @@ pub enum NodeKind {
     Float(f64),
     Bool(bool),
     Ident(String),
-    Call(String, Vec<Node>),
-    Infix(Box<Node>, Operator, Box<Node>),
-    Parens(Box<Node>),
-    Block(Vec<Node>),
-    If(Box<Node>, Box<Node>, Option<Box<Node>>),
-    While(Box<Node>, Box<Node>),
+    Call(String, Vec<Spanned<Node>>),
+    Infix(Box<Spanned<Node>>, Operator, Box<Spanned<Node>>),
+    Parens(Box<Spanned<Node>>),
+    Block(Vec<Spanned<Node>>),
+    If(Box<Spanned<Node>>, Box<Spanned<Node>>, Option<Box<Spanned<Node>>>),
+    While(Box<Spanned<Node>>, Box<Spanned<Node>>),
     // FIXME(agatan): temporary builtin command
-    Print(Box<Node>),
+    Print(Box<Spanned<Node>>),
     Let(Box<Let>),
-    Assign(String, Box<Node>),
+    Assign(String, Box<Spanned<Node>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -74,8 +76,8 @@ pub enum Operator {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Let {
     pub name: String,
-    pub typ: Option<Type>,
-    pub value: Node,
+    pub typ: Option<Spanned<Type>>,
+    pub value: Spanned<Node>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -83,7 +85,7 @@ pub struct Def {
     pub name: String,
     pub args: Vec<(String, Type)>,
     pub ret: Option<Type>,
-    pub body: Vec<Node>,
+    pub body: Vec<Spanned<Node>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -17,8 +17,6 @@ mod compiler;
 use std::io::prelude::*;
 use std::fs::File;
 
-use syntax::ast;
-
 use sem::Context;
 use compiler::Compiler;
 
@@ -40,26 +38,38 @@ fn main() {
     let mut ctx = Context::new();
     let mut compiler = ::Compiler::new();
 
-    let contents = match ::std::env::args().nth(1) {
+    let (filename, contents) = match ::std::env::args().nth(1) {
         None => {
             let mut contents = String::new();
             try_or_exit!(::std::io::stdin().read_to_string(&mut contents));
-            contents
+            ("<stdin>".to_string(), contents)
         }
         Some(filename) => {
-            let mut file = try_or_exit!(File::open(filename));
+            let mut file = try_or_exit!(File::open(&filename));
             let mut contents = String::new();
             try_or_exit!(file.read_to_string(&mut contents));
-            contents
+            (filename, contents)
         }
     };
-    try_or_exit!(run(&mut compiler, &mut ctx, &contents));
-}
-
-fn run(compiler: &mut Compiler, ctx: &mut Context, input: &str) -> Result<(), String> {
-    let nodes = syntax::parse(input).map_err(|err| format!("{}", err))?;
+    let nodes = try_or_exit!(syntax::parse(&contents));
     debug!("nodes: {:?}", nodes);
-    let prog = ctx.transform(nodes).map_err(|err| format!("{}", err))?;
+    let prog = match ctx.transform(nodes) {
+        Ok(prog) => prog,
+        Err(err) => {
+            let mut stderr = ::std::io::stderr();
+            writeln!(stderr,
+                     "{}:{}:{}: {}",
+                     filename,
+                     err.span.start.line.0 + 1,
+                     err.span.start.column.0,
+                     err.value)
+                    .unwrap();
+            if let Some(line) = err.span.getline(&contents) {
+                writeln!(stderr, "    {}", line).unwrap();
+            }
+            ::std::process::exit(1);
+        }
+    };
     debug!("program: {:?}", prog);
     let module = try_or_exit!(compiler.compile_program(&prog));
     module.dump();
@@ -70,5 +80,4 @@ fn run(compiler: &mut Compiler, ctx: &mut Context, input: &str) -> Result<(), St
         }
         Err(err) => println!("{}", err),
     }
-    Ok(())
 }
