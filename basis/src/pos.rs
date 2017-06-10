@@ -72,6 +72,11 @@ impl Location {
     }
 }
 
+pub const DUMMY_SPAN: Span = Span {
+    start: DUMMY_LOCATION,
+    end: DUMMY_LOCATION,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Span {
     pub start: Location,
