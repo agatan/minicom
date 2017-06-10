@@ -47,7 +47,9 @@ impl<'input> Token<'input> {
     fn follows_implicit_semi(&self) -> bool {
         use self::Token::*;
         match *self {
-            Identifier(_) | IntLiteral(_) | FloatLiteral(_) | RParen | RBrace => true,
+            Identifier(_) | IntLiteral(_) | FloatLiteral(_) | True | False | RParen | RBrace => {
+                true
+            }
             _ => false,
         }
     }
@@ -312,7 +314,12 @@ impl<'input> Tokenizer<'input> {
                        ch => Some(self.error(start, Error::UnexpectedChar(ch))),
                    };
         }
-        None
+        match self.last {
+            Some(ref tok) if tok.follows_implicit_semi() => {
+                Some(Ok(Spanned::new(self.eof_location, self.eof_location, Token::ImplicitSemi)))
+            }
+            _ => None,
+        }
     }
 }
 
@@ -380,5 +387,16 @@ mod test {
                      ("          ^      ", Token::LT),
                      ("            ^^   ", Token::GE),
                      ("               ^ ", Token::GT)])
+    }
+
+    #[test]
+    fn implicit_semicolons() {
+        let tests = ["1\n", "1.2", "true\n", "false", "foo\n", ")", "}\n"];
+        for test in tests.iter() {
+            let mut tokenizer = Tokenizer::new(test);
+            assert!(tokenizer.next().unwrap().is_ok());
+            assert_eq!(tokenizer.next().unwrap().unwrap().value,
+                       Token::ImplicitSemi);
+        }
     }
 }
