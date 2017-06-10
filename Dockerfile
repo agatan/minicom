@@ -44,3 +44,9 @@ RUN cd llvm-3.9.1.src/build && \
 
 # Clean up LLVM src
 RUN rm -rf llvm-3.9.1.src
+
+RUN curl https://sh.rustup.rs -sSf > /tmp/rustup.sh && \
+    chmod +x /tmp/rustup.sh && /tmp/rustup.sh -v -y && \
+    rm /tmp/rustup.sh
+ENV PATH /root/.cargo/bin:$PATH
+RUN rustup install nightly
