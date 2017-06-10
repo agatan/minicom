@@ -6,8 +6,11 @@ extern crate lalrpop_util;
 
 pub mod ast;
 mod token;
+mod source;
 pub mod pos;
 mod grammar;
+
+pub use source::Source;
 
 use std::convert::From;
 
@@ -84,9 +87,9 @@ impl NodeEnv {
 
 type MutNodeEnv<'a> = &'a mut NodeEnv;
 
-pub fn parse(input: &str) -> Result<Vec<Spanned<Toplevel>>, Error> {
+pub fn parse(source: &Source) -> Result<Vec<Spanned<Toplevel>>, Error> {
     let mut env = NodeEnv::new();
-    env.parse(input)
+    env.parse(&source.contents)
 }
 
 #[test]

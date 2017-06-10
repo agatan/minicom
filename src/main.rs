@@ -17,6 +17,8 @@ mod compiler;
 use std::io::prelude::*;
 use std::fs::File;
 
+use syntax::Source;
+
 use sem::Context;
 use compiler::Compiler;
 
@@ -38,20 +40,11 @@ fn main() {
     let mut ctx = Context::new();
     let mut compiler = ::Compiler::new();
 
-    let (filename, contents) = match ::std::env::args().nth(1) {
-        None => {
-            let mut contents = String::new();
-            try_or_exit!(::std::io::stdin().read_to_string(&mut contents));
-            ("<stdin>".to_string(), contents)
-        }
-        Some(filename) => {
-            let mut file = try_or_exit!(File::open(&filename));
-            let mut contents = String::new();
-            try_or_exit!(file.read_to_string(&mut contents));
-            (filename, contents)
-        }
+    let source = match ::std::env::args().nth(1) {
+        None => try_or_exit!(Source::from_stdin()),
+        Some(filename) => try_or_exit!(Source::from_file(filename)),
     };
-    let nodes = try_or_exit!(syntax::parse(&contents));
+    let nodes = try_or_exit!(syntax::parse(&source));
     debug!("nodes: {:?}", nodes);
     let prog = match ctx.transform(nodes) {
         Ok(prog) => prog,
@@ -59,12 +52,12 @@ fn main() {
             let mut stderr = ::std::io::stderr();
             writeln!(stderr,
                      "{}:{}:{}: {}",
-                     filename,
+                     source.path,
                      err.span.start.line.0 + 1,
                      err.span.start.column.0,
                      err.value)
                     .unwrap();
-            if let Some(line) = err.span.getline(&contents) {
+            if let Some(line) = err.span.getline(&source.contents) {
                 writeln!(stderr, "    {}", line).unwrap();
             }
             ::std::process::exit(1);
