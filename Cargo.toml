@@ -9,6 +9,7 @@ env_logger = "0.4"
 error-chain = "0.10"
 llvm-sys = "39"
 
+minivm-basis = { path = "./basis" }
 minivm-syntax = { path = "./syntax" }
 
 [profile.release]

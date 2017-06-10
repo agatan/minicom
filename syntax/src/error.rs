@@ -1,6 +1,7 @@
 use lalrpop_util;
 
-use pos::{DUMMY_LOCATION, Location, Spanned};
+use basis::pos::{DUMMY_LOCATION, Location, Spanned};
+
 use token::{Token, Error as TokenizeError};
 
 quick_error! {

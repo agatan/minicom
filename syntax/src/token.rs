@@ -2,7 +2,7 @@ use std::str::Chars;
 use std::iter::Iterator;
 use std::fmt;
 
-use pos::{Byte, Line, Column, Location, Spanned};
+use basis::pos::{Byte, Line, Column, Location, Spanned};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token<'input> {
@@ -339,7 +339,7 @@ impl<'input> Iterator for Tokenizer<'input> {
 
 #[cfg(test)]
 mod test {
-    use pos::*;
+    use basis::pos::*;
 
     use super::*;
     use token::Token;

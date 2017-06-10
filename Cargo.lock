@@ -6,6 +6,7 @@ dependencies = [
  "error-chain 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "llvm-sys 39.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "minivm-basis 0.1.0",
  "minivm-syntax 0.1.0",
 ]
 
@@ -272,11 +273,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "minivm-basis"
+version = "0.1.0"
+
+[[package]]
 name = "minivm-syntax"
 version = "0.1.0"
 dependencies = [
  "lalrpop 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lalrpop-util 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "minivm-basis 0.1.0",
  "quick-error 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

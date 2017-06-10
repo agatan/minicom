@@ -8,6 +8,7 @@ extern crate error_chain;
 extern crate llvm_sys;
 extern crate libc;
 
+extern crate minivm_basis as basis;
 extern crate minivm_syntax as syntax;
 
 mod sem;
@@ -17,7 +18,7 @@ mod compiler;
 use std::io::prelude::*;
 use std::fs::File;
 
-use syntax::Source;
+use basis::pos::Source;
 
 use sem::Context;
 use compiler::Compiler;

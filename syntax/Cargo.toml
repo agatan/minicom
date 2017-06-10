@@ -8,5 +8,7 @@ build = "build.rs"
 quick-error = "1.2"
 lalrpop-util = "0.13"
 
+minivm-basis = { path = "../basis" }
+
 [build-dependencies]
 lalrpop = "0.13"

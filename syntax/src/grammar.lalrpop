@@ -1,4 +1,5 @@
-use pos::{Spanned, Location};
+use basis::pos::{Spanned, Location};
+
 use token::Token;
 use ast::{Node, NodeKind, Type, Let, Def, Operator, Toplevel, ToplevelKind};
 

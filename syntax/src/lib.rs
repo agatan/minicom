@@ -1,22 +1,22 @@
 #![feature(box_syntax)]
 
+extern crate minivm_basis as basis;
+
 #[macro_use]
 extern crate quick_error;
 extern crate lalrpop_util;
 
 pub mod ast;
 mod token;
-mod source;
-pub mod pos;
 mod grammar;
 mod error;
 
-pub use source::Source;
-
 use std::convert::From;
 
+use basis::pos::Source;
+use basis::pos::Spanned;
+
 use ast::Toplevel;
-use pos::Spanned;
 use token::Tokenizer;
 
 use error::Error;

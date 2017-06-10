@@ -8,7 +8,7 @@ mod typing;
 mod alpha;
 mod tyenv;
 
-use syntax::pos::Spanned;
+use basis::pos::Spanned;
 use syntax::ast::{self, Toplevel, ToplevelKind, Node as AstNode, NodeKind as AstNodeKind, Operator};
 
 use self::ir::*;
