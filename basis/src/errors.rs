@@ -1,7 +1,8 @@
 use std::convert::Into;
 use std::fmt;
+use std::cell::Cell;
 
-use ansi_term::Style;
+use ansi_term::{Colour, Style};
 
 use pos::{Source, Span, Spanned, SpanWithSource};
 
@@ -43,25 +44,41 @@ impl<'a, E, N> ErrorWithSource<'a, E, N> {
     }
 }
 
+thread_local! {
+    pub static BOLD_STYLE: Cell<Style> = Cell::new(Style::default().bold());
+    pub static ERROR_STYLE: Cell<Style> = Cell::new(Colour::Red.bold());
+    pub static NOTE_STYLE: Cell<Style> = Cell::new(Colour::Cyan.bold());
+    pub static UNDERLINE_STYLE: Cell<Style> = Cell::new(Style::default().underline());
+}
+
 impl<'a, E: fmt::Display, N: fmt::Display> fmt::Display for ErrorWithSource<'a, E, N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let span_with_source = SpanWithSource::new(self.error.main_error.span, self.source);
+        let span_with_source = format!("{}:",
+                                       SpanWithSource::new(self.error.main_error.span,
+                                                           self.source));
         writeln!(f,
-                 "{}: error: {}",
-                 span_with_source,
-                 self.error.main_error.value)?;
-        if let Some(line) = self.source
-               .get_span(self.error.main_error.span, Style::new().underline()) {
+                 "{} {} {}",
+                 BOLD_STYLE.with(|s| s.get().paint(span_with_source)),
+                 ERROR_STYLE.with(|s| s.get().paint("error:")),
+                 BOLD_STYLE.with(|s| s.get().paint(self.error.main_error.value.to_string())))?;
+        if let Some(line) =
+            UNDERLINE_STYLE.with(|s| self.source.get_span(self.error.main_error.span, s.get())) {
             writeln!(f, "    {}", line)?;
         }
         for note in self.error.notes.iter() {
             match note.span {
-                Some(span) => write!(f, "  {}:", SpanWithSource::new(span, self.source))?,
-                None => write!(f, "  :")?,
+                Some(span) => {
+                    let span = format!("{}:", SpanWithSource::new(span, self.source));
+                    write!(f, "  {}", BOLD_STYLE.with(|s| s.get().paint(span)))?
+                }
+                None => write!(f, "  {}", BOLD_STYLE.with(|s| s.get().paint(":")))?,
             }
-            writeln!(f, " note: {}", note.value)?;
+            writeln!(f,
+                     " {} {}",
+                     NOTE_STYLE.with(|s| s.get().paint("note:")),
+                     BOLD_STYLE.with(|s| s.get().paint(note.value.to_string())))?;
             if let Some(span) = note.span {
-                if let Some(line) = self.source.get_span(span, Style::new().underline()) {
+                if let Some(line) = UNDERLINE_STYLE.with(|s| self.source.get_span(span, s.get())) {
                     writeln!(f, "    {}", line)?;
                 }
             }
@@ -92,8 +109,16 @@ mod tests {
         Source::with_dummy("".to_owned())
     }
 
+    fn reset_attributes() {
+        BOLD_STYLE.with(|s| s.set(Style::default()));
+        ERROR_STYLE.with(|s| s.set(Style::default()));
+        NOTE_STYLE.with(|s| s.set(Style::default()));
+        UNDERLINE_STYLE.with(|s| s.set(Style::default()));
+    }
+
     #[test]
     fn only_main_error() {
+        reset_attributes();
         let err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
         let source = dummy_source();
         let expected = "<dummy>:1:0: error: main error\n";
@@ -102,6 +127,7 @@ mod tests {
 
     #[test]
     fn error_with_notes() {
+        reset_attributes();
         let mut err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
         err.note_in(ZERO_SPAN, "spanned note");
         err.note("non-spanned note");
