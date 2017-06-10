@@ -1,4 +1,4 @@
-extern crate term_painter;
+extern crate ansi_term;
 
 pub mod pos;
 pub mod errors;

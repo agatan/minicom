@@ -3,6 +3,8 @@ use std::io::prelude::*;
 use std::io;
 use std::fs::File;
 
+use ansi_term::{ANSIString, ANSIStrings, Style};
+
 #[derive(Debug, Clone)]
 pub struct Source {
     pub path: String,
@@ -33,6 +35,32 @@ impl Source {
         Source {
             path: "<dummy>".to_string(),
             contents: dummy,
+        }
+    }
+
+    pub fn get_span(&self, span: Span, style: Style) -> Option<String> {
+        let start = span.start.absolute.0;
+        let end = span.end.absolute.0;
+        if start >= self.contents.len() {
+            return None;
+        }
+        let line_start = self.contents[..start]
+            .rfind('\n')
+            .map(|x| x + 1)
+            .unwrap_or(0);
+        let line_end = line_start +
+                       &self.contents[line_start..]
+                            .find('\n')
+                            .unwrap_or(self.contents.len());
+        if end <= line_end {
+            let head = ANSIString::from(&self.contents[line_start..start]);
+            let range = style.paint(&self.contents[start..end]);
+            let tail = ANSIString::from(&self.contents[end..line_end]);
+            Some(format!("{}", ANSIStrings(&[head, range, tail])))
+        } else {
+            let head = ANSIString::from(&self.contents[line_start..start]);
+            let range = style.paint(&self.contents[start..line_end]);
+            Some(format!("{}", ANSIStrings(&[head, range])))
         }
     }
 }
@@ -131,7 +159,7 @@ impl<'a> fmt::Display for SpanWithSource<'a> {
 
 #[test]
 fn test_getline() {
-    let input = "abc\ndef\n";
+    let source = Source::with_dummy("abc\ndef\n".into());
     let tests = vec![(Location {
                           line: Line(1),
                           column: Column(1),
@@ -170,7 +198,7 @@ fn test_getline() {
                       Some("abc"))];
     for (loc, expected) in tests {
         let span = Span::new(loc, loc);
-        assert_eq!(span.getline(input), expected);
+        assert_eq!(span.getline(&source), expected);
     }
 }
 
@@ -220,10 +248,30 @@ impl<T: fmt::Display> fmt::Display for Spanned<T> {
 mod test {
     use super::*;
 
+    use ansi_term::Style;
+
     #[test]
     fn source_from_file() {
         let result = Source::from_file("./src/pos.rs".to_string()).unwrap();
         assert_eq!(result.path, "./src/pos.rs");
         assert!(!result.contents.is_empty());
+    }
+
+    #[test]
+    fn source_getline() {
+        let source = Source::with_dummy("^^foo^^".into());
+        let span = Span::new(Location {
+                                 line: Line(0),
+                                 column: Column(3),
+                                 absolute: Byte(2),
+                             },
+                             Location {
+                                 line: Line(0),
+                                 column: Column(6),
+                                 absolute: Byte(5),
+                             });
+        let style = Style::new().underline();
+        assert_eq!(source.get_span(span, style.clone()).unwrap(),
+                   format!("^^{}^^", style.paint("foo")));
     }
 }

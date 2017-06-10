@@ -3,6 +3,8 @@ use std::fmt;
 use std::io::prelude::*;
 use std::io;
 
+use ansi_term::Style;
+
 use pos::{Source, Span, Spanned, SpanWithSource};
 
 #[derive(Debug)]
@@ -50,12 +52,21 @@ impl<'a, E: fmt::Display, N: fmt::Display> fmt::Display for ErrorWithSource<'a, 
                  "{}: error: {}",
                  span_with_source,
                  self.error.main_error.value)?;
+        if let Some(line) = self.source
+               .get_span(self.error.main_error.span, Style::new().underline()) {
+            writeln!(f, "    {}", line)?;
+        }
         for note in self.error.notes.iter() {
             match note.span {
                 Some(span) => write!(f, "  {}:", SpanWithSource::new(span, self.source))?,
                 None => write!(f, "  :")?,
             }
             writeln!(f, " note: {}", note.value)?;
+            if let Some(span) = note.span {
+                if let Some(line) = self.source.get_span(span, Style::new().underline()) {
+                    writeln!(f, "    {}", line)?;
+                }
+            }
         }
         Ok(())
     }
