@@ -1,7 +1,5 @@
 use std::convert::Into;
 use std::fmt;
-use std::io::prelude::*;
-use std::io;
 
 use ansi_term::Style;
 
