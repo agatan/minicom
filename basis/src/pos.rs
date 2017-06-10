@@ -98,6 +98,31 @@ impl Span {
     }
 }
 
+#[derive(Debug)]
+pub struct SpanWithSource<'a> {
+    span: Span,
+    source: &'a Source,
+}
+
+impl<'a> SpanWithSource<'a> {
+    pub fn new(span: Span, source: &'a Source) -> Self {
+        SpanWithSource {
+            span: span,
+            source: source,
+        }
+    }
+}
+
+impl<'a> fmt::Display for SpanWithSource<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,
+               "{}:{}:{}",
+               self.source.path,
+               self.span.start.line.0 + 1,
+               self.span.start.column.0)
+    }
+}
+
 #[test]
 fn test_getline() {
     let input = "abc\ndef\n";
@@ -144,27 +169,29 @@ fn test_getline() {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Spanned<T> {
-    pub span: Span,
+pub struct Spanned<T, S = Span> {
+    pub span: S,
     pub value: T,
 }
 
-impl<T> Spanned<T> {
+impl<T> Spanned<T, Span> {
     pub fn new(start: Location, end: Location, value: T) -> Self {
         Spanned {
             span: Span::new(start, end),
             value: value,
         }
     }
+}
 
-    pub fn span(span: Span, value: T) -> Self {
+impl<T, S> Spanned<T, S> {
+    pub fn span(span: S, value: T) -> Self {
         Spanned {
             span: span,
             value: value,
         }
     }
 
-    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Spanned<U> {
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Spanned<U, S> {
         let Spanned { span, value } = self;
         Spanned {
             span: span,
