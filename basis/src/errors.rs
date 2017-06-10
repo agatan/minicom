@@ -12,9 +12,9 @@ pub struct Error<E, N = E> {
 }
 
 impl<E, N> Error<E, N> {
-    pub fn new<E2: Into<E>>(span: Span, err: E2) -> Self {
+    pub fn new<E2: Into<E>>(err: Spanned<E2>) -> Self {
         Error {
-            main_error: Spanned::span(span, err.into()),
+            main_error: err.map(|err| err.into()),
             notes: Vec::new(),
         }
     }
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn only_main_error() {
-        let err: Error<&str> = Error::new(ZERO_SPAN, "main error");
+        let err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
         let source = dummy_source();
         let expected = "<dummy>:1:0: error: main error\n";
         assert_eq!(format!("{}", ErrorWithSource::new(err, &source)), expected);
@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn error_with_notes() {
-        let mut err: Error<&str> = Error::new(ZERO_SPAN, "main error");
+        let mut err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
         err.note_in(ZERO_SPAN, "spanned note");
         err.note("non-spanned note");
         let source = dummy_source();
