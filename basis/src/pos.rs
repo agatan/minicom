@@ -91,8 +91,9 @@ impl Span {
         }
     }
 
-    pub fn getline<'s>(&self, input: &'s str) -> Option<&'s str> {
+    pub fn getline<'s>(&self, source: &'s Source) -> Option<&'s str> {
         let start = self.start.absolute.0;
+        let input = &source.contents;
         if start >= input.len() {
             return None;
         }

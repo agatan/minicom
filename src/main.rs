@@ -58,7 +58,7 @@ fn main() {
                      err.span.start.column.0,
                      err.value)
                     .unwrap();
-            if let Some(line) = err.span.getline(&source.contents) {
+            if let Some(line) = err.span.getline(&source) {
                 writeln!(stderr, "    {}", line).unwrap();
             }
             ::std::process::exit(1);
