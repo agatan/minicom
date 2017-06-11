@@ -24,19 +24,29 @@ impl<E> Error<E> {
         Self::new(Spanned::span(span, err))
     }
 
-    pub fn note_in<S: Into<String>>(mut self, span: Span, note: S) -> Self {
+    pub fn note_in<S: Into<String>>(&mut self, span: Span, note: S) {
         self.notes.push(Spanned::span(Some(span), note.into()));
-        self
     }
 
-    pub fn note<S: Into<String>>(mut self, note: S) -> Self {
+    pub fn note<S: Into<String>>(&mut self, note: S) {
         self.notes.push(Spanned::span(None, note.into()));
-        self
     }
 
     pub fn with_source<'a>(self, source: &'a Source) -> ErrorWithSource<'a, E> {
         ErrorWithSource::new(self, source)
     }
+}
+
+macro_rules! note_error {
+    ($err:expr, $msg:expr) => {
+        $err.note($msg)
+    };
+    ($err:expr, $span:expr, $msg:expr) => {
+        $err.note_in($span, $msg)
+    };
+    ($err:expr, $span:expr, $fmt:expr, $($args:tt)+) => {
+        $err.note_in($span, format!($fmt, $($args)+))
+    };
 }
 
 #[derive(Debug)]
@@ -139,8 +149,8 @@ mod tests {
     fn error_with_notes() {
         reset_attributes();
         let mut err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
-        err = err.note_in(ZERO_SPAN, "spanned note");
-        err = err.note("non-spanned note");
+        note_error!(err, ZERO_SPAN, "spanned {}", "note");
+        note_error!(err, "non-spanned note");
         let source = dummy_source();
         let expected = r#"<dummy>:1:0: error: main error
   <dummy>:1:0: note: spanned note
