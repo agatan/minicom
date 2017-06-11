@@ -37,6 +37,7 @@ impl<E> Error<E> {
     }
 }
 
+#[macro_export]
 macro_rules! note_error {
     ($err:expr, $msg:expr) => {
         $err.note($msg)
