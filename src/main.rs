@@ -8,6 +8,7 @@ extern crate error_chain;
 extern crate llvm_sys;
 extern crate libc;
 
+extern crate minivm_basis as basis;
 extern crate minivm_syntax as syntax;
 
 mod sem;
@@ -17,7 +18,7 @@ mod compiler;
 use std::io::prelude::*;
 use std::fs::File;
 
-use syntax::Source;
+use basis::pos::Source;
 
 use sem::Context;
 use compiler::Compiler;
@@ -46,23 +47,7 @@ fn main() {
     };
     let nodes = try_or_exit!(syntax::parse(&source));
     debug!("nodes: {:?}", nodes);
-    let prog = match ctx.transform(nodes) {
-        Ok(prog) => prog,
-        Err(err) => {
-            let mut stderr = ::std::io::stderr();
-            writeln!(stderr,
-                     "{}:{}:{}: {}",
-                     source.path,
-                     err.span.start.line.0 + 1,
-                     err.span.start.column.0,
-                     err.value)
-                    .unwrap();
-            if let Some(line) = err.span.getline(&source.contents) {
-                writeln!(stderr, "    {}", line).unwrap();
-            }
-            ::std::process::exit(1);
-        }
-    };
+    let prog = try_or_exit!(ctx.transform(nodes).map_err(|err| err.with_source(&source)));
     debug!("program: {:?}", prog);
     let module = try_or_exit!(compiler.compile_program(&prog));
     module.dump();

@@ -1,22 +1,24 @@
 #![feature(box_syntax)]
 
+extern crate minivm_basis as basis;
+
 #[macro_use]
 extern crate quick_error;
 extern crate lalrpop_util;
 
 pub mod ast;
 mod token;
-mod source;
-pub mod pos;
 mod grammar;
 mod error;
 
-pub use source::Source;
-
 use std::convert::From;
 
+use basis::pos::Source;
+use basis::pos::Spanned;
+use basis::errors::Error as BasisError;
+use basis::errors::ErrorWithSource;
+
 use ast::Toplevel;
-use pos::Spanned;
 use token::Tokenizer;
 
 use error::Error;
@@ -35,21 +37,21 @@ impl NodeEnv {
         ast::NodeId::new(n)
     }
 
-    pub fn parse(&mut self, input: &str) -> Result<Vec<Spanned<Toplevel>>, Spanned<Error>> {
-        let tokens = Tokenizer::new(input).collect::<Result<Vec<_>, _>>().map_err(|err| err.map(Error::from))?;
+    pub fn parse(&mut self, input: &str) -> Result<Vec<Spanned<Toplevel>>, BasisError<Error>> {
+        let tokens = Tokenizer::new(input).collect::<Result<Vec<_>, _>>().map_err(|err| BasisError::new(err.map(Error::from)))?;
 
         grammar::parse_Program(input, self, tokens.into_iter().map(|sp| {
             let span = sp.span;
             (span.start, sp.value, span.end)
-        })).map_err(Error::from_lalrpop)
+        })).map_err(|lalrpop_error| BasisError::new(Error::from_lalrpop(lalrpop_error)))
     }
 }
 
 type MutNodeEnv<'a> = &'a mut NodeEnv;
 
-pub fn parse(source: &Source) -> Result<Vec<Spanned<Toplevel>>, Spanned<Error>> {
+pub fn parse(source: &Source) -> Result<Vec<Spanned<Toplevel>>, ErrorWithSource<Error>> {
     let mut env = NodeEnv::new();
-    env.parse(&source.contents)
+    env.parse(&source.contents).map_err(|err| ErrorWithSource::new(err, source))
 }
 
 #[test]

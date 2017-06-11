@@ -8,7 +8,8 @@ mod typing;
 mod alpha;
 mod tyenv;
 
-use syntax::pos::Spanned;
+use basis::pos::Spanned;
+use basis::errors::Error as BasisError;
 use syntax::ast::{self, Toplevel, ToplevelKind, Node as AstNode, NodeKind as AstNodeKind, Operator};
 
 use self::ir::*;
@@ -17,33 +18,23 @@ pub use self::typing::TypeMap;
 use self::tyenv::TypeEnv;
 use self::alpha::Alpha;
 
-error_chain! {
-    types {
-        Error, ErrorKind, ResultExt;
-    }
-
-    errors {
-        Undefined(name: String) {
-            description("undefined identifier")
-            display("undefined identifier {:?}", name)
-        }
-        InvalidTypeUnification(t1: Type, t2: Type) {
-            description("invalid type unification")
-            display("cannot unify types: {:?} and {:?}", t1, t2)
-        }
-        InvalidArguments(fname: String, required: usize, given: usize) {
-            description("invalid arguments")
-            display("invalid number of arguments for {}: required {:?}, but given {:?}", fname, required, given)
-        }
+mod errors {
+    error_chain! {
+        errors { }
     }
 }
 
-type Result<T> = ::std::result::Result<T, Spanned<Error>>;
+use self::errors::{Error, ErrorKind};
+
+type Result<T> = ::std::result::Result<T, BasisError<Error>>;
 
 macro_rules! bail_with {
     ($span:expr, $kind:expr) => {
-        return Err(Spanned::span($span, $kind.into()));
-    }
+        return Err(BasisError::span($span, $kind.into()));
+    };
+    ($span:expr, $fmt:expr, $($args:tt)+) => {
+        return Err(BasisError::span($span, ErrorKind::Msg(format!($fmt, $($args)+))));
+    };
 }
 
 #[derive(Debug)]
@@ -140,14 +131,14 @@ impl Context {
                         .as_ref()
                         .map(|typ| self.tyenv.get(&typ.name))
                         .unwrap_or(Ok(Type::Unit))
-                        .map_err(|err| Spanned::span(node.span, err))?;
+                        .map_err(|err| BasisError::span(node.span, err))?;
                     let args = def.args
                         .iter()
                         .map(|&(ref name, ref typ)| {
                                  self.tyenv
                                      .get(&typ.name)
                                      .map(|ty| (name.clone(), ty))
-                                     .map_err(|err| Spanned::span(node.span, err))
+                                     .map_err(|err| BasisError::span(node.span, err))
                              })
                         .collect::<Result<Vec<_>>>()?;
                     let id = self.next_function_id();
@@ -176,10 +167,12 @@ impl Context {
                 if let Some(ref typ) = l.typ {
                     let typ = self.tyenv
                         .get(&typ.value.name)
-                        .map_err(|err| Spanned::span(typ.span, err))?;
+                        .map_err(|err| BasisError::span(typ.span, err))?;
                     if typ != value.typ {
-                        let err = ErrorKind::InvalidTypeUnification(typ, value.typ).into();
-                        return Err(Spanned::span(toplevel.span, err));
+                        bail_with!(toplevel.span,
+                                   "invalid type unification: {:?} and {:?}",
+                                   typ,
+                                   value.typ);
                     }
                 }
                 self.define_var(l.name.clone(), value.typ.clone());
@@ -211,7 +204,7 @@ impl Context {
             AstNodeKind::Ident(ref name) => {
                 match self.get_var(name) {
                     None => {
-                        bail_with!(node.span, ErrorKind::Undefined(name.clone()));
+                        bail_with!(node.span, "undefined identifier {:?}", name);
                     }
                     Some((lv_var, var_kind)) => {
                         let typ = lv_var.typ.clone();
@@ -224,7 +217,7 @@ impl Context {
             }
             AstNodeKind::Call(ref fname, ref args) => {
                 let finfo = match self.get_function_info(fname) {
-                    None => bail_with!(node.span, ErrorKind::Undefined(fname.clone())),
+                    None => bail_with!(node.span, "undefined function {:?}", fname),
                     Some(r) => r,
                 };
                 let args = args.iter()
@@ -232,16 +225,18 @@ impl Context {
                     .collect::<Result<Vec<_>>>()?;
                 if args.len() != finfo.args.len() {
                     bail_with!(node.span,
-                               ErrorKind::InvalidArguments(fname.clone(),
-                                                           finfo.args.len(),
-                                                           args.len()));
+                               "invalid number of arguments for {:?}: expected {}, but given {}",
+                               fname,
+                               finfo.args.len(),
+                               args.len());
                 }
                 for (&(_, ref required), given) in
                     finfo.args.iter().zip(args.iter().map(|n| &n.typ)) {
                     if required != given {
                         bail_with!(node.span,
-                                   ErrorKind::InvalidTypeUnification(required.clone(),
-                                                                     given.clone()));
+                                   "invalid type unification: {:?} and {:?}",
+                                   required,
+                                   given);
                     }
                 }
                 Ok(Node::new(NodeKind::Call(fname.clone(), args), finfo.ret.clone()))
@@ -259,7 +254,10 @@ impl Context {
                                 (NodeKind::AddFloat(left, right), Type::Float)
                             }
                             (lty, rty) => {
-                                bail_with!(node.span, ErrorKind::InvalidTypeUnification(lty, rty))
+                                bail_with!(node.span,
+                                           "invalid type unification: {:?} and {:?}",
+                                           lty,
+                                           rty);
                             }
                         }
                     }
@@ -270,7 +268,10 @@ impl Context {
                                 (NodeKind::SubFloat(left, right), Type::Float)
                             }
                             (lty, rty) => {
-                                bail_with!(node.span, ErrorKind::InvalidTypeUnification(lty, rty))
+                                bail_with!(node.span,
+                                           "invalid type unification: {:?} and {:?}",
+                                           lty,
+                                           rty);
                             }
                         }
                     }
@@ -281,7 +282,10 @@ impl Context {
                                 (NodeKind::MulFloat(left, right), Type::Float)
                             }
                             (lty, rty) => {
-                                bail_with!(node.span, ErrorKind::InvalidTypeUnification(lty, rty))
+                                bail_with!(node.span,
+                                           "invalid type unification: {:?} and {:?}",
+                                           lty,
+                                           rty);
                             }
                         }
                     }
@@ -292,13 +296,19 @@ impl Context {
                                 (NodeKind::DivFloat(left, right), Type::Float)
                             }
                             (lty, rty) => {
-                                bail_with!(node.span, ErrorKind::InvalidTypeUnification(lty, rty))
+                                bail_with!(node.span,
+                                           "invalid type unification: {:?} and {:?}",
+                                           lty,
+                                           rty);
                             }
                         }
                     }
                     cmp => {
                         if lty != rty {
-                            bail_with!(node.span, ErrorKind::InvalidTypeUnification(lty, rty));
+                            bail_with!(node.span,
+                                       "invalid type unification: {:?} and {:?}",
+                                       lty,
+                                       rty);
                         }
                         let kind = match cmp {
                             Operator::Eq => NodeKind::Eq(left, right),
@@ -349,7 +359,10 @@ impl Context {
                     }
                 };
                 if then.typ != typ {
-                    bail_with!(node.span, ErrorKind::InvalidTypeUnification(then.typ, typ));
+                    bail_with!(node.span,
+                               "invalid type unification: {:?} and {:?}",
+                               then.typ,
+                               typ);
                 }
                 Ok(Node::new(NodeKind::If(Box::new(cond), Box::new(then), els), typ))
             }
@@ -357,7 +370,9 @@ impl Context {
                 let cond = self.transform_node(cond)?;
                 if cond.typ != Type::Bool {
                     bail_with!(node.span,
-                               ErrorKind::InvalidTypeUnification(cond.typ, Type::Bool));
+                               "invalid type unification: {:?} and {:?}",
+                               cond.typ,
+                               Type::Bool);
                 }
                 let body = self.transform_node(body)?;
                 let typ = body.typ.clone();
@@ -368,9 +383,12 @@ impl Context {
                 if let Some(ref typ) = l.typ {
                     let typ = self.tyenv
                         .get(&typ.value.name)
-                        .map_err(|err| Spanned::span(node.span, err))?;
+                        .map_err(|err| BasisError::span(node.span, err))?;
                     if typ != value.typ {
-                        bail_with!(node.span, ErrorKind::InvalidTypeUnification(typ, value.typ));
+                        bail_with!(node.span,
+                                   "invalid type unification: {:?} and {:?}",
+                                   typ,
+                                   value.typ);
                     }
                 }
                 self.define_var(l.name.clone(), value.typ.clone());
@@ -382,14 +400,17 @@ impl Context {
                              Type::Unit))
             }
             AstNodeKind::Assign(ref var, ref value) => {
-                let (lv_var, var_kind) =
-                    self.get_var(var)
-                        .ok_or(Spanned::span(node.span,
-                                             Error::from(ErrorKind::Undefined(var.clone()))))?;
+                let (lv_var, var_kind) = match self.get_var(var) {
+                    Some(x) => x,
+                    None => bail_with!(node.span, "undefined identifier {:?}", var),
+                };
                 let typ = lv_var.typ.clone();
                 let value = self.transform_node(value)?;
                 if typ != value.typ {
-                    bail_with!(node.span, ErrorKind::InvalidTypeUnification(typ, value.typ));
+                    bail_with!(node.span,
+                               "invalid type unification: {:?} and {:?}",
+                               typ,
+                               value.typ);
                 }
                 match var_kind {
                     VarKind::Global => {
@@ -423,7 +444,10 @@ impl Context {
             } else {
                 unimplemented!()
             };
-            bail_with!(span, ErrorKind::InvalidTypeUnification(fd.ret, body_typ));
+            bail_with!(span,
+                       "invalid type unification: {:?} and {:?}",
+                       fd.ret,
+                       body_typ);
         }
         let function = Function {
             id: fd.index,
