@@ -20,12 +20,20 @@ impl<E, N> Error<E, N> {
         }
     }
 
+    pub fn span<E2: Into<E>>(span: Span, err: E2) -> Self {
+        Self::new(Spanned::span(span, err))
+    }
+
     pub fn note_in<N2: Into<N>>(&mut self, span: Span, note: N2) {
         self.notes.push(Spanned::span(Some(span), note.into()));
     }
 
     pub fn note<N2: Into<N>>(&mut self, note: N2) {
         self.notes.push(Spanned::span(None, note.into()));
+    }
+
+    pub fn with_source<'a>(self, source: &'a Source) -> ErrorWithSource<'a, E, N> {
+        ErrorWithSource::new(self, source)
     }
 }
 

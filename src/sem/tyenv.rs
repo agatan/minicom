@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use sem::ir::Type;
-use sem::{Error, ErrorKind};
+use sem::Error;
 
 #[derive(Debug)]
 pub struct TypeEnv {
@@ -25,7 +25,7 @@ impl TypeEnv {
     pub fn get(&self, name: &str) -> Result<Type, Error> {
         self.table
             .get(name)
-            .ok_or(Error::from(ErrorKind::Undefined(name.to_string())))
+            .ok_or(format!("undefined type: {}", name).into())
             .map(Type::clone)
     }
 }
