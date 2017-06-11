@@ -4,4 +4,4 @@ services:
   - docker
 
 script:
-  - docker run -ti -v $(pwd):/app -w /app agatan/minivm-dev:latest cargo test -p minivm-syntax -p minivm
+  - docker run -ti -v $(pwd):/app -w /app agatan/minivm-dev:latest cargo test -p minivm-basis -p minivm-syntax -p minivm
