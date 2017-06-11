@@ -1,0 +1,9 @@
+sudo: required
+
+language: rust
+
+services:
+  - docker
+
+script:
+  - docker run -ti -v $(pwd):/app agatan/minivm-dev:latest cargo test -p minivm-syntax -p minivm
