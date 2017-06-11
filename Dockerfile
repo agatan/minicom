@@ -11,8 +11,8 @@ RUN apt-get update -qq -y && \
 
 # Download LLVM 3.9.1
 # https://llvm.org/svn/llvm-project/llvm/tags/RELEASE_391/final/CMakeLists.txt
-RUN wget -q http://www.llvm.org/releases/3.9.1/llvm-3.9.1.src.tar.xz -O - | tar -xJ
-RUN cd llvm-3.9.1.src && \
+RUN wget -q http://www.llvm.org/releases/3.9.1/llvm-3.9.1.src.tar.xz -O - | tar -xJ && \
+    cd llvm-3.9.1.src && \
     mkdir build && \
     cd build && \
     cmake -G 'Unix Makefiles' \
@@ -32,18 +32,13 @@ RUN cd llvm-3.9.1.src && \
           -DLLVM_INCLUDE_GO_TESTS=OFF \
           -LLVM_INCLUDE_DOCS=OFF \
           -LLVM_BUILD_DOCS=OFF \
-          ..
-
-# Build LLVM for static lib
-RUN cd llvm-3.9.1.src/build && \
+          .. && \
     cmake --build . --target package/fast -- -j4 && \
-    cmake --build . --target llvm-config/fast -- -j4
-RUN cd llvm-3.9.1.src/build && \
+    cmake --build . --target llvm-config/fast -- -j4 && \
     cmake --build . --target install && \
-    cp bin/llvm-config /usr/local/bin/.
-
-# Clean up LLVM src
-RUN rm -rf llvm-3.9.1.src
+    cp bin/llvm-config /usr/local/bin/. && \
+    cd ../.. && \
+    rm -rf llvm-3.9.1.src
 
 RUN curl https://sh.rustup.rs -sSf > /tmp/rustup.sh && \
     chmod +x /tmp/rustup.sh && /tmp/rustup.sh -v -y && \
