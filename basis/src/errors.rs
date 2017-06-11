@@ -7,12 +7,12 @@ use ansi_term::{Colour, Style};
 use pos::{Source, Span, Spanned, SpanWithSource};
 
 #[derive(Debug)]
-pub struct Error<E, N = E> {
+pub struct Error<E> {
     main_error: Spanned<E>,
-    notes: Vec<Spanned<N, Option<Span>>>,
+    notes: Vec<Spanned<String, Option<Span>>>,
 }
 
-impl<E, N> Error<E, N> {
+impl<E> Error<E> {
     pub fn new<E2: Into<E>>(err: Spanned<E2>) -> Self {
         Error {
             main_error: err.map(|err| err.into()),
@@ -24,27 +24,40 @@ impl<E, N> Error<E, N> {
         Self::new(Spanned::span(span, err))
     }
 
-    pub fn note_in<N2: Into<N>>(&mut self, span: Span, note: N2) {
+    pub fn note_in<S: Into<String>>(&mut self, span: Span, note: S) {
         self.notes.push(Spanned::span(Some(span), note.into()));
     }
 
-    pub fn note<N2: Into<N>>(&mut self, note: N2) {
+    pub fn note<S: Into<String>>(&mut self, note: S) {
         self.notes.push(Spanned::span(None, note.into()));
     }
 
-    pub fn with_source<'a>(self, source: &'a Source) -> ErrorWithSource<'a, E, N> {
+    pub fn with_source<'a>(self, source: &'a Source) -> ErrorWithSource<'a, E> {
         ErrorWithSource::new(self, source)
     }
 }
 
+#[macro_export]
+macro_rules! note_error {
+    ($err:expr, $msg:expr) => {
+        $err.note($msg)
+    };
+    ($err:expr, $span:expr, $msg:expr) => {
+        $err.note_in($span, $msg)
+    };
+    ($err:expr, $span:expr, $fmt:expr, $($args:tt)+) => {
+        $err.note_in($span, format!($fmt, $($args)+))
+    };
+}
+
 #[derive(Debug)]
-pub struct ErrorWithSource<'a, E, N = E> {
-    error: Error<E, N>,
+pub struct ErrorWithSource<'a, E> {
+    error: Error<E>,
     source: &'a Source,
 }
 
-impl<'a, E, N> ErrorWithSource<'a, E, N> {
-    pub fn new(error: Error<E, N>, source: &'a Source) -> Self {
+impl<'a, E> ErrorWithSource<'a, E> {
+    pub fn new(error: Error<E>, source: &'a Source) -> Self {
         ErrorWithSource {
             error: error,
             source: source,
@@ -59,7 +72,7 @@ thread_local! {
     pub static UNDERLINE_STYLE: Cell<Style> = Cell::new(Style::default().underline());
 }
 
-impl<'a, E: fmt::Display, N: fmt::Display> fmt::Display for ErrorWithSource<'a, E, N> {
+impl<'a, E: fmt::Display> fmt::Display for ErrorWithSource<'a, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let span_with_source = format!("{}:",
                                        SpanWithSource::new(self.error.main_error.span,
@@ -137,8 +150,8 @@ mod tests {
     fn error_with_notes() {
         reset_attributes();
         let mut err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
-        err.note_in(ZERO_SPAN, "spanned note");
-        err.note("non-spanned note");
+        note_error!(err, ZERO_SPAN, "spanned {}", "note");
+        note_error!(err, "non-spanned note");
         let source = dummy_source();
         let expected = r#"<dummy>:1:0: error: main error
   <dummy>:1:0: note: spanned note
