@@ -64,7 +64,7 @@ impl<'a> Alpha<'a> {
                     .into_iter()
                     .map(|(name, typ)| (scoped.define(name), typ))
                     .collect();
-                def.body = def.body.into_iter().map(|n| scoped.apply(n)).collect();
+                def.body = scoped.apply(def.body);
                 ToplevelKind::Def(Box::new(def))
             }
             ToplevelKind::Let(let_) => {

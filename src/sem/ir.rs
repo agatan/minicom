@@ -107,7 +107,7 @@ pub struct Function {
     pub name: String,
     pub args: Vec<(String, Type)>,
     pub ret_typ: Type,
-    pub body: Vec<Node>,
+    pub body: Box<Node>,
 }
 
 #[derive(Debug, Clone)]

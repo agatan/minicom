@@ -85,7 +85,7 @@ pub struct Def {
     pub name: String,
     pub args: Vec<(String, Type)>,
     pub ret: Option<Type>,
-    pub body: Vec<Spanned<Node>>,
+    pub body: Spanned<Node>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
