@@ -1,4 +1,4 @@
-def add(x: int, y: int): int {
+def add(x: int, y: int): int = {
     print(x);
     print(y);
     let z = x + y;

@@ -433,28 +433,20 @@ impl Context {
         for &(ref name, ref ty) in fd.args.iter() {
             scoped.define_var(name.clone(), ty.clone());
         }
-        let body = def.body
-            .iter()
-            .map(|node| scoped.transform_node(node))
-            .collect::<Result<Vec<_>>>()?;
-        let body_typ = body.last().map(|n| n.typ.clone()).unwrap_or(Type::Unit);
-        if fd.ret != body_typ {
-            let span = if let Some(last_expr) = def.body.last() {
-                last_expr.span
-            } else {
-                unimplemented!()
-            };
+        let body = scoped.transform_node(&def.body)?;
+        if fd.ret != body.typ {
+            let span = def.body.span;
             bail_with!(span,
                        "invalid type unification: {:?} and {:?}",
                        fd.ret,
-                       body_typ);
+                       body.typ);
         }
         let function = Function {
             id: fd.index,
             name: def.name.clone(),
             args: fd.args,
             ret_typ: fd.ret,
-            body: body,
+            body: Box::new(body),
         };
         Ok(function)
     }
