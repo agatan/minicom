@@ -38,15 +38,22 @@ impl<E> Error<E> {
 }
 
 #[macro_export]
-macro_rules! note_error {
-    ($err:expr, $msg:expr) => {
-        $err.note($msg)
-    };
+macro_rules! note_in {
     ($err:expr, $span:expr, $msg:expr) => {
         $err.note_in($span, $msg)
     };
     ($err:expr, $span:expr, $fmt:expr, $($args:tt)+) => {
         $err.note_in($span, format!($fmt, $($args)+))
+    };
+}
+
+#[macro_export]
+macro_rules! note {
+    ($err:expr, $msg:expr) => {
+        $err.note($msg)
+    };
+    ($err:expr, $fmt:expr, $($args:tt)+) => {
+        $err.note(format!($fmt, $($args)+))
     };
 }
 
@@ -150,8 +157,8 @@ mod tests {
     fn error_with_notes() {
         reset_attributes();
         let mut err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
-        note_error!(err, ZERO_SPAN, "spanned {}", "note");
-        note_error!(err, "non-spanned note");
+        note_in!(err, ZERO_SPAN, "spanned {}", "note");
+        note!(err, "non-spanned note");
         let source = dummy_source();
         let expected = r#"<dummy>:1:0: error: main error
   <dummy>:1:0: note: spanned note
