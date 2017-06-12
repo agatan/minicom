@@ -1,10 +1,11 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Drop;
 
 use basis::pos::{Span, Spanned};
 use basis::errors::Error as BasisError;
-use syntax::ast::{self, Toplevel, ToplevelKind, Node as AstNode, NodeKind as AstNodeKind, Operator};
+use syntax::ast::{self, Toplevel, ToplevelKind, Node, NodeKind, Operator};
 
 use sem::typing::TypeMap;
 use sem::tyenv::TypeEnv;
@@ -31,6 +32,19 @@ impl Infer {
 
     fn convert_type(&self, ast_typ: &ast::Type) -> Result<Type, Error> {
         self.tyenv.get(&ast_typ.name)
+    }
+
+    fn entry_scope(&mut self) -> Scope {
+        self.envchain.push(Env::new());
+        Scope(self)
+    }
+
+    fn exit_scope(&mut self) {
+        self.envchain.pop().expect("exit from global scope");
+    }
+
+    fn current_scope(&mut self) -> &mut Env {
+        self.envchain.last_mut().unwrap_or(&mut self.global_env)
     }
 
     pub fn collect_forward(&mut self, decls: &[Spanned<Toplevel>]) -> SemResult<()> {
@@ -66,6 +80,14 @@ impl Infer {
             }
         }
         Ok(())
+    }
+}
+
+struct Scope<'a>(&'a mut Infer);
+
+impl<'a> Drop for Scope<'a> {
+    fn drop(&mut self) {
+        self.0.exit_scope()
     }
 }
 
