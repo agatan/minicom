@@ -57,18 +57,13 @@ pub fn parse(source: &Source) -> Result<Vec<Spanned<Toplevel>>, ErrorWithSource<
 #[test]
 fn test_parse() {
     use token::Tokenizer;
-    let mut env = NodeEnv::new();
     let input = r#"
     let x: int = 1;
     let y: int = 2;
-    def add(x: int, y: int): int {
+    def add(x: int, y: int): int = {
         let z = x + y;
         z
     }
         "#;
-    let tokens = Tokenizer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
-    grammar::parse_Program(input, &mut env, tokens.into_iter().map(|sp| {
-        let span = sp.span;
-        (span.start, sp.value, span.end)
-    })).unwrap();
+    NodeEnv::new().parse(input).unwrap();
 }

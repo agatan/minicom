@@ -54,18 +54,13 @@ impl Compiler {
         let alloc = fun.append_basic_block("entry");
         let start = fun.append_basic_block("start");
         self.builder.position_at_end(&start);
-        let last_value = {
+        let ret = {
             let mut fbuilder = FunBuilder::new(&alloc, self);
             for (name, i) in f.args.iter().map(|x| &x.0).zip(0..) {
                 fbuilder.define_arg(name, fun.param(i));
             }
-            let mut ret = None;
-            for node in f.body.iter() {
-                ret = Some(fbuilder.compile_node(node));
-            }
-            ret
+            fbuilder.compile_node(&f.body)
         };
-        let ret = last_value.unwrap_or_else(|| self.unit());
         self.builder.ret(ret);
         self.builder.position_at_end(&alloc);
         self.builder.br(&start);

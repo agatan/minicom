@@ -1,4 +1,4 @@
-def fib(n: int): int {
+def fib(n: int): int = {
   if n < 2 {
     n
   } else {
@@ -17,7 +17,7 @@ print(fib(8));
 
 let last_sum_result: int = 0
 
-def sum(n: int): int {
+def sum(n: int): int = {
   let acc = 0;
   while n > 0 {
     acc = acc + n

@@ -1,6 +1,6 @@
 let x: int = 0
 
-def sample(x: int, y: int): int {
+def sample(x: int, y: int): int = {
   let z = {
     let x = x + 1;
     x
