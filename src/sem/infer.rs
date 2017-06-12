@@ -65,7 +65,7 @@ impl Infer {
                 _ => (),
             }
         }
-        unimplemented!()
+        Ok(())
     }
 }
 
