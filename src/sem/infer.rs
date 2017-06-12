@@ -44,9 +44,9 @@ impl Infer {
                         .map_err(|err| BasisError::span(decl.span, err))?;
                     let args = def.args
                         .iter()
-                        .map(|&(ref name, ref typ)| match self.convert_type(typ) {
-                                 Ok(typ) => Ok((name.clone(), typ)),
-                                 Err(err) => Err(BasisError::span(decl.span, err)),
+                        .map(|&(_, ref typ)| {
+                                 self.convert_type(typ)
+                                     .map_err(|err| BasisError::span(decl.span, err))
                              })
                         .collect::<SemResult<Vec<_>>>()?;
                     self.global_env
