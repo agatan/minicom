@@ -8,6 +8,7 @@ extern crate error_chain;
 extern crate llvm_sys;
 extern crate libc;
 
+#[macro_use]
 extern crate minivm_basis as basis;
 extern crate minivm_syntax as syntax;
 

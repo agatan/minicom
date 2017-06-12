@@ -7,6 +7,7 @@ pub mod ir;
 mod typing;
 mod alpha;
 mod tyenv;
+mod infer;
 
 use basis::pos::{Span, Spanned};
 use basis::errors::Error as BasisError;
@@ -24,9 +25,9 @@ mod errors {
     }
 }
 
-use self::errors::{Error, ErrorKind};
+pub use self::errors::{Error, ErrorKind};
 
-type Result<T> = ::std::result::Result<T, BasisError<Error>>;
+pub type Result<T> = ::std::result::Result<T, BasisError<Error>>;
 
 macro_rules! bail_with {
     ($span:expr, $kind:expr) => {
