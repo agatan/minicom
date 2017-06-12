@@ -108,23 +108,17 @@ impl Infer {
 
     fn infer_node_without_registeration<'a>(&mut self,
                                             node: &Spanned<Node>,
-                                            expect: Option<&Expect<'a>>)
+                                            expect: &Expect<'a>)
                                             -> SemResult<Type> {
         unimplemented!()
     }
 
-    fn infer_node<'a>(&mut self,
-                      node: &Spanned<Node>,
-                      expect: Option<&Expect<'a>>)
-                      -> SemResult<Type> {
+    fn infer_node<'a>(&mut self, node: &Spanned<Node>, expect: &Expect<'a>) -> SemResult<Type> {
         let actual = self.infer_node_without_registeration(node, expect)?;
-        if let Some(ref expect) = expect {
-            if let Err(err) = self.unify(&expect.typ, &actual) {
+        if let Some(expected_typ) = expect.typ() {
+            if let Err(err) = self.unify(expected_typ, &actual) {
                 let mut err = BasisError::span(node.span, err);
-                match expect.span {
-                    Some(span) => note_in!(err, span, "{}", expect.message),
-                    None => note!(err, "{}", expect.message),
-                }
+                expect.add_note_to_error(&mut err);
                 return Err(err);
             }
         }
@@ -145,24 +139,21 @@ impl Infer {
                         .current_scope()
                         .define(name, Spanned::span(node.span, Entry::Var(typ)))?;
                 }
-                let expect = Expect {
-                    message: format_args!(""),
+                let msg = format_args!("return type of function, declared here");
+                let expect = Expect::WithSpan {
                     typ: declared_ret,
-                    span: None,
+                    message: msg,
+                    span: node.span,
                 };
-                scoped.infer_node(&def.body, Some(&expect))?;
+                scoped.infer_node(&def.body, &expect)?;
             }
             ToplevelKind::Let(ref let_) => {
                 let declared_typ = self.get_declared_global_var(&let_.name);
-                let expect = Expect {
-                    message: format_args!(""),
-                    typ: declared_typ,
-                    span: let_.typ.as_ref().map(|typ| typ.span.clone()),
-                };
-                self.infer_node(&let_.value, Some(&expect))?;
+                let expect = Expect::Type { typ: declared_typ };
+                self.infer_node(&let_.value, &expect)?;
             }
             ToplevelKind::Expr(ref node) => {
-                self.infer_node(node, None)?;
+                self.infer_node(node, &Expect::None)?;
             }
         }
         Ok(())
@@ -237,8 +228,51 @@ enum Entry {
 }
 
 #[derive(Debug)]
-struct Expect<'a> {
-    message: fmt::Arguments<'a>,
-    typ: Type,
-    span: Option<Span>,
+enum Expect<'a> {
+    None,
+    Type { typ: Type },
+    WithMessage {
+        typ: Type,
+        message: fmt::Arguments<'a>,
+    },
+    WithSpan {
+        typ: Type,
+        message: fmt::Arguments<'a>,
+        span: Span,
+    },
+}
+
+impl<'a> Expect<'a> {
+    fn typ(&self) -> Option<&Type> {
+        match *self {
+            Expect::Type { ref typ } => Some(typ),
+            Expect::WithMessage { ref typ, .. } => Some(typ),
+            Expect::WithSpan { ref typ, .. } => Some(typ),
+            Expect::None => None,
+        }
+    }
+
+    fn message(&self) -> Option<fmt::Arguments<'a>> {
+        match *self {
+            Expect::WithMessage { message, .. } => Some(message),
+            Expect::WithSpan { message, .. } => Some(message),
+            _ => None,
+        }
+    }
+
+    fn span(&self) -> Option<Span> {
+        match *self {
+            Expect::WithSpan { span, .. } => Some(span),
+            _ => None,
+        }
+    }
+
+    fn add_note_to_error<E>(&self, err: &mut BasisError<E>) {
+        if let Some(msg) = self.message() {
+            match self.span() {
+                Some(span) => note_in!(err, span, "{}", msg),
+                None => note!(err, "{}", msg),
+            }
+        }
+    }
 }
