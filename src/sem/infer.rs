@@ -99,6 +99,39 @@ impl Infer {
         }
     }
 
+    fn getvar(&self, name: &str) -> Result<Spanned<&Type>, Error> {
+        for env in self.envchain.iter().rev().chain(Some(&self.global_env)) {
+            match env.table.get(name) {
+                Some(spanned) => {
+                    match spanned.value {
+                        Entry::Function(_, _) => bail!("{:?} is not a variable", name),
+                        Entry::Var(ref typ) => return Ok(Spanned::span(spanned.span, typ)),
+                    }
+                }
+                None => {}
+            }
+        }
+        bail!("undefined variable: {:?}", name)
+    }
+
+    fn get_function(&self, name: &str) -> Result<Spanned<(Vec<Type>, Type)>, Error> {
+        for env in self.envchain.iter().rev().chain(Some(&self.global_env)) {
+            match env.table.get(name) {
+                Some(spanned) => {
+                    match spanned.value {
+                        Entry::Function(ref args, ref ret) => {
+                            let f = Spanned::span(spanned.span, (args.clone(), ret.clone()));
+                            return Ok(f);
+                        }
+                        Entry::Var(_) => bail!("{:?} is not a function", name),
+                    }
+                }
+                None => {}
+            }
+        }
+        bail!("undefined function: {:?}", name)
+    }
+
     fn unify(&self, expected: &Type, actual: &Type) -> Result<(), Error> {
         if expected != actual {
             bail!("mismatched types: {:?} and {:?}", expected, actual)
@@ -106,15 +139,106 @@ impl Infer {
         Ok(())
     }
 
-    fn infer_node_without_registeration<'a>(&mut self,
-                                            node: &Spanned<Node>,
-                                            expect: &Expect<'a>)
-                                            -> SemResult<Type> {
-        unimplemented!()
+    fn infer_node_without_check<'a>(&mut self,
+                                    node: &Spanned<Node>,
+                                    expect: &Expect<'a>)
+                                    -> SemResult<Type> {
+        match node.value.kind {
+            NodeKind::Unit => Ok(Type::Unit),
+            NodeKind::Int(_) => Ok(Type::Int),
+            NodeKind::Float(_) => Ok(Type::Float),
+            NodeKind::Bool(_) => Ok(Type::Bool),
+            NodeKind::Ident(ref name) => {
+                self.getvar(name)
+                    .map(|typ| typ.value.clone())
+                    .map_err(|err| BasisError::span(node.span, err))
+            }
+            NodeKind::Call(ref fname, ref args) => {
+                let spanned_fun = self.get_function(fname)
+                    .map_err(|err| BasisError::span(node.span, err))?;
+                let (function_args, function_ret) = spanned_fun.value;
+                if args.len() != function_args.len() {
+                    let msg = format!("invalid number of arguments for {:?}: expected {}, but given {}",
+                                      fname,
+                                      function_args.len(),
+                                      args.len());
+                    return Err(BasisError::span(node.span, msg));
+                }
+                for (arg, expected_arg) in args.iter().zip(function_args) {
+                    let expect = Expect::Type { typ: expected_arg };
+                    self.infer_node(arg, &expect)?;
+                }
+                Ok(function_ret)
+            }
+            NodeKind::Parens(ref e) => self.infer_node(e, expect),
+            NodeKind::Print(ref e) => self.infer_node(e, expect),
+            NodeKind::Block(ref nodes) => {
+                let nodes = nodes
+                    .iter()
+                    .map(|n| self.infer_node(n, &Expect::None))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let typ = nodes.last().map(|n| n.clone()).unwrap_or(Type::Unit);
+                Ok(typ)
+            }
+            NodeKind::If(ref cond, ref then, ref els) => {
+                self.infer_node(cond,
+                                &Expect::WithMessage {
+                                    typ: Type::Bool,
+                                    message: format_args!("condition of 'if' expression"),
+                                })?;
+                match *els {
+                    None => self.infer_node(then, &Expect::Type { typ: Type::Unit }),
+                    Some(ref els) => {
+                        let then_typ = self.infer_node(then, &Expect::None)?;
+                        self.infer_node(els,
+                                        &Expect::WithSpan {
+                                            typ: then_typ.clone(),
+                                            message: format_args!("'if' and 'else' have incompatible types"),
+                                            span: node.span,
+                                        })
+                    }
+                }
+            }
+            NodeKind::While(ref cond, ref body) => {
+                self.infer_node(cond,
+                                &Expect::WithMessage {
+                                    typ: Type::Bool,
+                                    message: format_args!("condition of 'while' expression"),
+                                })?;
+                self.infer_node(body, &Expect::None)?;
+                Ok(Type::Unit)
+            }
+            NodeKind::Let(ref let_) => {
+                let typ = match let_.typ {
+                    None => self.infer_node(&let_.value, &Expect::None)?,
+                    Some(ref typ) => {
+                        let typ = self.convert_type(&typ.value)
+                            .map_err(|err| BasisError::span(typ.span, err))?;
+                        self.infer_node(&let_.value, &Expect::Type { typ: typ })?
+                    }
+                };
+                let var = Spanned::span(node.span, Entry::Var(typ));
+                self.current_scope().define(let_.name.clone(), var)?;
+                Ok(Type::Unit)
+            }
+            NodeKind::Assign(ref var, ref value) => {
+                let vartyp = self.getvar(var)
+                    .map(|sp| sp.map(Type::clone))
+                    .map_err(|err| BasisError::span(node.span, err))?;
+                self.infer_node(value,
+                                &Expect::WithSpan {
+                                    typ: vartyp.value,
+                                    message: format_args!("variable {:?} is defined here", var),
+                                    span: vartyp.span,
+                                })?;
+                Ok(Type::Unit)
+            }
+            NodeKind::Infix(_, _, _) => unimplemented!(),
+        }
     }
 
     fn infer_node<'a>(&mut self, node: &Spanned<Node>, expect: &Expect<'a>) -> SemResult<Type> {
-        let actual = self.infer_node_without_registeration(node, expect)?;
+        let actual = self.infer_node_without_check(node, expect)?;
         if let Some(expected_typ) = expect.typ() {
             if let Err(err) = self.unify(expected_typ, &actual) {
                 let mut err = BasisError::span(node.span, err);
