@@ -7,6 +7,7 @@ use ansi_term::{ANSIString, ANSIStrings, Style};
 
 #[derive(Debug, Clone)]
 pub struct Source {
+    pub is_file: bool,
     pub path: String,
     pub contents: String,
 }
@@ -17,6 +18,7 @@ impl Source {
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
         Ok(Source {
+               is_file: true,
                path: filename,
                contents: contents,
            })
@@ -26,6 +28,7 @@ impl Source {
         let mut contents = String::new();
         io::stdin().read_to_string(&mut contents)?;
         Ok(Source {
+               is_file: false,
                path: "<stdin>".to_string(),
                contents: contents,
            })
@@ -33,6 +36,7 @@ impl Source {
 
     pub fn with_dummy(dummy: String) -> Self {
         Source {
+            is_file: false,
             path: "<dummy>".to_string(),
             contents: dummy,
         }
@@ -61,6 +65,17 @@ impl Source {
             let head = ANSIString::from(&self.contents[line_start..start]);
             let range = style.paint(&self.contents[start..line_end]);
             Some(format!("{}", ANSIStrings(&[head, range])))
+        }
+    }
+
+    pub fn stem(&self) -> String {
+        if self.is_file {
+            let path: &::std::path::Path = self.path.as_ref();
+            path.file_stem()
+                .map(|s| s.to_string_lossy().into())
+                .unwrap_or("a.out".to_string())
+        } else {
+            "a.out".to_string()
         }
     }
 }
