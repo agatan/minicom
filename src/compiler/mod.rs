@@ -194,7 +194,10 @@ impl<'a, 's> FunBuilder<'a, 's> {
     }
 
     pub fn getvar(&self, name: &'s str) -> Value {
-        self.local_vars[name]
+        self.local_vars
+            .get(name)
+            .cloned()
+            .unwrap_or_else(|| self.compiler.getvar(name))
     }
 
     pub fn getvar_opt(&self, name: &'s str) -> Option<Value> {
@@ -217,10 +220,6 @@ impl<'a, 's> FunBuilder<'a, 's> {
             NodeKind::Bool(b) => self.compiler.bool(b),
             NodeKind::Ident(ref var) => {
                 let ptr = self.getvar(&var.name);
-                self.compiler.builder.load(ptr, "loadtmp")
-            }
-            NodeKind::GlobalIdent(ref var) => {
-                let ptr = self.compiler.getvar(&var.name);
                 self.compiler.builder.load(ptr, "loadtmp")
             }
             NodeKind::Call(ref f, ref args) => {

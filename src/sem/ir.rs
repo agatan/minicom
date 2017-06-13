@@ -14,6 +14,10 @@ impl Program {
         }
     }
 
+    pub fn append_toplevel(&mut self, node: Node) {
+        self.toplevels.push(node)
+    }
+
     pub fn define_function(&mut self, name: String, f: Function) {
         self.entries.insert(name, Entry::Function(f));
     }
@@ -58,7 +62,6 @@ pub enum NodeKind {
     Float(f64),
     Bool(bool),
     Ident(Var),
-    GlobalIdent(Var),
     Call(String, Vec<Node>),
     AddInt(Box<Node>, Box<Node>),
     SubInt(Box<Node>, Box<Node>),
@@ -89,12 +92,6 @@ pub struct Var {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum VarKind {
-    Global,
-    Local,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct Let {
     pub name: String,
     pub typ: Type,
@@ -103,7 +100,6 @@ pub struct Let {
 
 #[derive(Debug, Clone)]
 pub struct Function {
-    pub id: u32,
     pub name: String,
     pub args: Vec<(String, Type)>,
     pub ret_typ: Type,
@@ -111,56 +107,7 @@ pub struct Function {
 }
 
 #[derive(Debug, Clone)]
-pub struct LocalEnv {
-    table: HashMap<String, Entry>,
-}
-
-impl LocalEnv {
-    pub fn new() -> Self {
-        LocalEnv { table: HashMap::new() }
-    }
-
-    pub fn define_local(&mut self, name: String, typ: Type) {
-        self.table
-            .insert(name.clone(),
-                    Entry::Var(Var {
-                                   name: name,
-                                   typ: typ,
-                               }));
-    }
-
-    pub fn define_function(&mut self, name: String, f: Function) {
-        self.table.insert(name, Entry::Function(f));
-    }
-
-    pub fn get_local(&self, name: &str) -> Option<Var> {
-        self.table
-            .get(name)
-            .and_then(|entry| match *entry {
-                          Entry::Var(ref var) => Some(var.clone()),
-                          _ => None,
-                      })
-    }
-
-    pub fn get_function_info(&self, name: &str) -> Option<FunctionInfo> {
-        self.table
-            .get(name)
-            .and_then(|entry| match *entry {
-                          Entry::Function(ref f) => {
-                              Some(FunctionInfo {
-                                       index: f.id,
-                                       args: f.args.clone(),
-                                       ret: f.ret_typ.clone(),
-                                   })
-                          }
-                          Entry::Var(_) => None,
-                      })
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct FunctionInfo {
-    pub index: u32,
     pub args: Vec<(String, Type)>,
     pub ret: Type,
 }
