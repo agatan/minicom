@@ -277,13 +277,14 @@ impl Infer {
             NodeKind::Parens(ref e) => self.infer_node(e, expect),
             NodeKind::Print(ref e) => self.infer_node(e, expect),
             NodeKind::Block(ref nodes) => {
+                let mut scoped = self.enter_scope();
                 match nodes.split_last() {
                     None => Ok(Type::Unit),
                     Some((last, init)) => {
                         for node in init {
-                            self.infer_node(node, &Expect::None)?;
+                            scoped.infer_node(node, &Expect::None)?;
                         }
-                        self.infer_node(last, expect)
+                        scoped.infer_node(last, expect)
                     }
                 }
             }
