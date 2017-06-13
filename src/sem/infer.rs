@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut, Drop};
 use std::fmt;
@@ -14,8 +13,94 @@ use sem::ir::Type;
 use sem::{Error, Result as SemResult};
 
 #[derive(Debug)]
+enum Entry {
+    Function(Vec<Type>, Type),
+    Var(Type),
+}
+
+#[derive(Debug)]
+struct Env {
+    pub table: HashMap<String, Spanned<Entry>>,
+}
+
+impl Env {
+    fn new() -> Self {
+        Env { table: HashMap::new() }
+    }
+
+    fn define(&mut self, name: String, entry: Spanned<Entry>) -> SemResult<()> {
+        use std::collections::hash_map::Entry::*;
+        match self.table.entry(name) {
+            Vacant(v) => {
+                v.insert(entry);
+            }
+            Occupied(o) => {
+                let mut err = BasisError::span(entry.span,
+                                               format!("duplicate definition: {:?}", o.key()));
+                note_in!(err,
+                         o.get().span,
+                         "previous definition of {:?} here",
+                         o.key());
+                return Err(err);
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+enum Expect<'a> {
+    None,
+    Type { typ: Type },
+    WithMessage {
+        typ: Type,
+        message: fmt::Arguments<'a>,
+    },
+    WithSpan {
+        typ: Type,
+        message: fmt::Arguments<'a>,
+        span: Span,
+    },
+}
+
+impl<'a> Expect<'a> {
+    fn typ(&self) -> Option<&Type> {
+        match *self {
+            Expect::Type { ref typ } => Some(typ),
+            Expect::WithMessage { ref typ, .. } => Some(typ),
+            Expect::WithSpan { ref typ, .. } => Some(typ),
+            Expect::None => None,
+        }
+    }
+
+    fn message(&self) -> Option<fmt::Arguments<'a>> {
+        match *self {
+            Expect::WithMessage { message, .. } => Some(message),
+            Expect::WithSpan { message, .. } => Some(message),
+            _ => None,
+        }
+    }
+
+    fn span(&self) -> Option<Span> {
+        match *self {
+            Expect::WithSpan { span, .. } => Some(span),
+            _ => None,
+        }
+    }
+
+    fn add_note_to_error<E>(&self, err: &mut BasisError<E>) {
+        if let Some(msg) = self.message() {
+            match self.span() {
+                Some(span) => note_in!(err, span, "{}", msg),
+                None => note!(err, "{}", msg),
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Infer {
-    typemap: Rc<RefCell<TypeMap>>,
+    typemap: TypeMap,
     tyenv: Rc<TypeEnv>,
     global_env: Env,
     envchain: Vec<Env>,
@@ -24,7 +109,7 @@ pub struct Infer {
 impl Infer {
     pub fn new() -> Self {
         Infer {
-            typemap: Rc::new(RefCell::new(TypeMap::new())),
+            typemap: TypeMap::new(),
             tyenv: Rc::new(TypeEnv::new()),
             global_env: Env::new(),
             envchain: Vec::new(),
@@ -263,9 +348,7 @@ impl Infer {
                 return Err(err);
             }
         }
-        self.typemap
-            .borrow_mut()
-            .insert(node.value.id, actual.clone());
+        self.typemap.insert(node.value.id, actual.clone());
         Ok(actual)
     }
 
@@ -329,91 +412,5 @@ impl<'a> Deref for Scope<'a> {
 impl<'a> DerefMut for Scope<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.0
-    }
-}
-
-#[derive(Debug)]
-struct Env {
-    pub table: HashMap<String, Spanned<Entry>>,
-}
-
-impl Env {
-    fn new() -> Self {
-        Env { table: HashMap::new() }
-    }
-
-    fn define(&mut self, name: String, entry: Spanned<Entry>) -> SemResult<()> {
-        use std::collections::hash_map::Entry::*;
-        match self.table.entry(name) {
-            Vacant(v) => {
-                v.insert(entry);
-            }
-            Occupied(o) => {
-                let mut err = BasisError::span(entry.span,
-                                               format!("duplicate definition: {:?}", o.key()));
-                note_in!(err,
-                         o.get().span,
-                         "previous definition of {:?} here",
-                         o.key());
-                return Err(err);
-            }
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-enum Entry {
-    Function(Vec<Type>, Type),
-    Var(Type),
-}
-
-#[derive(Debug)]
-enum Expect<'a> {
-    None,
-    Type { typ: Type },
-    WithMessage {
-        typ: Type,
-        message: fmt::Arguments<'a>,
-    },
-    WithSpan {
-        typ: Type,
-        message: fmt::Arguments<'a>,
-        span: Span,
-    },
-}
-
-impl<'a> Expect<'a> {
-    fn typ(&self) -> Option<&Type> {
-        match *self {
-            Expect::Type { ref typ } => Some(typ),
-            Expect::WithMessage { ref typ, .. } => Some(typ),
-            Expect::WithSpan { ref typ, .. } => Some(typ),
-            Expect::None => None,
-        }
-    }
-
-    fn message(&self) -> Option<fmt::Arguments<'a>> {
-        match *self {
-            Expect::WithMessage { message, .. } => Some(message),
-            Expect::WithSpan { message, .. } => Some(message),
-            _ => None,
-        }
-    }
-
-    fn span(&self) -> Option<Span> {
-        match *self {
-            Expect::WithSpan { span, .. } => Some(span),
-            _ => None,
-        }
-    }
-
-    fn add_note_to_error<E>(&self, err: &mut BasisError<E>) {
-        if let Some(msg) = self.message() {
-            match self.span() {
-                Some(span) => note_in!(err, span, "{}", msg),
-                None => note!(err, "{}", msg),
-            }
-        }
     }
 }
