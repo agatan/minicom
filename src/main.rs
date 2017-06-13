@@ -53,7 +53,8 @@ fn main() {
     try_or_exit!(inferer
                      .infer_program(&nodes)
                      .map_err(|err| err.with_source(&source)));
-    let prog = try_or_exit!(ctx.transform(nodes).map_err(|err| err.with_source(&source)));
+    let prog = try_or_exit!(ctx.check_and_transform(nodes)
+                                .map_err(|err| err.with_source(&source)));
     debug!("program: {:?}", prog);
     let module = try_or_exit!(compiler.compile_program(&prog));
     module.dump();

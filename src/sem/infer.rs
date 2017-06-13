@@ -5,7 +5,7 @@ use std::fmt;
 
 use basis::pos::{Span, Spanned};
 use basis::errors::Error as BasisError;
-use syntax::ast::{self, Toplevel, ToplevelKind, Node, NodeKind, Operator};
+use syntax::ast::{self, NodeId, Toplevel, ToplevelKind, Node, NodeKind, Operator};
 
 use sem::typing::TypeMap;
 use sem::tyenv::TypeEnv;
@@ -391,6 +391,10 @@ impl Infer {
         }
 
         Ok(())
+    }
+
+    pub fn gettyp(&self, id: NodeId) -> Type {
+        self.typemap.get(id)
     }
 }
 

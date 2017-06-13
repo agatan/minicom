@@ -14,6 +14,10 @@ impl Program {
         }
     }
 
+    pub fn append_toplevel(&mut self, node: Node) {
+        self.toplevels.push(node)
+    }
+
     pub fn define_function(&mut self, name: String, f: Function) {
         self.entries.insert(name, Entry::Function(f));
     }
