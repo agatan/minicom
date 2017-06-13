@@ -187,12 +187,15 @@ impl Infer {
             NodeKind::Parens(ref e) => self.infer_node(e, expect),
             NodeKind::Print(ref e) => self.infer_node(e, expect),
             NodeKind::Block(ref nodes) => {
-                let nodes = nodes
-                    .iter()
-                    .map(|n| self.infer_node(n, &Expect::None))
-                    .collect::<Result<Vec<_>, _>>()?;
-                let typ = nodes.last().map(|n| n.clone()).unwrap_or(Type::Unit);
-                Ok(typ)
+                match nodes.split_last() {
+                    None => Ok(Type::Unit),
+                    Some((last, init)) => {
+                        for node in init {
+                            self.infer_node(node, &Expect::None)?;
+                        }
+                        self.infer_node(last, expect)
+                    }
+                }
             }
             NodeKind::If(ref cond, ref then, ref els) => {
                 self.infer_node(cond,
