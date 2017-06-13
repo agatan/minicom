@@ -73,6 +73,23 @@ pub enum Operator {
     GT,
 }
 
+impl Operator {
+    pub fn is_arithmetic(&self) -> bool {
+        use self::Operator::*;
+        match *self {
+            Add | Sub | Mul | Div => true,
+            Eq | Neq | LE | LT | GE | GT => false,
+        }
+    }
+    pub fn is_compare(&self) -> bool {
+        use self::Operator::*;
+        match *self {
+            Eq | Neq | LE | LT | GE | GT => true,
+            Add | Sub | Mul | Div => false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Let {
     pub name: String,

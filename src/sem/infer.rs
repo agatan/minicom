@@ -6,7 +6,7 @@ use std::fmt;
 
 use basis::pos::{Span, Spanned};
 use basis::errors::Error as BasisError;
-use syntax::ast::{self, Toplevel, ToplevelKind, Node, NodeKind};
+use syntax::ast::{self, Toplevel, ToplevelKind, Node, NodeKind, Operator};
 
 use sem::typing::TypeMap;
 use sem::tyenv::TypeEnv;
@@ -139,6 +139,20 @@ impl Infer {
         Ok(())
     }
 
+    fn infer_binary_operation<'a>(&mut self,
+                                  lhs: &Spanned<Node>,
+                                  op: Operator,
+                                  rhs: &Spanned<Node>)
+                                  -> SemResult<Type> {
+        let lhs_typ = self.infer_node(lhs, &Expect::None)?;
+        let rhs_typ = self.infer_node(rhs, &Expect::Type { typ: lhs_typ.clone() })?;
+        if op.is_arithmetic() {
+            Ok(rhs_typ)
+        } else {
+            Ok(Type::Bool)
+        }
+    }
+
     fn infer_node_without_check<'a>(&mut self,
                                     node: &Spanned<Node>,
                                     expect: &Expect<'a>)
@@ -233,7 +247,7 @@ impl Infer {
                                 })?;
                 Ok(Type::Unit)
             }
-            NodeKind::Infix(_, _, _) => unimplemented!(),
+            NodeKind::Infix(ref lhs, op, ref rhs) => self.infer_binary_operation(lhs, op, rhs),
         }
     }
 
