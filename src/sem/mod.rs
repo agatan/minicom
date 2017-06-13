@@ -103,10 +103,11 @@ impl Context {
             AstNodeKind::Let(let_) => {
                 let let_ = *let_;
                 let ast::Let { value, name, .. } = let_;
+                let value_typ = self.inferer.gettyp(value.value.id);
                 let value = self.process_node(value)?;
                 NodeKind::Let(Box::new(Let {
                                            name: name,
-                                           typ: typ.clone(),
+                                           typ: value_typ,
                                            value: value,
                                        }))
             }

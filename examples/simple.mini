@@ -5,3 +5,10 @@ print(false)
 let x: () = ();
 print(());
 print(x);
+
+def foo(): int = {
+  let x = 3
+  print(x)
+}
+
+foo()
