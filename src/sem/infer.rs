@@ -12,8 +12,8 @@ use sem::tyenv::TypeEnv;
 use sem::ir::Type;
 use sem::{Error, Result as SemResult};
 
-#[derive(Debug)]
-enum Entry {
+#[derive(Debug, Clone)]
+pub enum Entry {
     Function(Vec<Type>, Type),
     Var(Type),
 }
@@ -101,6 +101,7 @@ impl<'a> Expect<'a> {
 #[derive(Debug)]
 pub struct Infer {
     typemap: TypeMap,
+    toplevels: HashMap<NodeId, Entry>,
     tyenv: Rc<TypeEnv>,
     global_env: Env,
     envchain: Vec<Env>,
@@ -110,6 +111,7 @@ impl Infer {
     pub fn new() -> Self {
         Infer {
             typemap: TypeMap::new(),
+            toplevels: HashMap::new(),
             tyenv: Rc::new(TypeEnv::new()),
             global_env: Env::new(),
             envchain: Vec::new(),
@@ -149,9 +151,10 @@ impl Infer {
                                      .map_err(|err| BasisError::span(decl.span, err))
                              })
                         .collect::<SemResult<Vec<_>>>()?;
+                    let entry = Entry::Function(args, ret_typ);
+                    self.toplevels.insert(decl.value.id, entry.clone());
                     self.global_env
-                        .define(def.name.clone(),
-                                Spanned::span(decl.span, Entry::Function(args, ret_typ)))?;
+                        .define(def.name.clone(), Spanned::span(decl.span, entry))?
                 }
                 ToplevelKind::Let(ref let_) => {
                     let typ = let_.typ
@@ -159,8 +162,10 @@ impl Infer {
                         .expect("global `let` shuold have type specification");
                     let typ = self.convert_type(&typ.value)
                         .map_err(|err| BasisError::span(typ.span, err))?;
+                    let entry = Entry::Var(typ);
+                    self.toplevels.insert(decl.value.id, entry.clone());
                     self.global_env
-                        .define(let_.name.clone(), Spanned::span(decl.span, Entry::Var(typ)))?;
+                        .define(let_.name.clone(), Spanned::span(decl.span, entry))?
                 }
                 _ => (),
             }
@@ -391,6 +396,20 @@ impl Infer {
         }
 
         Ok(())
+    }
+
+    pub fn get_toplevel_var(&self, id: NodeId) -> Type {
+        match self.toplevels.get(&id) {
+            Some(&Entry::Var(ref typ)) => typ.clone(),
+            _ => panic!("{:?} is not defined as variable", id),
+        }
+    }
+
+    pub fn get_toplevel_function(&self, id: NodeId) -> (Vec<Type>, Type) {
+        match self.toplevels.get(&id) {
+            Some(&Entry::Function(ref args, ref ret)) => (args.clone(), ret.clone()),
+            _ => panic!("{:?} is not defined as function", id),
+        }
     }
 
     pub fn gettyp(&self, id: NodeId) -> Type {

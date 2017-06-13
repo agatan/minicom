@@ -107,7 +107,6 @@ pub struct Let {
 
 #[derive(Debug, Clone)]
 pub struct Function {
-    pub id: u32,
     pub name: String,
     pub args: Vec<(String, Type)>,
     pub ret_typ: Type,
