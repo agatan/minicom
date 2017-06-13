@@ -1,22 +1,15 @@
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::ops::{Deref, DerefMut, Drop};
-
 pub mod ir;
 mod typing;
 mod alpha;
 mod tyenv;
 pub mod infer;
 
-use basis::pos::{Span, Spanned};
+use basis::pos::Spanned;
 use basis::errors::Error as BasisError;
-use syntax::ast::{self, Toplevel, ToplevelKind, NodeId, Node as AstNode, NodeKind as AstNodeKind,
-                  Operator};
+use syntax::ast::{self, Toplevel, ToplevelKind, NodeId, Node as AstNode, NodeKind as AstNodeKind};
 
 use self::ir::*;
 pub use self::typing::TypeMap;
-use self::tyenv::TypeEnv;
 use self::alpha::Alpha;
 use self::infer::Infer;
 
@@ -29,15 +22,6 @@ mod errors {
 pub use self::errors::{Error, ErrorKind};
 
 pub type Result<T> = ::std::result::Result<T, BasisError<Error>>;
-
-macro_rules! bail_with {
-    ($span:expr, $kind:expr) => {
-        return Err(BasisError::span($span, $kind.into()));
-    };
-    ($span:expr, $fmt:expr, $($args:tt)+) => {
-        return Err(BasisError::span($span, ErrorKind::Msg(format!($fmt, $($args)+))));
-    };
-}
 
 #[derive(Debug)]
 pub struct Context {
@@ -54,7 +38,7 @@ impl Context {
     }
 
     fn process_node(&mut self, node: Spanned<AstNode>) -> Result<Node> {
-        let Spanned { value: node, span } = node;
+        let Spanned { value: node, .. } = node;
         let typ = self.inferer.gettyp(node.id);
         let kind = match node.kind {
             AstNodeKind::Unit => NodeKind::Unit,
@@ -125,7 +109,7 @@ impl Context {
     }
 
     fn process_global_def(&mut self, id: NodeId, def: Spanned<ast::Def>) -> Result<()> {
-        let Spanned { value: def, span } = def;
+        let Spanned { value: def, .. } = def;
         let (arg_types, ret) = self.inferer.get_toplevel_function(id);
         let body = self.process_node(def.body)?;
         let args = def.args
@@ -144,7 +128,7 @@ impl Context {
     }
 
     fn process_global_let(&mut self, let_: Spanned<ast::Let>) -> Result<()> {
-        let Spanned { value: let_, span } = let_;
+        let Spanned { value: let_, .. } = let_;
         let ast::Let { name, value, .. } = let_;
         let typ = self.inferer.gettyp(value.value.id);
         let irnode = self.process_node(value)?;

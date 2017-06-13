@@ -398,13 +398,6 @@ impl Infer {
         Ok(())
     }
 
-    pub fn get_toplevel_var(&self, id: NodeId) -> Type {
-        match self.toplevels.get(&id) {
-            Some(&Entry::Var(ref typ)) => typ.clone(),
-            _ => panic!("{:?} is not defined as variable", id),
-        }
-    }
-
     pub fn get_toplevel_function(&self, id: NodeId) -> (Vec<Type>, Type) {
         match self.toplevels.get(&id) {
             Some(&Entry::Function(ref args, ref ret)) => (args.clone(), ret.clone()),

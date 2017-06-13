@@ -222,10 +222,6 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 let ptr = self.getvar(&var.name);
                 self.compiler.builder.load(ptr, "loadtmp")
             }
-            NodeKind::GlobalIdent(ref var) => {
-                let ptr = self.compiler.getvar(&var.name);
-                self.compiler.builder.load(ptr, "loadtmp")
-            }
             NodeKind::Call(ref f, ref args) => {
                 let f = self.compiler
                     .module
