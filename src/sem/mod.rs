@@ -54,7 +54,73 @@ impl Context {
     }
 
     fn process_node(&mut self, node: Spanned<AstNode>) -> Result<Node> {
-        unimplemented!()
+        let Spanned { value: node, span } = node;
+        let typ = self.inferer.gettyp(node.id);
+        let kind = match node.kind {
+            AstNodeKind::Unit => NodeKind::Unit,
+            AstNodeKind::Int(n) => NodeKind::Int(n),
+            AstNodeKind::Float(n) => NodeKind::Float(n),
+            AstNodeKind::Bool(n) => NodeKind::Bool(n),
+            AstNodeKind::Ident(name) => {
+                let typ = self.inferer.gettyp(node.id);
+                NodeKind::Ident(Var {
+                                    name: name,
+                                    typ: typ.clone(),
+                                })
+            }
+            AstNodeKind::Call(fname, args) => {
+                let args = args.into_iter()
+                    .map(|arg| self.process_node(arg))
+                    .collect::<Result<Vec<_>>>()?;
+                NodeKind::Call(fname, args)
+            }
+            AstNodeKind::Parens(e) => return self.process_node(*e),
+            AstNodeKind::Block(inner) => {
+                let inner = inner
+                    .into_iter()
+                    .map(|n| self.process_node(n))
+                    .collect::<Result<Vec<_>>>()?;
+                NodeKind::Block(inner)
+            }
+            AstNodeKind::If(cond, then, els) => {
+                let cond = self.process_node(*cond)?;
+                let then = self.process_node(*then)?;
+                let els = match els {
+                    None => None,
+                    Some(els) => Some(Box::new(self.process_node(*els)?)),
+                };
+                NodeKind::If(Box::new(cond), Box::new(then), els)
+            }
+            AstNodeKind::While(cond, body) => {
+                let cond = self.process_node(*cond)?;
+                let body = self.process_node(*body)?;
+                NodeKind::While(Box::new(cond), Box::new(body))
+            }
+            AstNodeKind::Print(e) => {
+                let e = self.process_node(*e)?;
+                NodeKind::Print(Box::new(e))
+            }
+            AstNodeKind::Let(let_) => {
+                let let_ = *let_;
+                let ast::Let { value, name, .. } = let_;
+                let value = self.process_node(value)?;
+                NodeKind::Let(Box::new(Let {
+                                           name: name,
+                                           typ: typ.clone(),
+                                           value: value,
+                                       }))
+            }
+            AstNodeKind::Assign(name, value) => {
+                let value = Box::new(self.process_node(*value)?);
+                NodeKind::Assign(Var {
+                                     name: name,
+                                     typ: typ.clone(),
+                                 },
+                                 value)
+            }
+            AstNodeKind::Infix(_, _, _) => unimplemented!(),
+        };
+        Ok(Node::new(kind, typ))
     }
 
     fn process_global_def(&mut self, id: NodeId, def: Spanned<ast::Def>) -> Result<()> {
@@ -78,11 +144,12 @@ impl Context {
 
     fn process_global_let(&mut self, let_: Spanned<ast::Let>) -> Result<()> {
         let Spanned { value: let_, span } = let_;
-        let irnode = self.process_node(let_.value)?;
-        let typ = self.inferer.gettyp(let_.value.value.id);
-        self.program.define_global(let_.name.clone(), typ.clone());
+        let ast::Let { name, value, .. } = let_;
+        let typ = self.inferer.gettyp(value.value.id);
+        let irnode = self.process_node(value)?;
+        self.program.define_global(name.clone(), typ.clone());
         let var = Var {
-            name: let_.name,
+            name: name,
             typ: typ,
         };
         let assignment = Node::new(NodeKind::AssignGlobal(var, Box::new(irnode)), Type::Unit);

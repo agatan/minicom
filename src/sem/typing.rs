@@ -18,7 +18,7 @@ impl TypeMap {
         self.table.insert(id, v);
     }
 
-    pub fn get(&mut self, id: NodeId) -> Type {
-        self.table[id].clone()
+    pub fn get(&self, id: NodeId) -> Type {
+        self.table[&id].clone()
     }
 }

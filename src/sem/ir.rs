@@ -151,7 +151,6 @@ impl LocalEnv {
             .and_then(|entry| match *entry {
                           Entry::Function(ref f) => {
                               Some(FunctionInfo {
-                                       index: f.id,
                                        args: f.args.clone(),
                                        ret: f.ret_typ.clone(),
                                    })
@@ -163,7 +162,6 @@ impl LocalEnv {
 
 #[derive(Debug, Clone)]
 pub struct FunctionInfo {
-    pub index: u32,
     pub args: Vec<(String, Type)>,
     pub ret: Type,
 }
