@@ -402,7 +402,7 @@ impl Context {
         }
     }
 
-    fn transform_def(&mut self, def: &ast::Def, span: Span) -> Result<Function> {
+    fn transform_def(&mut self, def: &ast::Def, _span: Span) -> Result<Function> {
         let fd = self.forward_decls
             .get(&def.name)
             .expect("forward declared")

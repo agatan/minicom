@@ -56,7 +56,6 @@ pub fn parse(source: &Source) -> Result<Vec<Spanned<Toplevel>>, ErrorWithSource<
 
 #[test]
 fn test_parse() {
-    use token::Tokenizer;
     let input = r#"
     let x: int = 1;
     let y: int = 2;

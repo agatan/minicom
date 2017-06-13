@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut, Drop};
 use std::fmt;
 
-use basis::pos::{Span, Spanned, DUMMY_SPAN};
+use basis::pos::{Span, Spanned};
 use basis::errors::Error as BasisError;
-use syntax::ast::{self, Toplevel, ToplevelKind, Node, NodeKind, Operator};
+use syntax::ast::{self, Toplevel, ToplevelKind, Node, NodeKind};
 
 use sem::typing::TypeMap;
 use sem::tyenv::TypeEnv;
@@ -48,7 +48,7 @@ impl Infer {
         self.envchain.last_mut().unwrap_or(&mut self.global_env)
     }
 
-    pub fn collect_forward(&mut self, decls: &[Spanned<Toplevel>]) -> SemResult<()> {
+    pub fn collect_forward_declarations(&mut self, decls: &[Spanned<Toplevel>]) -> SemResult<()> {
         for decl in decls {
             match decl.value.kind {
                 ToplevelKind::Def(ref def) => {
@@ -284,7 +284,7 @@ impl Infer {
     }
 
     pub fn infer_program(&mut self, nodes: &[Spanned<Toplevel>]) -> SemResult<()> {
-        self.collect_forward(nodes)?;
+        self.collect_forward_declarations(nodes)?;
 
         for toplevel in nodes {
             self.infer_toplevel(toplevel)?;
