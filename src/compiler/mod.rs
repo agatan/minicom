@@ -194,7 +194,10 @@ impl<'a, 's> FunBuilder<'a, 's> {
     }
 
     pub fn getvar(&self, name: &'s str) -> Value {
-        self.local_vars[name]
+        self.local_vars
+            .get(name)
+            .cloned()
+            .unwrap_or_else(|| self.compiler.getvar(name))
     }
 
     pub fn getvar_opt(&self, name: &'s str) -> Option<Value> {
