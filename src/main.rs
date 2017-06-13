@@ -22,6 +22,7 @@ use std::fs::File;
 use basis::pos::Source;
 
 use sem::Context;
+use sem::infer::Infer;
 use compiler::Compiler;
 
 macro_rules! try_or_exit {
@@ -48,6 +49,10 @@ fn main() {
     };
     let nodes = try_or_exit!(syntax::parse(&source));
     debug!("nodes: {:?}", nodes);
+    let mut inferer = Infer::new();
+    try_or_exit!(inferer
+                     .infer_program(&nodes)
+                     .map_err(|err| err.with_source(&source)));
     let prog = try_or_exit!(ctx.transform(nodes).map_err(|err| err.with_source(&source)));
     debug!("program: {:?}", prog);
     let module = try_or_exit!(compiler.compile_program(&prog));

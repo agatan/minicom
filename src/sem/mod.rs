@@ -7,7 +7,7 @@ pub mod ir;
 mod typing;
 mod alpha;
 mod tyenv;
-mod infer;
+pub mod infer;
 
 use basis::pos::{Span, Spanned};
 use basis::errors::Error as BasisError;
