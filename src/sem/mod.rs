@@ -6,7 +6,8 @@ pub mod infer;
 
 use basis::pos::Spanned;
 use basis::errors::Error as BasisError;
-use syntax::ast::{self, Toplevel, ToplevelKind, NodeId, Node as AstNode, NodeKind as AstNodeKind};
+use syntax::ast::{self, Toplevel, ToplevelKind, NodeId, Node as AstNode, NodeKind as AstNodeKind,
+                  Operator};
 
 use self::ir::*;
 pub use self::typing::TypeMap;
@@ -103,7 +104,52 @@ impl Context {
                                  },
                                  value)
             }
-            AstNodeKind::Infix(_, _, _) => unimplemented!(),
+            AstNodeKind::Infix(lhs, op, rhs) => {
+                let lhs = Box::new(self.process_node(*lhs)?);
+                let rhs = Box::new(self.process_node(*rhs)?);
+                match op {
+                    Operator::Add => {
+                        if typ == Type::Int {
+                            NodeKind::AddInt(lhs, rhs)
+                        } else {
+                            NodeKind::AddFloat(lhs, rhs)
+                        }
+                    }
+                    Operator::Sub => {
+                        if typ == Type::Int {
+                            NodeKind::SubInt(lhs, rhs)
+                        } else {
+                            NodeKind::SubFloat(lhs, rhs)
+                        }
+                    }
+                    Operator::Mul => {
+                        if typ == Type::Int {
+                            NodeKind::MulInt(lhs, rhs)
+                        } else {
+                            NodeKind::MulFloat(lhs, rhs)
+                        }
+                    }
+                    Operator::Div => {
+                        if typ == Type::Int {
+                            NodeKind::DivInt(lhs, rhs)
+                        } else {
+                            NodeKind::DivFloat(lhs, rhs)
+                        }
+                    }
+                    Operator::Eq => NodeKind::Eq(lhs, rhs),
+                    Operator::Neq => {
+                        NodeKind::Not(Box::new(Node::new(NodeKind::Eq(lhs, rhs), Type::Bool)))
+                    }
+                    Operator::LE => NodeKind::LE(lhs, rhs),
+                    Operator::LT => NodeKind::LT(lhs, rhs),
+                    Operator::GE => {
+                        NodeKind::Not(Box::new(Node::new(NodeKind::LT(lhs, rhs), Type::Bool)))
+                    }
+                    Operator::GT => {
+                        NodeKind::Not(Box::new(Node::new(NodeKind::LE(lhs, rhs), Type::Bool)))
+                    }
+                }
+            }
         };
         Ok(Node::new(kind, typ))
     }
