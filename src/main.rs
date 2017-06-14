@@ -55,5 +55,6 @@ fn main() {
                                 .map_err(|err| err.with_source(&source)));
     debug!("program: {:?}", prog);
     let emitter = try_or_exit!(Emitter::new(&prog));
+    println!("{}", emitter.emit_llvm_ir());
     try_or_exit!(emitter.emit_executable(&source.stem()));
 }

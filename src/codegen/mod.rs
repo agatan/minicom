@@ -48,4 +48,8 @@ impl Emitter {
             .chain_err(|| "failed to write object code to a tmpfile")?;
         link::link(executable, &objpath.to_string_lossy())
     }
+
+    pub fn emit_llvm_ir(&self) -> String {
+        self.module.to_string()
+    }
 }
