@@ -61,6 +61,12 @@ impl fmt::Display for Message {
     }
 }
 
+impl ::std::error::Error for Message {
+    fn description(&self) -> &str {
+        "llvm error"
+    }
+}
+
 impl Drop for Message {
     fn drop(&mut self) {
         if !self.0.is_null() {
