@@ -4,4 +4,5 @@ services:
   - docker
 
 script:
+  - docker run -ti -v $(pwd):/app -w /app agatan/minivm-dev:latest cargo build --verbose
   - docker run -ti -v $(pwd):/app -w /app agatan/minivm-dev:latest cargo test -p minivm-basis -p minivm-syntax -p minivm
