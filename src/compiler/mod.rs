@@ -5,6 +5,16 @@ use std::collections::HashMap;
 use llvm::{self, Message, Context, Module, Builder, Value, BasicBlock};
 use sem::ir::*;
 
+pub mod link;
+
+mod errors {
+    error_chain! {
+        errors {}
+    }
+}
+
+use self::errors::{Error, ResultExt};
+
 pub struct Compiler {
     ctx: Rc<Context>,
     module: Module,

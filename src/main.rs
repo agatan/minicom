@@ -18,8 +18,6 @@ mod compiler;
 
 use std::io::prelude::*;
 use std::fs::File;
-use std::process::Command;
-use std::path;
 
 use basis::pos::Source;
 
@@ -37,16 +35,6 @@ macro_rules! try_or_exit {
             }
         }
     }
-}
-
-fn find_runtime_library() -> Result<String, &'static str> {
-    let this_binary = path::PathBuf::from(::std::env::args().next().unwrap());
-    let this_binary_dir = this_binary.parent().unwrap_or(".".as_ref());
-    let candidate = this_binary_dir.join("libminivm_rt.a");
-    if candidate.exists() {
-        return Ok(candidate.to_string_lossy().into());
-    }
-    Err("runtime library not found")
 }
 
 fn main() {
@@ -74,26 +62,7 @@ fn main() {
         Ok(obj) => {
             let mut f = File::create("/tmp/module.o").unwrap();
             f.write_all(&obj).unwrap();
-            let rt = try_or_exit!(find_runtime_library());
-            let executable = source.stem();
-            let status = Command::new("cc")
-                .args(&["-o",
-                        &executable,
-                        "/tmp/module.o",
-                        &rt,
-                        "-lSystem",
-                        "-lresolv",
-                        "-lc",
-                        "-lm"])
-                .status()
-                .expect("faild to execute linker cc");
-            if !status.success() {
-                writeln!(::std::io::stderr(),
-                         "failed to link executable with error status {}",
-                         status.code().unwrap_or(1))
-                        .unwrap();
-                ::std::process::exit(1);
-            }
+            try_or_exit!(compiler::link::link(&source.stem(), "/tmp/module.o"));
         }
         Err(err) => println!("{}", err),
     }
