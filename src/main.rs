@@ -14,7 +14,7 @@ extern crate minivm_syntax as syntax;
 
 mod sem;
 mod llvm;
-mod compiler;
+mod codegen;
 
 use std::io::prelude::*;
 use std::fs::File;
@@ -23,7 +23,7 @@ use basis::pos::Source;
 
 use sem::Context;
 use sem::infer::Infer;
-use compiler::Compiler;
+use codegen::Compiler;
 
 macro_rules! try_or_exit {
     ($x:expr) => {
@@ -62,7 +62,7 @@ fn main() {
         Ok(obj) => {
             let mut f = File::create("/tmp/module.o").unwrap();
             f.write_all(&obj).unwrap();
-            try_or_exit!(compiler::link::link(&source.stem(), "/tmp/module.o"));
+            try_or_exit!(codegen::link::link(&source.stem(), "/tmp/module.o"));
         }
         Err(err) => println!("{}", err),
     }
