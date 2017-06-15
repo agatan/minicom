@@ -17,7 +17,19 @@ fn find_linker() -> Result<String, Error> {
     Ok("cc".to_string())
 }
 
+#[cfg(target_os = "macos")]
 static DEFAULT_LD_FLAGS: [&'static str; 4] = ["-lSystem", "-lresolv", "-lc", "-lm"];
+
+#[cfg(target_os = "linux")]
+static DEFAULT_LD_FLAGS: [&'static str; 9] = ["-ldl",
+                                              "-lrt",
+                                              "-pthread",
+                                              "-lgcc_s",
+                                              "-lc",
+                                              "-lm",
+                                              "-lrt",
+                                              "-lpthread",
+                                              "-lutil"];
 
 pub fn link(executable: &str, obj: &str) -> Result<(), Error> {
     let linker = find_linker()?;
