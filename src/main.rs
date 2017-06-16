@@ -14,16 +14,15 @@ extern crate minivm_syntax as syntax;
 
 mod sem;
 mod llvm;
-mod compiler;
+mod codegen;
 
 use std::io::prelude::*;
-use std::fs::File;
 
 use basis::pos::Source;
 
 use sem::Context;
 use sem::infer::Infer;
-use compiler::Compiler;
+use codegen::Emitter;
 
 macro_rules! try_or_exit {
     ($x:expr) => {
@@ -41,7 +40,6 @@ fn main() {
     try_or_exit!(env_logger::init());
 
     let mut ctx = Context::new();
-    let mut compiler = ::Compiler::new();
 
     let source = match ::std::env::args().nth(1) {
         None => try_or_exit!(Source::from_stdin()),
@@ -56,13 +54,7 @@ fn main() {
     let prog = try_or_exit!(ctx.check_and_transform(nodes)
                                 .map_err(|err| err.with_source(&source)));
     debug!("program: {:?}", prog);
-    let module = try_or_exit!(compiler.compile_program(&prog));
-    module.dump();
-    match module.emit_object() {
-        Ok(obj) => {
-            let mut f = File::create("/tmp/module.o").unwrap();
-            f.write_all(&obj).unwrap();
-        }
-        Err(err) => println!("{}", err),
-    }
+    let emitter = try_or_exit!(Emitter::new(&prog));
+    println!("{}", emitter.emit_llvm_ir());
+    try_or_exit!(emitter.emit_executable(&source.stem()));
 }

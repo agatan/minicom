@@ -7,7 +7,7 @@ use sem::ir::*;
 
 pub struct Compiler {
     ctx: Rc<Context>,
-    module: Module,
+    pub module: Module,
     builder: Builder,
     globals: HashMap<String, Value>,
 }

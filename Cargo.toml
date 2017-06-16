@@ -12,5 +12,10 @@ llvm-sys = "39"
 minivm-basis = { path = "./basis" }
 minivm-syntax = { path = "./syntax" }
 
+[lib]
+name = "minivm_rt"
+path = "runtime/src/lib.rs"
+crate-type = ["staticlib", "cdylib"]
+
 [profile.release]
 debug = true

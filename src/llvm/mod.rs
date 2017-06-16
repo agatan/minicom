@@ -61,6 +61,12 @@ impl fmt::Display for Message {
     }
 }
 
+impl ::std::error::Error for Message {
+    fn description(&self) -> &str {
+        "llvm error"
+    }
+}
+
 impl Drop for Message {
     fn drop(&mut self) {
         if !self.0.is_null() {
@@ -290,10 +296,6 @@ impl Module {
         Value(value)
     }
 
-    pub fn dump(&self) {
-        unsafe { core::LLVMDumpModule(self.get()) }
-    }
-
     pub fn verify(&self) -> Result<(), Message> {
         unsafe {
             let mut msg: Message = Message::with_null();
@@ -336,6 +338,18 @@ impl Module {
             ::std::slice::from_raw_parts(start, size).to_vec()
         };
         Ok(result)
+    }
+}
+
+impl ::std::string::ToString for Module {
+    fn to_string(&self) -> String {
+        unsafe {
+            let s = core::LLVMPrintModuleToString(self.get());
+            if s.is_null() {
+                panic!("failed to stringize llvm module")
+            }
+            format!("{}", Message(s))
+        }
     }
 }
 
