@@ -1,0 +1,227 @@
+use super::*;
+
+use basis::pos::Source;
+use syntax;
+
+fn run_semantic_check(input: &str) -> ::std::result::Result<ir::Program, String> {
+    let source = Source::with_dummy(input.to_string());
+    // We're testing semantic checking, not syntax parsing.
+    let nodes = syntax::parse(&source).unwrap();
+    let mut ctx = Context::new();
+    ctx.check_and_transform(nodes)
+        .map_err(|err| err.with_source(&source).to_string())
+}
+
+mod success {
+    use super::*;
+
+    #[test]
+    fn simple_literal() {
+        let input = r#"
+
+        1
+        true
+        false
+
+"#;
+        let program = run_semantic_check(input).unwrap();
+        assert!(program.entries.is_empty());
+        assert_eq!(program.toplevels.len(), 3);
+    }
+
+    #[test]
+    fn arithmetic_infix_operations() {
+        let input = r#"
+
+            1 - 2
+            1 + 2
+            1 * 2
+            1 / 2
+            1.0 - 2.0
+            1.0 + 2.0
+            1.0 * 2.0
+            1.0 / 2.0
+
+"#;
+        let program = run_semantic_check(input).unwrap();
+        assert!(program.entries.is_empty());
+        assert_eq!(program.toplevels.len(), 8);
+    }
+
+    #[test]
+    fn global_identifier() {
+        let input = r#"
+
+            let x: int = 0
+            let y: int = x
+            x + y
+
+"#;
+        let program = run_semantic_check(input).unwrap();
+        assert_eq!(program.entries.len(), 2);
+        assert_eq!(program.toplevels.len(), 3);
+    }
+
+    #[test]
+    fn function_definition() {
+        let input = r#"
+
+            def add(x: int, y: int): int = x + y
+
+            def nop() = { }
+
+            def local_variables(): int = {
+                let x = 0
+                x
+            }
+
+"#;
+        let program = run_semantic_check(input).unwrap();
+        assert_eq!(program.entries.len(), 3);
+        assert_eq!(program.toplevels.len(), 0);
+    }
+
+    #[test]
+    fn function_call() {
+        let input = r#"
+
+            def add(x: int, y: int): int = x + y
+
+            let x: int = 0
+            let y: int = 1
+            let z: int = add(0, 1)
+
+"#;
+        let program = run_semantic_check(input).unwrap();
+        assert_eq!(program.entries.len(), 4);
+        assert_eq!(program.toplevels.len(), 3);
+    }
+
+    #[test]
+    fn if_expression() {
+        let input = r#"
+
+            let cond: bool = true
+            let x: int = if cond {
+                1
+            } else {
+                2
+            }
+
+"#;
+        let program = run_semantic_check(input).unwrap();
+        assert_eq!(program.entries.len(), 2);
+        assert_eq!(program.toplevels.len(), 2);
+    }
+}
+
+mod failure {
+    use super::*;
+    use basis::errors::disable_colorized_error;
+
+    fn run(input: &str, expected_messages: &[&str]) {
+        disable_colorized_error();
+        let err = run_semantic_check(input).unwrap_err();
+        for e in expected_messages {
+            assert!(err.contains(e),
+                    "expected error contains {:?}, but got error is {:?}",
+                    e,
+                    err.to_string());
+        }
+    }
+
+    #[test]
+    fn global_identifier() {
+        let input = r#"let x: int = 0.0"#;
+        run(input, &["<dummy>:1:14", "mismatched types"]);
+    }
+
+    #[test]
+    fn arithmetic_infix_operations() {
+        for op in &["+", "-", "/", "*"] {
+            let input = format!(r#"1 {} 2.3"#, op);
+            run(&input, &["<dummy>:1:5", "mismatched types"]);
+        }
+    }
+
+    #[test]
+    fn function_return_type() {
+        let input = r#"
+
+            def add(x: int, y: int): float = x + y
+
+        "#;
+        run(input, &["<dummy>:3:46", "mismatched types"]);
+    }
+
+    #[test]
+    fn function_parameter_type() {
+        let input = r#"
+
+            def add(x: int, y: int): int = x + y
+
+            add(1.0, 2.0)
+
+        "#;
+        run(input, &["<dummy>:5:17", "mismatched types"]);
+    }
+
+    #[test]
+    fn function_parameter_number() {
+        let input = r#"
+
+            def add(x: int, y: int): int = x + y
+
+            add(0)
+
+        "#;
+        run(input,
+            &["<dummy>:5:13", "invalid number", "expected 2", "given 1"]);
+    }
+
+    #[test]
+    fn if_else_expression() {
+        let input = r#"
+
+            let x: int = if true {
+                1
+            } else {
+                2.0
+            }
+
+        "#;
+
+        run(input,
+            &["<dummy>:6:17", "mismatched types", "'if' and 'else'"]);
+    }
+
+    #[test]
+    fn if_expression() {
+        let input = r#"
+
+            let x: int = if true {
+                1
+            }
+
+        "#;
+
+        run(input, &["<dummy>:4:17", "mismatched types"]);
+    }
+
+    #[test]
+    fn name_conflict() {
+        let input = r#"
+
+            let foo: int = 0
+
+            def foo() = ()
+
+        "#;
+
+        run(input,
+            &["<dummy>:5:13",
+              "duplicate definition",
+              "<dummy>:3:13: note",
+              "previous definition"]);
+    }
+}

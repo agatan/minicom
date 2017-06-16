@@ -14,6 +14,9 @@ pub use self::typing::TypeMap;
 use self::alpha::Alpha;
 use self::infer::Infer;
 
+#[cfg(test)]
+mod tests;
+
 mod errors {
     error_chain! {
         errors { }

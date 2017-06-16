@@ -115,6 +115,13 @@ impl<'a, E: fmt::Display> fmt::Display for ErrorWithSource<'a, E> {
     }
 }
 
+pub fn disable_colorized_error() {
+    BOLD_STYLE.with(|s| s.set(Style::default()));
+    ERROR_STYLE.with(|s| s.set(Style::default()));
+    NOTE_STYLE.with(|s| s.set(Style::default()));
+    UNDERLINE_STYLE.with(|s| s.set(Style::default()));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -137,16 +144,9 @@ mod tests {
         Source::with_dummy("".to_owned())
     }
 
-    fn reset_attributes() {
-        BOLD_STYLE.with(|s| s.set(Style::default()));
-        ERROR_STYLE.with(|s| s.set(Style::default()));
-        NOTE_STYLE.with(|s| s.set(Style::default()));
-        UNDERLINE_STYLE.with(|s| s.set(Style::default()));
-    }
-
     #[test]
     fn only_main_error() {
-        reset_attributes();
+        disable_colorized_error();
         let err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
         let source = dummy_source();
         let expected = "<dummy>:1:0: error: main error\n";
@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn error_with_notes() {
-        reset_attributes();
+        disable_colorized_error();
         let mut err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
         note_in!(err, ZERO_SPAN, "spanned {}", "note");
         note!(err, "non-spanned note");
