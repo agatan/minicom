@@ -30,6 +30,9 @@ pub enum Token<'input> {
     Let,
     Def,
     Print,
+    Ref,
+    Deref,
+    LeftArrow,
 
     Colon,
     Comma,
@@ -81,6 +84,9 @@ impl<'input> fmt::Display for Token<'input> {
             Let => f.write_str("let"),
             Def => f.write_str("def"),
             Print => f.write_str("print"),
+            Ref => f.write_str("ref"),
+            Deref => f.write_str("@"),
+            LeftArrow => f.write_str("<-"),
             Colon => f.write_str(":"),
             Comma => f.write_str(","),
             LParen => f.write_str("("),
@@ -227,6 +233,7 @@ impl<'input> Tokenizer<'input> {
             "let" => Token::Let,
             "def" => Token::Def,
             "print" => Token::Print,
+            "ref" => Token::Ref,
             ident => Token::Identifier(ident),
         };
         Spanned::new(start, end, token)
@@ -260,6 +267,7 @@ impl<'input> Tokenizer<'input> {
                        ')' => Some(Ok(Spanned::new(start, start.shift(ch), Token::RParen))),
                        '{' => Some(Ok(Spanned::new(start, start.shift(ch), Token::LBrace))),
                        '}' => Some(Ok(Spanned::new(start, start.shift(ch), Token::RBrace))),
+                       '@' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Deref))),
                        '+' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Add))),
                        '-' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Sub))),
                        '*' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Mul))),
@@ -286,6 +294,9 @@ impl<'input> Tokenizer<'input> {
                            let sp = if self.test_lookahead(|ch| ch == '=') {
                                self.bump();
                                Spanned::new(start, start.shift(ch).shift('='), Token::LE)
+                           } else if self.test_lookahead(|ch| ch == '-') {
+                               self.bump();
+                               Spanned::new(start, start.shift(ch).shift('-'), Token::LeftArrow)
                            } else {
                                Spanned::new(start, start.shift(ch), Token::LT)
                            };
@@ -380,13 +391,15 @@ mod test {
 
     #[test]
     fn multiple_char_operators() {
-        runtest(" == != <= < >= > ",
-                vec![(" ^^              ", Token::EqEq),
-                     ("    ^^           ", Token::Neq),
-                     ("       ^^        ", Token::LE),
-                     ("          ^      ", Token::LT),
-                     ("            ^^   ", Token::GE),
-                     ("               ^ ", Token::GT)])
+        runtest(" == != <= < >= > @ <- ",
+                vec![(" ^^                   ", Token::EqEq),
+                     ("    ^^                ", Token::Neq),
+                     ("       ^^             ", Token::LE),
+                     ("          ^           ", Token::LT),
+                     ("            ^^        ", Token::GE),
+                     ("               ^      ", Token::GT),
+                     ("                 ^    ", Token::Deref),
+                     ("                   ^^ ", Token::LeftArrow)])
     }
 
     #[test]

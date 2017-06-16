@@ -43,8 +43,13 @@ pub enum NodeKind {
     While(Box<Spanned<Node>>, Box<Spanned<Node>>),
     // FIXME(agatan): temporary builtin command
     Print(Box<Spanned<Node>>),
+    // ref(1)
+    Ref(Box<Spanned<Node>>),
+    // @x
+    Deref(Box<Spanned<Node>>),
+    // x <- 1
+    Assign(Box<Spanned<Node>>, Box<Spanned<Node>>),
     Let(Box<Let>),
-    Assign(String, Box<Spanned<Node>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

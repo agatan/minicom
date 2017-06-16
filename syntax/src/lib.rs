@@ -61,8 +61,13 @@ fn test_parse() {
     let y: int = 2;
     def add(x: int, y: int): int = {
         let z = x + y;
-        z
+        let r = ref(z);
+        print(x)
+        r <- 1
+        @r
     }
+
         "#;
     NodeEnv::new().parse(input).unwrap();
 }
+
