@@ -43,6 +43,12 @@ pub enum Type {
     Var(Rc<RefCell<Option<Type>>>),
 }
 
+impl Type {
+    pub fn newvar() -> Type {
+        Type::Var(Rc::new(RefCell::new(None)))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Node {
     pub kind: NodeKind,

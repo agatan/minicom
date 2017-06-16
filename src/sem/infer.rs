@@ -229,6 +229,7 @@ impl Infer {
         if let Type::Var(ref rvar) = *expected {
             if rvar.borrow().is_none() {
                 *rvar.borrow_mut() = Some(actual.clone());
+                return Ok(());
             } else {
                 return self.unify(rvar.borrow().as_ref().unwrap(), actual);
             }
@@ -236,6 +237,7 @@ impl Infer {
         if let Type::Var(ref lvar) = *actual {
             if lvar.borrow().is_none() {
                 *lvar.borrow_mut() = Some(expected.clone());
+                return Ok(());
             } else {
                 return self.unify(expected, lvar.borrow().as_ref().unwrap());
             }
@@ -331,14 +333,14 @@ impl Infer {
                 Ok(Type::Unit)
             }
             NodeKind::Let(ref let_) => {
-                let typ = match let_.typ {
-                    None => self.infer_node(&let_.value, &Expect::None)?,
+                let expected_typ = match let_.typ {
+                    None => Type::newvar(),
                     Some(ref typ) => {
-                        let typ = self.convert_type(&typ.value)
-                            .map_err(|err| BasisError::span(typ.span, err))?;
-                        self.infer_node(&let_.value, &Expect::Type { typ: typ })?
+                        self.convert_type(&typ.value)
+                            .map_err(|err| BasisError::span(typ.span, err))?
                     }
                 };
+                let typ = self.infer_node(&let_.value, &Expect::Type { typ: expected_typ })?;
                 let var = Spanned::span(node.span, Entry::Var(typ));
                 self.current_scope().define(let_.name.clone(), var)?;
                 Ok(Type::Unit)
