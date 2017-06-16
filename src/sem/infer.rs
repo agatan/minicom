@@ -422,8 +422,8 @@ impl Infer {
         }
     }
 
-    pub fn gettyp(&self, id: NodeId) -> Type {
-        self.typemap.get(id)
+    pub fn gettyp(&self, id: NodeId) -> Result<Type, Error> {
+        self.typemap.get(id).deref()
     }
 }
 

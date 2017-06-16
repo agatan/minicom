@@ -2,6 +2,8 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use super::Error;
+
 #[derive(Debug)]
 pub struct Program {
     pub entries: HashMap<String, Entry>,
@@ -46,6 +48,18 @@ pub enum Type {
 impl Type {
     pub fn newvar() -> Type {
         Type::Var(Rc::new(RefCell::new(None)))
+    }
+
+    pub fn deref(self) -> Result<Type, Error> {
+        match self {
+            Type::Var(inner) => {
+                match inner.borrow_mut().as_mut() {
+                    None => bail!("type annotation needed"),
+                    Some(inner) => inner.clone().deref(),
+                }
+            }
+            typ => Ok(typ),
+        }
     }
 }
 
