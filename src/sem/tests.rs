@@ -114,3 +114,114 @@ mod success {
         assert_eq!(program.toplevels.len(), 2);
     }
 }
+
+mod failure {
+    use super::*;
+    use basis::errors::disable_colorized_error;
+
+    fn run(input: &str, expected_messages: &[&str]) {
+        disable_colorized_error();
+        let err = run_semantic_check(input).unwrap_err();
+        for e in expected_messages {
+            assert!(err.contains(e),
+                    "expected error contains {:?}, but got error is {:?}",
+                    e,
+                    err.to_string());
+        }
+    }
+
+    #[test]
+    fn global_identifier() {
+        let input = r#"let x: int = 0.0"#;
+        run(input, &["<dummy>:1:14", "mismatched types"]);
+    }
+
+    #[test]
+    fn arithmetic_infix_operations() {
+        for op in &["+", "-", "/", "*"] {
+            let input = format!(r#"1 {} 2.3"#, op);
+            run(&input, &["<dummy>:1:5", "mismatched types"]);
+        }
+    }
+
+    #[test]
+    fn function_return_type() {
+        let input = r#"
+
+            def add(x: int, y: int): float = x + y
+
+        "#;
+        run(input, &["<dummy>:3:46", "mismatched types"]);
+    }
+
+    #[test]
+    fn function_parameter_type() {
+        let input = r#"
+
+            def add(x: int, y: int): int = x + y
+
+            add(1.0, 2.0)
+
+        "#;
+        run(input, &["<dummy>:5:17", "mismatched types"]);
+    }
+
+    #[test]
+    fn function_parameter_number() {
+        let input = r#"
+
+            def add(x: int, y: int): int = x + y
+
+            add(0)
+
+        "#;
+        run(input,
+            &["<dummy>:5:13", "invalid number", "expected 2", "given 1"]);
+    }
+
+    #[test]
+    fn if_else_expression() {
+        let input = r#"
+
+            let x: int = if true {
+                1
+            } else {
+                2.0
+            }
+
+        "#;
+
+        run(input,
+            &["<dummy>:6:17", "mismatched types", "'if' and 'else'"]);
+    }
+
+    #[test]
+    fn if_expression() {
+        let input = r#"
+
+            let x: int = if true {
+                1
+            }
+
+        "#;
+
+        run(input, &["<dummy>:4:17", "mismatched types"]);
+    }
+
+    #[test]
+    fn name_conflict() {
+        let input = r#"
+
+            let foo: int = 0
+
+            def foo() = ()
+
+        "#;
+
+        run(input,
+            &["<dummy>:5:13",
+              "duplicate definition",
+              "<dummy>:3:13: note",
+              "previous definition"]);
+    }
+}
