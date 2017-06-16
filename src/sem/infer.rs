@@ -223,10 +223,24 @@ impl Infer {
     }
 
     fn unify(&self, expected: &Type, actual: &Type) -> Result<(), Error> {
-        if expected != actual {
-            bail!("mismatched types: {:?} and {:?}", expected, actual)
+        if expected == actual {
+            return Ok(());
         }
-        Ok(())
+        if let Type::Var(ref rvar) = *expected {
+            if rvar.borrow().is_none() {
+                *rvar.borrow_mut() = Some(actual.clone());
+            } else {
+                return self.unify(rvar.borrow().as_ref().unwrap(), actual);
+            }
+        }
+        if let Type::Var(ref lvar) = *actual {
+            if lvar.borrow().is_none() {
+                *lvar.borrow_mut() = Some(expected.clone());
+            } else {
+                return self.unify(expected, lvar.borrow().as_ref().unwrap());
+            }
+        }
+        bail!("mismatched types: {:?} and {:?}", expected, actual)
     }
 
     fn infer_binary_operation<'a>(&mut self,

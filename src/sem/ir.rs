@@ -1,3 +1,5 @@
+use std::rc::Rc;
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -38,6 +40,7 @@ pub enum Type {
     Float,
     Bool,
     Unit,
+    Var(Rc<RefCell<Option<Type>>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
