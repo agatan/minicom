@@ -2,7 +2,7 @@ use llvm_sys::target_machine::{self, LLVMTargetRef, LLVMCodeGenOptLevel, LLVMRel
                                LLVMCodeModel};
 use llvm_sys::target;
 
-use super::Message;
+use super::{Type, Message};
 
 #[derive(Clone, Copy)]
 pub struct Target(LLVMTargetRef);
@@ -36,10 +36,24 @@ impl TargetMachine {
     pub fn get(&self) -> target_machine::LLVMTargetMachineRef {
         self.0
     }
+
+    pub fn data_layout(&self) -> TargetData {
+        TargetData(unsafe { target_machine::LLVMCreateTargetDataLayout(self.get()) })
+    }
 }
 
 #[derive(Clone, Copy)]
 pub struct TargetData(target::LLVMTargetDataRef);
+
+impl TargetData {
+    pub fn get(&self) -> target::LLVMTargetDataRef {
+        self.0
+    }
+
+    pub fn int_ptr_typ(&self) -> Type {
+        Type(unsafe { target::LLVMIntPtrType(self.get()) })
+    }
+}
 
 pub fn get_default_target_triple() -> *mut ::libc::c_char {
     unsafe { target_machine::LLVMGetDefaultTargetTriple() }

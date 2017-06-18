@@ -15,6 +15,7 @@ pub struct Compiler {
     globals: HashMap<String, Value>,
 
     pub machine: target::TargetMachine,
+    target_data: target::TargetData,
 }
 
 static LLVM_INIT: Once = ONCE_INIT;
@@ -30,12 +31,14 @@ impl Compiler {
             .map_err(|err| Error::from(err.to_string()))
             .chain_err(|| "failed to initialize llvm target")?;
         let tm = target::TargetMachine::new(triple, t);
+        let data = tm.data_layout();
         Ok(Compiler {
                ctx: ctx,
                module: module,
                builder: builder,
                globals: HashMap::new(),
                machine: tm,
+               target_data: data,
            })
     }
 
@@ -107,7 +110,11 @@ impl Compiler {
         }
         {
             // gc_malloc
-            // let fun_ty = self.ctx.function_type(self.ctx
+            let fun_ty = self.ctx
+                .function_type(self.ctx.void_ptr_type(),
+                               &[self.target_data.int_ptr_typ()],
+                               false);
+            self.module.add_function("gc_malloc", fun_ty);
         }
         // declare global variables and functions
         for entry in program.entries.values() {

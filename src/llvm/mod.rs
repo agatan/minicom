@@ -90,6 +90,10 @@ impl Context {
         Type(unsafe { core::LLVMInt1TypeInContext(self.get()) })
     }
 
+    pub fn void_ptr_type(&self) -> Type {
+        Type(unsafe { core::LLVMPointerType(core::LLVMInt8TypeInContext(self.get()), 0) })
+    }
+
     pub fn bool_type(&self) -> Type {
         Type(unsafe { core::LLVMInt1TypeInContext(self.get()) })
     }
