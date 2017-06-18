@@ -113,6 +113,22 @@ mod success {
         assert_eq!(program.entries.len(), 2);
         assert_eq!(program.toplevels.len(), 2);
     }
+
+    #[test]
+    fn ref_deref_assignment() {
+        let input = r#"
+
+            def foo() = {
+                let x = ref(0)
+                let y = @x
+                x <- y + 1
+            }
+
+"#;
+        let program = run_semantic_check(input).unwrap();
+        assert_eq!(program.entries.len(), 1);
+        assert_eq!(program.toplevels.len(), 0);
+    }
 }
 
 mod failure {
@@ -223,5 +239,19 @@ mod failure {
               "duplicate definition",
               "<dummy>:3:13: note",
               "previous definition"]);
+    }
+
+    #[test]
+    fn non_ref_assignment() {
+        let input = r#"
+
+            def foo() = {
+                let x = 1
+                x <- 2
+            }
+
+        "#;
+
+        run(input, &["<dummy>:5:17", "mismatched types"]);
     }
 }
