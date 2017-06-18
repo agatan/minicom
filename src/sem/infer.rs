@@ -310,7 +310,10 @@ impl Infer {
             NodeKind::Deref(ref e) => {
                 let inner_typ = Type::newvar();
                 self.infer_node(e,
-                                &Expect::Type { typ: Type::Ref(Box::new(inner_typ.clone())) })?;
+                                &Expect::WithMessage {
+                                    typ: Type::Ref(Box::new(inner_typ.clone())),
+                                    message: format_args!("cannot dereference non-reference value"),
+                                })?;
                 Ok(inner_typ)
             }
             NodeKind::Block(ref nodes) => {
@@ -369,7 +372,10 @@ impl Infer {
             NodeKind::Assign(ref to, ref value) => {
                 let inner_typ = Type::newvar();
                 self.infer_node(to,
-                                &Expect::Type { typ: Type::Ref(Box::new(inner_typ.clone())) })?;
+                                &Expect::WithMessage {
+                                    typ: Type::Ref(Box::new(inner_typ.clone())),
+                                    message: format_args!("cannot assign to non-reference value"),
+                                })?;
                 self.infer_node(value,
                                 &Expect::WithSpan {
                                     typ: inner_typ,
