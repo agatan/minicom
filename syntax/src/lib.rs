@@ -68,6 +68,8 @@ fn test_parse() {
     }
 
     let r: Ref[Int] = ref(0)
+    r <- 2
+    print(@r)
 
         "#;
     NodeEnv::new().parse(input).unwrap();

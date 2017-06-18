@@ -259,6 +259,7 @@ ToplevelKind: ToplevelKind = {
     Def => ToplevelKind::Def(Box::new(<>)),
     ToplevelLet,
     Expression => ToplevelKind::Expr(Box::new(<>)),
+    Span<Assignment> => ToplevelKind::Expr(Box::new(<>)),
 };
 
 Toplevel: Toplevel =
