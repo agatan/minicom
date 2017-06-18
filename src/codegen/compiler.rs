@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::sync::{Once, ONCE_INIT};
 use std::collections::HashMap;
 
-use llvm::{self, Message, Context, Module, Builder, Value, BasicBlock};
+use llvm::{self, Context, Module, Builder, Value, BasicBlock};
 use llvm::target;
 use sem::ir::*;
 
@@ -48,6 +48,10 @@ impl Compiler {
             Type::Float => self.ctx.float_type(),
             Type::Bool => self.ctx.bool_type(),
             Type::Unit => self.ctx.unit_type(),
+            Type::Ref(ref inner) => {
+                let inner = self.compile_type(inner);
+                inner.pointer_type()
+            }
             _ => unreachable!(),
         }
     }
@@ -82,7 +86,7 @@ impl Compiler {
         fun
     }
 
-    pub fn compile_program(&mut self, program: &Program) -> Result<&Module, Message> {
+    pub fn compile_program(&mut self, program: &Program) -> Result<&Module, Error> {
         // FIXME(agatan): language items
         {
             // print_unit
@@ -116,6 +120,11 @@ impl Compiler {
                                false);
             self.module.add_function("gc_malloc", fun_ty);
         }
+        let gc_init_fun = {
+            // gc_init
+            let fun_ty = self.ctx.function_type(self.ctx.void_type(), &[], false);
+            self.module.add_function("gc_init", fun_ty)
+        };
         // declare global variables and functions
         for entry in program.entries.values() {
             match *entry {
@@ -143,6 +152,8 @@ impl Compiler {
         self.builder.position_at_end(&start);
         {
             let mut fbuilder = FunBuilder::new(&entry, self);
+            // call gc_init
+            fbuilder.compiler.builder.call(gc_init_fun, &[], "");
             for node in program.toplevels.iter() {
                 fbuilder.compile_node(node);
             }
@@ -151,7 +162,10 @@ impl Compiler {
         self.builder.ret(ret);
         self.builder.position_at_end(&entry);
         self.builder.br(&start);
-        self.module.verify()?;
+        self.module
+            .verify()
+            .map_err(|err| Error::from(err.to_string()))
+            .chain_err(|| format!("failed to emit LLVM IR: {}", self.module.to_string()))?;
         Ok(&self.module)
     }
 
@@ -234,6 +248,19 @@ impl<'a, 's> FunBuilder<'a, 's> {
         let alloca = self.compiler.builder.alloca(typ, name);
         self.compiler.builder.position_at_end(&saved);
         alloca
+    }
+
+    pub fn malloc(&mut self, typ: llvm::Type) -> Value {
+        let size = self.compiler.target_data.store_size_of_type(&typ);
+        let size_value = self.compiler.target_data.int_ptr_typ().const_int(size);
+        let f = self.compiler
+            .module
+            .get_function("gc_malloc")
+            .expect("runtime function `gc_malloc` is undefined");
+        let void_ptr = self.compiler.builder.call(f, &[size_value], "malloctmp");
+        self.compiler
+            .builder
+            .bitcast(void_ptr, typ.pointer_type(), "mallocptr")
     }
 
     pub fn compile_node(&mut self, node: &'s Node) -> Value {
@@ -418,9 +445,11 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 self.compiler.builder.store(value, ptr)
             }
             NodeKind::Ref(ref e) => {
-                let _value = self.compile_node(e);
-                // TODO(agatan): malloc
-                unimplemented!()
+                let value = self.compile_node(e);
+                let typ = value.get_type();
+                let ptr = self.malloc(typ);
+                self.compiler.builder.store(value, ptr);
+                ptr
             }
             NodeKind::Deref(ref e) => {
                 let value = self.compile_node(e);

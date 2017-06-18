@@ -35,7 +35,7 @@ pub fn link(executable: &str, obj: &str) -> Result<(), Error> {
     let linker = find_linker()?;
     let runtime = find_runtime_library()?;
 
-    let mut args = vec!["-o", executable, obj, &runtime];
+    let mut args = vec!["-o", executable, obj, &runtime, "-lgc"];
     args.extend(DEFAULT_LD_FLAGS.iter());
 
     let status = Command::new(linker)

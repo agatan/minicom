@@ -86,6 +86,10 @@ impl Context {
         self.0
     }
 
+    pub fn void_type(&self) -> Type {
+        Type(unsafe { core::LLVMVoidTypeInContext(self.get()) })
+    }
+
     pub fn unit_type(&self) -> Type {
         Type(unsafe { core::LLVMInt1TypeInContext(self.get()) })
     }
@@ -193,6 +197,11 @@ impl Builder {
     pub fn load(&mut self, ptr: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         unsafe { Value(core::LLVMBuildLoad(self.get(), ptr.to_value(), name.as_ptr())) }
+    }
+
+    pub fn bitcast(&mut self, ptr: Value, typ: Type, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildBitCast(self.get(), ptr.get(), typ.get(), name.as_ptr())) }
     }
 
     pub fn add(&mut self, a: Value, b: Value, name: &str) -> Value {
@@ -367,6 +376,10 @@ impl Type {
 
     pub fn const_float(&self, f: f64) -> Value {
         Value(unsafe { core::LLVMConstReal(self.get(), f) })
+    }
+
+    pub fn pointer_type(&self) -> Type {
+        Type(unsafe { core::LLVMPointerType(self.get(), 0) })
     }
 }
 

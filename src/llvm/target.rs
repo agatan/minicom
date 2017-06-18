@@ -53,6 +53,10 @@ impl TargetData {
     pub fn int_ptr_typ(&self) -> Type {
         Type(unsafe { target::LLVMIntPtrType(self.get()) })
     }
+
+    pub fn store_size_of_type(&self, typ: &Type) -> ::libc::c_ulonglong {
+        unsafe { target::LLVMStoreSizeOfType(self.get(), typ.get()) }
+    }
 }
 
 pub fn get_default_target_triple() -> *mut ::libc::c_char {

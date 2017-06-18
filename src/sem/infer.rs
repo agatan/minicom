@@ -223,26 +223,32 @@ impl Infer {
     }
 
     fn unify(&self, expected: &Type, actual: &Type) -> Result<(), Error> {
-        if expected == actual {
-            return Ok(());
-        }
-        if let Type::Var(ref rvar) = *expected {
-            if rvar.borrow().is_none() {
-                *rvar.borrow_mut() = Some(actual.clone());
-                return Ok(());
-            } else {
-                return self.unify(rvar.borrow().as_ref().unwrap(), actual);
+        match (expected, actual) {
+            (&Type::Var(ref rvar), _) => {
+                if rvar.borrow().is_none() {
+                    *rvar.borrow_mut() = Some(actual.clone());
+                    return Ok(());
+                } else {
+                    return self.unify(rvar.borrow().as_ref().unwrap(), actual);
+                }
+            }
+            (_, &Type::Var(ref lvar)) => {
+                if lvar.borrow().is_none() {
+                    *lvar.borrow_mut() = Some(expected.clone());
+                    return Ok(());
+                } else {
+                    return self.unify(expected, lvar.borrow().as_ref().unwrap());
+                }
+            }
+            (&Type::Ref(ref l_inner), &Type::Ref(ref r_inner)) => self.unify(l_inner, r_inner),
+            (_, _) => {
+                if expected == actual {
+                    Ok(())
+                } else {
+                    bail!("mismatched types: {:?} and {:?}", expected, actual)
+                }
             }
         }
-        if let Type::Var(ref lvar) = *actual {
-            if lvar.borrow().is_none() {
-                *lvar.borrow_mut() = Some(expected.clone());
-                return Ok(());
-            } else {
-                return self.unify(expected, lvar.borrow().as_ref().unwrap());
-            }
-        }
-        bail!("mismatched types: {:?} and {:?}", expected, actual)
     }
 
     fn infer_binary_operation<'a>(&mut self,
@@ -293,7 +299,7 @@ impl Infer {
             NodeKind::Parens(ref e) => self.infer_node(e, expect),
             NodeKind::Print(ref e) => self.infer_node(e, expect),
             NodeKind::Ref(ref e) => {
-                let inner_typ = self.infer_node(e, expect)?;
+                let inner_typ = self.infer_node(e, &Expect::None)?;
                 Ok(Type::Ref(Box::new(inner_typ)))
             }
             NodeKind::Deref(ref e) => {

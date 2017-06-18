@@ -59,6 +59,10 @@ impl Type {
                     Some(inner) => inner.clone().deref(),
                 }
             }
+            Type::Ref(inner) => {
+                let inner = inner.deref()?;
+                Ok(Type::Ref(Box::new(inner)))
+            }
             typ => Ok(typ),
         }
     }
