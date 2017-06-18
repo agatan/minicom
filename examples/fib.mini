@@ -6,8 +6,13 @@ def fib(n: int): int = {
   }
 }
 
-let n: int = 0
-while n < 38 {
-  print(fib(n))
-  n = n + 1
+
+def run() = {
+  let n = ref(0)
+  while @n < 38 {
+    print(fib(@n))
+    n <- @n + 1
+  }
 }
+
+run()

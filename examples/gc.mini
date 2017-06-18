@@ -1,0 +1,8 @@
+def run() = {
+  while true {
+    let x = ref(1)
+    x <- 0
+  }
+}
+
+run()
