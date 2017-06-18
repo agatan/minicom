@@ -27,8 +27,7 @@ pub struct Emitter {
 impl Emitter {
     pub fn new(program: &Program) -> Result<Emitter, Error> {
         let mut c = compiler::Compiler::new()?;
-        c.compile_program(program)
-            .map_err(|err| Error::from(err.to_string()))?;
+        c.compile_program(program)?;
         Ok(Emitter {
                module: c.module,
                machine: c.machine,

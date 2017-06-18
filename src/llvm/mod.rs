@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::rc::Rc;
 use std::ops::Drop;
 use std::fmt;
@@ -44,7 +44,7 @@ impl fmt::Debug for Message {
         if self.0.is_null() {
             f.write_str("(null)")
         } else {
-            write!(f, "Message({:?})", unsafe { CString::from_raw(self.0) })
+            write!(f, "Message({:?})", unsafe { CStr::from_ptr(self.0) })
         }
     }
 }
@@ -54,9 +54,7 @@ impl fmt::Display for Message {
         if self.0.is_null() {
             return f.write_str("(null)");
         }
-        unsafe { CString::from_raw(self.0) }
-            .to_string_lossy()
-            .fmt(f)
+        unsafe { CStr::from_ptr(self.0) }.to_string_lossy().fmt(f)
     }
 }
 
@@ -308,14 +306,18 @@ impl Module {
         Value(value)
     }
 
-    pub fn verify(&self) -> Result<(), Message> {
+    pub fn verify(&self) -> Result<(), String> {
         unsafe {
             let mut msg: Message = Message::with_null();
             let ret = analysis::LLVMVerifyModule(
                 self.get(),
                 analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction,
                     msg.get_mut_ptr());
-            if ret == 1 { Err(msg) } else { Ok(()) }
+            if ret == 1 {
+                Err(msg.to_string())
+            } else {
+                Ok(())
+            }
         }
     }
 
@@ -349,7 +351,7 @@ impl ::std::string::ToString for Module {
             if s.is_null() {
                 panic!("failed to stringize llvm module")
             }
-            format!("{}", Message(s))
+            CStr::from_ptr(s).to_string_lossy().to_string()
         }
     }
 }
@@ -376,6 +378,10 @@ impl Type {
 
     pub fn const_float(&self, f: f64) -> Value {
         Value(unsafe { core::LLVMConstReal(self.get(), f) })
+    }
+
+    pub fn const_null(&self) -> Value {
+        Value(unsafe { core::LLVMConstNull(self.get()) })
     }
 
     pub fn pointer_type(&self) -> Type {

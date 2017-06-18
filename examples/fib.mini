@@ -1,4 +1,4 @@
-def fib(n: int): int = {
+def fib(n: Int): Int = {
   if n <= 1 {
     1
   } else {
@@ -7,12 +7,8 @@ def fib(n: int): int = {
 }
 
 
-def run() = {
-  let n = ref(0)
-  while @n < 38 {
-    print(fib(@n))
-    n <- @n + 1
-  }
+let n: Ref[Int] = ref(0)
+while @n < 38 {
+  print(fib(@n))
+  n <- @n + 1
 }
-
-run()

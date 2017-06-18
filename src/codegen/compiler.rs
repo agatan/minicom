@@ -42,7 +42,7 @@ impl Compiler {
            })
     }
 
-    fn compile_type(&mut self, ty: &Type) -> llvm::Type {
+    fn compile_type(&self, ty: &Type) -> llvm::Type {
         match *ty {
             Type::Int => self.ctx.int32_type(),
             Type::Float => self.ctx.float_type(),
@@ -52,7 +52,7 @@ impl Compiler {
                 let inner = self.compile_type(inner);
                 inner.pointer_type()
             }
-            _ => unreachable!(),
+            Type::Var(_) => unreachable!(),
         }
     }
 
@@ -164,8 +164,11 @@ impl Compiler {
         self.builder.br(&start);
         self.module
             .verify()
-            .map_err(|err| Error::from(err.to_string()))
-            .chain_err(|| format!("failed to emit LLVM IR: {}", self.module.to_string()))?;
+            .map_err(|err| Error::from(format!("{}", err)))
+            .chain_err(|| {
+                           format!("failed to generate valid LLVM IR: {}",
+                                   self.module.to_string())
+                       })?;
         Ok(&self.module)
     }
 
@@ -198,7 +201,8 @@ impl Compiler {
             Type::Int => self.int(0),
             Type::Bool => self.bool(false),
             Type::Float => self.float(0.0),
-            _ => unreachable!(),
+            Type::Ref(ref inner) => self.compile_type(inner).pointer_type().const_null(),
+            Type::Var(_) => unreachable!(),
         }
     }
 }

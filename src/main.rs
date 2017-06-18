@@ -18,6 +18,8 @@ mod codegen;
 
 use std::io::prelude::*;
 
+use error_chain::ChainedError;
+
 use basis::pos::Source;
 
 use sem::Context;
@@ -54,7 +56,7 @@ fn main() {
     let prog = try_or_exit!(ctx.check_and_transform(nodes)
                                 .map_err(|err| err.with_source(&source)));
     debug!("program: {:?}", prog);
-    let emitter = try_or_exit!(Emitter::new(&prog));
+    let emitter = try_or_exit!(Emitter::new(&prog).map_err(|err| err.display().to_string()));
     println!("{}", emitter.emit_llvm_ir());
     try_or_exit!(emitter.emit_executable(&source.stem()));
 }
