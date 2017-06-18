@@ -3,29 +3,42 @@ use std::sync::{Once, ONCE_INIT};
 use std::collections::HashMap;
 
 use llvm::{self, Message, Context, Module, Builder, Value, BasicBlock};
+use llvm::target;
 use sem::ir::*;
+
+use super::{Error, ResultExt};
 
 pub struct Compiler {
     ctx: Rc<Context>,
     pub module: Module,
     builder: Builder,
     globals: HashMap<String, Value>,
+
+    target: target::Target,
+    pub machine: target::TargetMachine,
 }
 
 static LLVM_INIT: Once = ONCE_INIT;
 
 impl Compiler {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self, Error> {
         LLVM_INIT.call_once(|| llvm::init());
         let ctx = Context::new();
         let module = Module::new(ctx.clone(), "main");
         let builder = Builder::new(ctx.clone());
-        Compiler {
-            ctx: ctx,
-            module: module,
-            builder: builder,
-            globals: HashMap::new(),
-        }
+        let triple = target::get_default_target_triple();
+        let t = target::Target::from_triple(triple)
+            .map_err(|err| Error::from(err.to_string()))
+            .chain_err(|| "failed to initialize llvm target")?;
+        let tm = target::TargetMachine::new(triple, t);
+        Ok(Compiler {
+               ctx: ctx,
+               module: module,
+               builder: builder,
+               globals: HashMap::new(),
+               target: t,
+               machine: tm,
+           })
     }
 
     fn compile_type(&mut self, ty: &Type) -> llvm::Type {
@@ -93,6 +106,10 @@ impl Compiler {
             let fun_ty = self.ctx
                 .function_type(self.ctx.float_type(), &[self.ctx.float_type()], false);
             self.module.add_function("print_float", fun_ty);
+        }
+        {
+            // gc_malloc
+            // let fun_ty = self.ctx.function_type(self.ctx
         }
         // declare global variables and functions
         for entry in program.entries.values() {

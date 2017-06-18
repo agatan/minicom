@@ -307,23 +307,12 @@ impl Module {
         }
     }
 
-    pub fn emit_object(&self) -> Result<Vec<u8>, Message> {
-        let triple = target::get_default_target_triple();
-        let tar = target::get_target_from_triple(triple)?;
-        let machine = unsafe {
-            target_machine::LLVMCreateTargetMachine(tar,
-                                                    triple,
-                                                    "".as_ptr() as *const i8, // cpu
-                                                    "".as_ptr() as *const i8, // features
-                                                    LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
-                                                    LLVMRelocMode::LLVMRelocDefault,
-                                                    LLVMCodeModel::LLVMCodeModelDefault)
-        };
+    pub fn emit_object(&self, machine: target::TargetMachine) -> Result<Vec<u8>, Message> {
         let mut err: Message = Message::with_null();
         let mut membuf: LLVMMemoryBufferRef = unsafe { ::std::mem::uninitialized() };
         let failed = unsafe {
             target_machine::LLVMTargetMachineEmitToMemoryBuffer(
-                machine,
+                machine.get(),
                 self.get(),
                 LLVMCodeGenFileType::LLVMObjectFile,
                 err.get_mut_ptr(),
