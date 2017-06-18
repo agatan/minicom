@@ -6,6 +6,8 @@ use basis::pos::{Byte, Line, Column, Location, Spanned};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token<'input> {
+    UpperIdentifier(&'input str),
+    RefType,
     Identifier(&'input str),
     IntLiteral(i32),
     FloatLiteral(f64),
@@ -38,6 +40,8 @@ pub enum Token<'input> {
     Comma,
     LParen,
     RParen,
+    LBrack,
+    RBrack,
     LBrace,
     RBrace,
 
@@ -50,9 +54,15 @@ impl<'input> Token<'input> {
     fn follows_implicit_semi(&self) -> bool {
         use self::Token::*;
         match *self {
-            Identifier(_) | IntLiteral(_) | FloatLiteral(_) | True | False | RParen | RBrace => {
-                true
-            }
+            UpperIdentifier(_) |
+            Identifier(_) |
+            IntLiteral(_) |
+            FloatLiteral(_) |
+            True |
+            False |
+            RParen |
+            RBrack |
+            RBrace => true,
             _ => false,
         }
     }
@@ -62,6 +72,8 @@ impl<'input> fmt::Display for Token<'input> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::Token::*;
         match *self {
+            UpperIdentifier(n) => fmt::Debug::fmt(n, f),
+            RefType => f.write_str("Ref"),
             Identifier(n) => fmt::Debug::fmt(n, f),
             IntLiteral(n) => n.fmt(f),
             FloatLiteral(n) => n.fmt(f),
@@ -91,6 +103,8 @@ impl<'input> fmt::Display for Token<'input> {
             Comma => f.write_str(","),
             LParen => f.write_str("("),
             RParen => f.write_str(")"),
+            LBrack => f.write_str("["),
+            RBrack => f.write_str("]"),
             LBrace => f.write_str("{"),
             RBrace => f.write_str("}"),
             Semi => f.write_str(";"),
@@ -234,7 +248,14 @@ impl<'input> Tokenizer<'input> {
             "def" => Token::Def,
             "print" => Token::Print,
             "ref" => Token::Ref,
-            ident => Token::Identifier(ident),
+            "Ref" => Token::RefType,
+            ident => {
+                if ident.starts_with(|ch: char| ch.is_uppercase()) {
+                    Token::UpperIdentifier(ident)
+                } else {
+                    Token::Identifier(ident)
+                }
+            }
         };
         Spanned::new(start, end, token)
     }
@@ -265,6 +286,8 @@ impl<'input> Tokenizer<'input> {
                        ';' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Semi))),
                        '(' => Some(Ok(Spanned::new(start, start.shift(ch), Token::LParen))),
                        ')' => Some(Ok(Spanned::new(start, start.shift(ch), Token::RParen))),
+                       '[' => Some(Ok(Spanned::new(start, start.shift(ch), Token::LBrack))),
+                       ']' => Some(Ok(Spanned::new(start, start.shift(ch), Token::RBrack))),
                        '{' => Some(Ok(Spanned::new(start, start.shift(ch), Token::LBrace))),
                        '}' => Some(Ok(Spanned::new(start, start.shift(ch), Token::RBrace))),
                        '@' => Some(Ok(Spanned::new(start, start.shift(ch), Token::Deref))),
@@ -375,11 +398,12 @@ mod test {
 
     #[test]
     fn identifier() {
-        runtest("abc _ _x a1_",
-                vec![("^^^         ", Token::Identifier("abc")),
-                     ("    ^       ", Token::Identifier("_")),
-                     ("      ^^    ", Token::Identifier("_x")),
-                     ("         ^^^", Token::Identifier("a1_"))])
+        runtest("abc _ _x a1_ Int ",
+                vec![("^^^              ", Token::Identifier("abc")),
+                     ("    ^            ", Token::Identifier("_")),
+                     ("      ^^         ", Token::Identifier("_x")),
+                     ("         ^^^     ", Token::Identifier("a1_")),
+                     ("             ^^^ ", Token::UpperIdentifier("Int"))])
     }
 
     #[test]

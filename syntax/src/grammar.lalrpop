@@ -11,6 +11,8 @@ extern {
     type Location = Location;
 
     enum Token<'input> {
+        "upper identifier" => Token::UpperIdentifier(<&'input str>),
+        "Ref" => Token::RefType,
         "identifier" => Token::Identifier(<&'input str>),
         "int literal" => Token::IntLiteral(<i32>),
         "float literal" => Token::FloatLiteral(<f64>),
@@ -44,6 +46,8 @@ extern {
         "," => Token::Comma,
         "(" => Token::LParen,
         ")" => Token::RParen,
+        "[" => Token::LBrack,
+        "]" => Token::RBrack,
         "{" => Token::LBrace,
         "}" => Token::RBrace,
 
@@ -76,18 +80,31 @@ Comma<R>: Vec<R> =
     };
 
 TypeSpec: Type = {
-    ":" <name:"identifier"> => {
-        Type::new(name.to_string())
-    },
-    ":" "(" ")" => {
-        Type::new("()".to_string())
-    },
+    ":" <typ:Type> => {
+        typ
+    }
 };
 
 Param: (String, Type) =
     <name:"identifier"> <typ:TypeSpec> => {
         (name.to_string(), typ)
     };
+
+// types
+
+PrimaryType: Type = {
+    "upper identifier" => Type::new(<>.to_string()),
+    "(" ")" => Type::new("()".to_string()),
+};
+
+RefType: Type = {
+    "Ref" "[" <inner:Type> "]" => Type::newref(inner),
+};
+
+Type: Type = {
+    PrimaryType,
+    RefType,
+};
 
 // expressions
 

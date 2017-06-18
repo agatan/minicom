@@ -57,15 +57,17 @@ pub fn parse(source: &Source) -> Result<Vec<Spanned<Toplevel>>, ErrorWithSource<
 #[test]
 fn test_parse() {
     let input = r#"
-    let x: int = 1;
-    let y: int = 2;
-    def add(x: int, y: int): int = {
+    let x: Int = 1;
+    let y: Int = 2;
+    def add(x: Int, y: Int): Int = {
         let z = x + y;
         let r = ref(z);
         print(x)
         r <- 1
         @r
     }
+
+    let r: Ref[Int] = ref(0)
 
         "#;
     NodeEnv::new().parse(input).unwrap();

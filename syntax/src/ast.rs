@@ -111,12 +111,17 @@ pub struct Def {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Type {
-    pub name: String,
+pub enum Type {
+    Primary(String),
+    Ref(Box<Type>),
 }
 
 impl Type {
     pub fn new(name: String) -> Type {
-        Type { name: name }
+        Type::Primary(name)
+    }
+
+    pub fn newref(inner: Type) -> Type {
+        Type::Ref(Box::new(inner))
     }
 }
