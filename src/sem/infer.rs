@@ -119,7 +119,12 @@ impl Infer {
     }
 
     fn convert_type(&self, ast_typ: &ast::Type) -> Result<Type, Error> {
-        self.tyenv.get(&ast_typ.name)
+        match *ast_typ {
+            ast::Type::Primary(ref name) => self.tyenv.get(name),
+            ast::Type::Ref(ref inner) => {
+                self.convert_type(inner).map(|typ| Type::Ref(Box::new(typ)))
+            }
+        }
     }
 
     fn enter_scope(&mut self) -> Scope {
