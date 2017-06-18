@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt;
 
 use super::Error;
 
@@ -64,6 +65,24 @@ impl Type {
                 Ok(Type::Ref(Box::new(inner)))
             }
             typ => Ok(typ),
+        }
+    }
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Type::Int => f.write_str("Int"),
+            Type::Float => f.write_str("Float"),
+            Type::Bool => f.write_str("Bool"),
+            Type::Unit => f.write_str("()"),
+            Type::Ref(ref ty) => write!(f, "Ref[{}]", ty),
+            Type::Var(ref inner) => {
+                match inner.borrow().as_ref() {
+                    None => f.write_str("_"),
+                    Some(ty) => write!(f, "{}", ty),
+                }
+            }
         }
     }
 }

@@ -250,7 +250,7 @@ impl Infer {
                 if expected == actual {
                     Ok(())
                 } else {
-                    bail!("mismatched types: {:?} and {:?}", expected, actual)
+                    bail!("mismatched types: {} and {}", expected, actual)
                 }
             }
         }

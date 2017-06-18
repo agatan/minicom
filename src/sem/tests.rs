@@ -255,6 +255,6 @@ mod failure {
 
         "#;
 
-        run(input, &["<dummy>:5:17", "mismatched types"]);
+        run(input, &["<dummy>:5:17", "mismatched types", "Ref[_]"]);
     }
 }
