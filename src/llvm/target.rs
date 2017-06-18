@@ -8,11 +8,6 @@ use super::Message;
 pub struct Target(LLVMTargetRef);
 
 impl Target {
-    pub fn new() -> Result<Self, Message> {
-        let triple = get_default_target_triple();
-        get_target_from_triple(triple).map(|t| Target(t))
-    }
-
     pub fn from_triple(triple: *mut ::libc::c_char) -> Result<Self, Message> {
         get_target_from_triple(triple).map(|t| Target(t))
     }

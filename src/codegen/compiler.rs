@@ -14,7 +14,6 @@ pub struct Compiler {
     builder: Builder,
     globals: HashMap<String, Value>,
 
-    target: target::Target,
     pub machine: target::TargetMachine,
 }
 
@@ -36,7 +35,6 @@ impl Compiler {
                module: module,
                builder: builder,
                globals: HashMap::new(),
-               target: t,
                machine: tm,
            })
     }

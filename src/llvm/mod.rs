@@ -6,8 +6,7 @@ use std::fmt;
 use llvm_sys::prelude::*;
 use llvm_sys::core;
 use llvm_sys::target as lltarget;
-use llvm_sys::target_machine::{self, LLVMCodeGenOptLevel, LLVMRelocMode, LLVMCodeModel,
-                               LLVMCodeGenFileType};
+use llvm_sys::target_machine::{self, LLVMCodeGenFileType};
 use llvm_sys::analysis;
 
 pub use llvm_sys::LLVMIntPredicate;
