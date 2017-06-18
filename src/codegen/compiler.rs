@@ -390,13 +390,22 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 let value = self.compile_node(&let_.value);
                 self.compiler.builder.store(value, ptr)
             }
-            NodeKind::Assign(ref var, ref value) => {
-                let ptr = self.getvar(&var.name);
+            NodeKind::AssignGlobal(ref var, ref value) => {
+                let ptr = self.compiler.getvar(&var.name);
                 let value = self.compile_node(value);
                 self.compiler.builder.store(value, ptr)
             }
-            NodeKind::AssignGlobal(ref var, ref value) => {
-                let ptr = self.compiler.getvar(&var.name);
+            NodeKind::Ref(ref e) => {
+                let _value = self.compile_node(e);
+                // TODO(agatan): malloc
+                unimplemented!()
+            }
+            NodeKind::Deref(ref e) => {
+                let value = self.compile_node(e);
+                self.compiler.builder.load(value, "loadtmp")
+            }
+            NodeKind::Assign(ref to, ref value) => {
+                let ptr = self.compile_node(to);
                 let value = self.compile_node(value);
                 self.compiler.builder.store(value, ptr)
             }

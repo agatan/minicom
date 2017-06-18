@@ -292,6 +292,16 @@ impl Infer {
             }
             NodeKind::Parens(ref e) => self.infer_node(e, expect),
             NodeKind::Print(ref e) => self.infer_node(e, expect),
+            NodeKind::Ref(ref e) => {
+                let inner_typ = self.infer_node(e, expect)?;
+                Ok(Type::Ref(Box::new(inner_typ)))
+            }
+            NodeKind::Deref(ref e) => {
+                let inner_typ = Type::newvar();
+                self.infer_node(e,
+                                &Expect::Type { typ: Type::Ref(Box::new(inner_typ.clone())) })?;
+                Ok(inner_typ)
+            }
             NodeKind::Block(ref nodes) => {
                 let mut scoped = self.enter_scope();
                 match nodes.split_last() {
@@ -345,15 +355,15 @@ impl Infer {
                 self.current_scope().define(let_.name.clone(), var)?;
                 Ok(Type::Unit)
             }
-            NodeKind::Assign(ref var, ref value) => {
-                let vartyp = self.getvar(var)
-                    .map(|sp| sp.map(Type::clone))
-                    .map_err(|err| BasisError::span(node.span, err))?;
+            NodeKind::Assign(ref to, ref value) => {
+                let inner_typ = Type::newvar();
+                self.infer_node(to,
+                                &Expect::Type { typ: Type::Ref(Box::new(inner_typ.clone())) })?;
                 self.infer_node(value,
                                 &Expect::WithSpan {
-                                    typ: vartyp.value,
-                                    message: format_args!("variable {:?} is defined here", var),
-                                    span: vartyp.span,
+                                    typ: inner_typ,
+                                    message: format_args!("assignment destination and value have incompatible types"),
+                                    span: to.span,
                                 })?;
                 Ok(Type::Unit)
             }

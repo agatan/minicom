@@ -92,6 +92,14 @@ impl Context {
                 let e = self.process_node(*e)?;
                 NodeKind::Print(Box::new(e))
             }
+            AstNodeKind::Ref(e) => {
+                let e = self.process_node(*e)?;
+                NodeKind::Ref(Box::new(e))
+            }
+            AstNodeKind::Deref(e) => {
+                let e = self.process_node(*e)?;
+                NodeKind::Deref(Box::new(e))
+            }
             AstNodeKind::Let(let_) => {
                 let let_ = *let_;
                 let ast::Let { value, name, .. } = let_;
@@ -105,13 +113,10 @@ impl Context {
                                            value: value,
                                        }))
             }
-            AstNodeKind::Assign(name, value) => {
+            AstNodeKind::Assign(to, value) => {
+                let to = Box::new(self.process_node(*to)?);
                 let value = Box::new(self.process_node(*value)?);
-                NodeKind::Assign(Var {
-                                     name: name,
-                                     typ: typ.clone(),
-                                 },
-                                 value)
+                NodeKind::Assign(to, value)
             }
             AstNodeKind::Infix(lhs, op, rhs) => {
                 let lhs = Box::new(self.process_node(*lhs)?);

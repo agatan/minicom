@@ -42,6 +42,7 @@ pub enum Type {
     Float,
     Bool,
     Unit,
+    Ref(Box<Type>),
     Var(Rc<RefCell<Option<Type>>>),
 }
 
@@ -104,8 +105,11 @@ pub enum NodeKind {
     While(Box<Node>, Box<Node>),
 
     Let(Box<Let>),
-    Assign(Var, Box<Node>),
     AssignGlobal(Var, Box<Node>),
+
+    Ref(Box<Node>),
+    Deref(Box<Node>),
+    Assign(Box<Node>, Box<Node>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
