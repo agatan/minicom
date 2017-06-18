@@ -34,6 +34,7 @@ impl Compiler {
             Type::Float => self.ctx.float_type(),
             Type::Bool => self.ctx.bool_type(),
             Type::Unit => self.ctx.unit_type(),
+            _ => unreachable!(),
         }
     }
 
@@ -161,6 +162,7 @@ impl Compiler {
             Type::Int => self.int(0),
             Type::Bool => self.bool(false),
             Type::Float => self.float(0.0),
+            _ => unreachable!(),
         }
     }
 }
@@ -314,6 +316,7 @@ impl<'a, 's> FunBuilder<'a, 's> {
                     Type::Int => "print_int",
                     Type::Bool => "print_bool",
                     Type::Float => "print_float",
+                    _ => unreachable!(),
                 };
                 let f = self.compiler
                     .module
