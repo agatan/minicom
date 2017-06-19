@@ -156,6 +156,12 @@ pub struct Function {
     pub body: Box<Node>,
 }
 
+impl Function {
+    pub fn is_main(&self) -> bool {
+        self.name == "main"
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct FunctionInfo {
     pub args: Vec<(String, Type)>,

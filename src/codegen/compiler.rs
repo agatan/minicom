@@ -86,6 +86,32 @@ impl Compiler {
         fun
     }
 
+    fn compile_main_function(&mut self,
+                             f: Option<&Function>,
+                             init_fun: llvm::Function)
+                             -> llvm::Function {
+        let fun_ty = self.ctx.function_type(self.ctx.int32_type(), &[], false);
+        let mut fun = self.module.add_function("minivm.init", fun_ty);
+        let alloc = fun.append_basic_block("entry");
+        let start = fun.append_basic_block("start");
+        self.builder.position_at_end(&start);
+        let ret = match f {
+            Some(f) => {
+                self.builder.call(init_fun, &[], "calltmp");
+                let mut fbuilder = FunBuilder::new(&alloc, self);
+                for (name, i) in f.args.iter().map(|x| &x.0).zip(0..) {
+                    fbuilder.define_arg(name, fun.param(i));
+                }
+                fbuilder.compile_node(&f.body)
+            }
+            None => self.builder.call(init_fun, &[], "calltmp"),
+        };
+        self.builder.ret(ret);
+        self.builder.position_at_end(&alloc);
+        self.builder.br(&start);
+        fun
+    }
+
     pub fn compile_program(&mut self, program: &Program) -> Result<&Module, Error> {
         // FIXME(agatan): language items
         {
@@ -140,15 +166,20 @@ impl Compiler {
             }
         }
         // compile functions
+        let mut main_function = None;
         for entry in program.entries.values() {
             if let Entry::Function(ref f) = *entry {
-                self.compile_function(f);
+                if f.is_main() {
+                    main_function = Some(f);
+                } else {
+                    self.compile_function(f);
+                }
             }
         }
-        let fun_ty = self.ctx.function_type(self.ctx.int32_type(), &[], false);
-        let mut fun = self.module.add_function("main", fun_ty);
-        let entry = fun.append_basic_block("entry");
-        let start = fun.append_basic_block("start");
+        let init_fun_ty = self.ctx.function_type(self.ctx.int32_type(), &[], false);
+        let mut init_fun = self.module.add_function("minivm.init", init_fun_ty);
+        let entry = init_fun.append_basic_block("entry");
+        let start = init_fun.append_basic_block("start");
         self.builder.position_at_end(&start);
         {
             let mut fbuilder = FunBuilder::new(&entry, self);
@@ -162,6 +193,10 @@ impl Compiler {
         self.builder.ret(ret);
         self.builder.position_at_end(&entry);
         self.builder.br(&start);
+
+        // compile main function
+        self.compile_main_function(main_function, init_fun);
+
         self.module
             .verify()
             .map_err(|err| Error::from(format!("{}", err)))
