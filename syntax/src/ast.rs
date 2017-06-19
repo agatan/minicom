@@ -43,8 +43,13 @@ pub enum NodeKind {
     While(Box<Spanned<Node>>, Box<Spanned<Node>>),
     // FIXME(agatan): temporary builtin command
     Print(Box<Spanned<Node>>),
+    // ref(1)
+    Ref(Box<Spanned<Node>>),
+    // @x
+    Deref(Box<Spanned<Node>>),
+    // x <- 1
+    Assign(Box<Spanned<Node>>, Box<Spanned<Node>>),
     Let(Box<Let>),
-    Assign(String, Box<Spanned<Node>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -106,12 +111,17 @@ pub struct Def {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Type {
-    pub name: String,
+pub enum Type {
+    Primary(String),
+    Ref(Box<Type>),
 }
 
 impl Type {
     pub fn new(name: String) -> Type {
-        Type { name: name }
+        Type::Primary(name)
+    }
+
+    pub fn newref(inner: Type) -> Type {
+        Type::Ref(Box::new(inner))
     }
 }

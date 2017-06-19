@@ -52,8 +52,8 @@ mod success {
     fn global_identifier() {
         let input = r#"
 
-            let x: int = 0
-            let y: int = x
+            let x: Int = 0
+            let y: Int = x
             x + y
 
 "#;
@@ -66,11 +66,11 @@ mod success {
     fn function_definition() {
         let input = r#"
 
-            def add(x: int, y: int): int = x + y
+            def add(x: Int, y: Int): Int = x + y
 
             def nop() = { }
 
-            def local_variables(): int = {
+            def local_variables(): Int = {
                 let x = 0
                 x
             }
@@ -85,11 +85,11 @@ mod success {
     fn function_call() {
         let input = r#"
 
-            def add(x: int, y: int): int = x + y
+            def add(x: Int, y: Int): Int = x + y
 
-            let x: int = 0
-            let y: int = 1
-            let z: int = add(0, 1)
+            let x: Int = 0
+            let y: Int = 1
+            let z: Int = add(0, 1)
 
 "#;
         let program = run_semantic_check(input).unwrap();
@@ -101,8 +101,8 @@ mod success {
     fn if_expression() {
         let input = r#"
 
-            let cond: bool = true
-            let x: int = if cond {
+            let cond: Bool = true
+            let x: Int = if cond {
                 1
             } else {
                 2
@@ -111,6 +111,25 @@ mod success {
 "#;
         let program = run_semantic_check(input).unwrap();
         assert_eq!(program.entries.len(), 2);
+        assert_eq!(program.toplevels.len(), 2);
+    }
+
+    #[test]
+    fn ref_deref_assignment() {
+        let input = r#"
+
+            def foo() = {
+                let x = ref(0)
+                let y = @x
+                x <- y + 1
+            }
+
+            let x: Ref[Int] = ref(0)
+            let y: Int = @x
+
+"#;
+        let program = run_semantic_check(input).unwrap();
+        assert_eq!(program.entries.len(), 3);
         assert_eq!(program.toplevels.len(), 2);
     }
 }
@@ -132,7 +151,7 @@ mod failure {
 
     #[test]
     fn global_identifier() {
-        let input = r#"let x: int = 0.0"#;
+        let input = r#"let x: Int = 0.0"#;
         run(input, &["<dummy>:1:14", "mismatched types"]);
     }
 
@@ -148,7 +167,7 @@ mod failure {
     fn function_return_type() {
         let input = r#"
 
-            def add(x: int, y: int): float = x + y
+            def add(x: Int, y: Int): Float = x + y
 
         "#;
         run(input, &["<dummy>:3:46", "mismatched types"]);
@@ -158,7 +177,7 @@ mod failure {
     fn function_parameter_type() {
         let input = r#"
 
-            def add(x: int, y: int): int = x + y
+            def add(x: Int, y: Int): Int = x + y
 
             add(1.0, 2.0)
 
@@ -170,7 +189,7 @@ mod failure {
     fn function_parameter_number() {
         let input = r#"
 
-            def add(x: int, y: int): int = x + y
+            def add(x: Int, y: Int): Int = x + y
 
             add(0)
 
@@ -183,7 +202,7 @@ mod failure {
     fn if_else_expression() {
         let input = r#"
 
-            let x: int = if true {
+            let x: Int = if true {
                 1
             } else {
                 2.0
@@ -199,7 +218,7 @@ mod failure {
     fn if_expression() {
         let input = r#"
 
-            let x: int = if true {
+            let x: Int = if true {
                 1
             }
 
@@ -212,7 +231,7 @@ mod failure {
     fn name_conflict() {
         let input = r#"
 
-            let foo: int = 0
+            let foo: Int = 0
 
             def foo() = ()
 
@@ -223,5 +242,19 @@ mod failure {
               "duplicate definition",
               "<dummy>:3:13: note",
               "previous definition"]);
+    }
+
+    #[test]
+    fn non_ref_assignment() {
+        let input = r#"
+
+            def foo() = {
+                let x = 1
+                x <- 2
+            }
+
+        "#;
+
+        run(input, &["<dummy>:5:17", "mismatched types"]);
     }
 }

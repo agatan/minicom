@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io::Write;
 
 use llvm::Module;
+use llvm::target::TargetMachine;
 
 use sem::ir::Program;
 
@@ -20,14 +21,17 @@ use self::errors::ResultExt;
 
 pub struct Emitter {
     module: Module,
+    machine: TargetMachine,
 }
 
 impl Emitter {
     pub fn new(program: &Program) -> Result<Emitter, Error> {
-        let mut c = compiler::Compiler::new();
-        c.compile_program(program)
-            .map_err(|err| Error::from(err.to_string()))?;
-        Ok(Emitter { module: c.module })
+        let mut c = compiler::Compiler::new()?;
+        c.compile_program(program)?;
+        Ok(Emitter {
+               module: c.module,
+               machine: c.machine,
+           })
     }
 
     pub fn emit_executable(&self, executable: &str) -> Result<(), Error> {
@@ -40,7 +44,7 @@ impl Emitter {
                                    objpath.to_string_lossy())
                        })?;
         let objbytes = self.module
-            .emit_object()
+            .emit_object(self.machine)
             .map_err(|err| Error::from(err.to_string()))
             .chain_err(|| "failed to emit object code")?;
         objfile

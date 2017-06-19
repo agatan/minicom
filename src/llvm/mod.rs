@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::rc::Rc;
 use std::ops::Drop;
 use std::fmt;
@@ -6,8 +6,7 @@ use std::fmt;
 use llvm_sys::prelude::*;
 use llvm_sys::core;
 use llvm_sys::target as lltarget;
-use llvm_sys::target_machine::{self, LLVMCodeGenOptLevel, LLVMRelocMode, LLVMCodeModel,
-                               LLVMCodeGenFileType};
+use llvm_sys::target_machine::{self, LLVMCodeGenFileType};
 use llvm_sys::analysis;
 
 pub use llvm_sys::LLVMIntPredicate;
@@ -45,7 +44,7 @@ impl fmt::Debug for Message {
         if self.0.is_null() {
             f.write_str("(null)")
         } else {
-            write!(f, "Message({:?})", unsafe { CString::from_raw(self.0) })
+            write!(f, "Message({:?})", unsafe { CStr::from_ptr(self.0) })
         }
     }
 }
@@ -55,9 +54,7 @@ impl fmt::Display for Message {
         if self.0.is_null() {
             return f.write_str("(null)");
         }
-        unsafe { CString::from_raw(self.0) }
-            .to_string_lossy()
-            .fmt(f)
+        unsafe { CStr::from_ptr(self.0) }.to_string_lossy().fmt(f)
     }
 }
 
@@ -87,8 +84,16 @@ impl Context {
         self.0
     }
 
+    pub fn void_type(&self) -> Type {
+        Type(unsafe { core::LLVMVoidTypeInContext(self.get()) })
+    }
+
     pub fn unit_type(&self) -> Type {
         Type(unsafe { core::LLVMInt1TypeInContext(self.get()) })
+    }
+
+    pub fn void_ptr_type(&self) -> Type {
+        Type(unsafe { core::LLVMPointerType(core::LLVMInt8TypeInContext(self.get()), 0) })
     }
 
     pub fn bool_type(&self) -> Type {
@@ -190,6 +195,11 @@ impl Builder {
     pub fn load(&mut self, ptr: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         unsafe { Value(core::LLVMBuildLoad(self.get(), ptr.to_value(), name.as_ptr())) }
+    }
+
+    pub fn bitcast(&mut self, ptr: Value, typ: Type, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        unsafe { Value(core::LLVMBuildBitCast(self.get(), ptr.get(), typ.get(), name.as_ptr())) }
     }
 
     pub fn add(&mut self, a: Value, b: Value, name: &str) -> Value {
@@ -296,34 +306,27 @@ impl Module {
         Value(value)
     }
 
-    pub fn verify(&self) -> Result<(), Message> {
+    pub fn verify(&self) -> Result<(), String> {
         unsafe {
             let mut msg: Message = Message::with_null();
             let ret = analysis::LLVMVerifyModule(
                 self.get(),
                 analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction,
                     msg.get_mut_ptr());
-            if ret == 1 { Err(msg) } else { Ok(()) }
+            if ret == 1 {
+                Err(msg.to_string())
+            } else {
+                Ok(())
+            }
         }
     }
 
-    pub fn emit_object(&self) -> Result<Vec<u8>, Message> {
-        let triple = target::get_default_target_triple();
-        let tar = target::get_target_from_triple(triple)?;
-        let machine = unsafe {
-            target_machine::LLVMCreateTargetMachine(tar,
-                                                    triple,
-                                                    "".as_ptr() as *const i8, // cpu
-                                                    "".as_ptr() as *const i8, // features
-                                                    LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
-                                                    LLVMRelocMode::LLVMRelocDefault,
-                                                    LLVMCodeModel::LLVMCodeModelDefault)
-        };
+    pub fn emit_object(&self, machine: target::TargetMachine) -> Result<Vec<u8>, Message> {
         let mut err: Message = Message::with_null();
         let mut membuf: LLVMMemoryBufferRef = unsafe { ::std::mem::uninitialized() };
         let failed = unsafe {
             target_machine::LLVMTargetMachineEmitToMemoryBuffer(
-                machine,
+                machine.get(),
                 self.get(),
                 LLVMCodeGenFileType::LLVMObjectFile,
                 err.get_mut_ptr(),
@@ -348,7 +351,7 @@ impl ::std::string::ToString for Module {
             if s.is_null() {
                 panic!("failed to stringize llvm module")
             }
-            format!("{}", Message(s))
+            CStr::from_ptr(s).to_string_lossy().to_string()
         }
     }
 }
@@ -375,6 +378,14 @@ impl Type {
 
     pub fn const_float(&self, f: f64) -> Value {
         Value(unsafe { core::LLVMConstReal(self.get(), f) })
+    }
+
+    pub fn const_null(&self) -> Value {
+        Value(unsafe { core::LLVMConstNull(self.get()) })
+    }
+
+    pub fn pointer_type(&self) -> Type {
+        Type(unsafe { core::LLVMPointerType(self.get(), 0) })
     }
 }
 

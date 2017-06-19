@@ -119,7 +119,12 @@ impl Infer {
     }
 
     fn convert_type(&self, ast_typ: &ast::Type) -> Result<Type, Error> {
-        self.tyenv.get(&ast_typ.name)
+        match *ast_typ {
+            ast::Type::Primary(ref name) => self.tyenv.get(name),
+            ast::Type::Ref(ref inner) => {
+                self.convert_type(inner).map(|typ| Type::Ref(Box::new(typ)))
+            }
+        }
     }
 
     fn enter_scope(&mut self) -> Scope {
@@ -223,26 +228,32 @@ impl Infer {
     }
 
     fn unify(&self, expected: &Type, actual: &Type) -> Result<(), Error> {
-        if expected == actual {
-            return Ok(());
-        }
-        if let Type::Var(ref rvar) = *expected {
-            if rvar.borrow().is_none() {
-                *rvar.borrow_mut() = Some(actual.clone());
-                return Ok(());
-            } else {
-                return self.unify(rvar.borrow().as_ref().unwrap(), actual);
+        match (expected, actual) {
+            (&Type::Var(ref rvar), _) => {
+                if rvar.borrow().is_none() {
+                    *rvar.borrow_mut() = Some(actual.clone());
+                    return Ok(());
+                } else {
+                    return self.unify(rvar.borrow().as_ref().unwrap(), actual);
+                }
+            }
+            (_, &Type::Var(ref lvar)) => {
+                if lvar.borrow().is_none() {
+                    *lvar.borrow_mut() = Some(expected.clone());
+                    return Ok(());
+                } else {
+                    return self.unify(expected, lvar.borrow().as_ref().unwrap());
+                }
+            }
+            (&Type::Ref(ref l_inner), &Type::Ref(ref r_inner)) => self.unify(l_inner, r_inner),
+            (_, _) => {
+                if expected == actual {
+                    Ok(())
+                } else {
+                    bail!("mismatched types: {:?} and {:?}", expected, actual)
+                }
             }
         }
-        if let Type::Var(ref lvar) = *actual {
-            if lvar.borrow().is_none() {
-                *lvar.borrow_mut() = Some(expected.clone());
-                return Ok(());
-            } else {
-                return self.unify(expected, lvar.borrow().as_ref().unwrap());
-            }
-        }
-        bail!("mismatched types: {:?} and {:?}", expected, actual)
     }
 
     fn infer_binary_operation<'a>(&mut self,
@@ -292,6 +303,16 @@ impl Infer {
             }
             NodeKind::Parens(ref e) => self.infer_node(e, expect),
             NodeKind::Print(ref e) => self.infer_node(e, expect),
+            NodeKind::Ref(ref e) => {
+                let inner_typ = self.infer_node(e, &Expect::None)?;
+                Ok(Type::Ref(Box::new(inner_typ)))
+            }
+            NodeKind::Deref(ref e) => {
+                let inner_typ = Type::newvar();
+                self.infer_node(e,
+                                &Expect::Type { typ: Type::Ref(Box::new(inner_typ.clone())) })?;
+                Ok(inner_typ)
+            }
             NodeKind::Block(ref nodes) => {
                 let mut scoped = self.enter_scope();
                 match nodes.split_last() {
@@ -345,15 +366,15 @@ impl Infer {
                 self.current_scope().define(let_.name.clone(), var)?;
                 Ok(Type::Unit)
             }
-            NodeKind::Assign(ref var, ref value) => {
-                let vartyp = self.getvar(var)
-                    .map(|sp| sp.map(Type::clone))
-                    .map_err(|err| BasisError::span(node.span, err))?;
+            NodeKind::Assign(ref to, ref value) => {
+                let inner_typ = Type::newvar();
+                self.infer_node(to,
+                                &Expect::Type { typ: Type::Ref(Box::new(inner_typ.clone())) })?;
                 self.infer_node(value,
                                 &Expect::WithSpan {
-                                    typ: vartyp.value,
-                                    message: format_args!("variable {:?} is defined here", var),
-                                    span: vartyp.span,
+                                    typ: inner_typ,
+                                    message: format_args!("assignment destination and value have incompatible types"),
+                                    span: to.span,
                                 })?;
                 Ok(Type::Unit)
             }

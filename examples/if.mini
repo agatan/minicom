@@ -10,8 +10,8 @@ if false {
   print(2)
 }
 
-let x: int = if true { 1 } else { 2 }
+let x: Int = if true { 1 } else { 2 }
 print(x)
 
-let y: int = if false { 1 } else { 2 }
+let y: Int = if false { 1 } else { 2 }
 print(y)

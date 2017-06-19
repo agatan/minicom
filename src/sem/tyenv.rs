@@ -11,9 +11,9 @@ pub struct TypeEnv {
 impl TypeEnv {
     pub fn new() -> Self {
         let mut env = TypeEnv { table: HashMap::new() };
-        env.insert("int".to_string(), Type::Int);
-        env.insert("float".to_string(), Type::Float);
-        env.insert("bool".to_string(), Type::Bool);
+        env.insert("Int".to_string(), Type::Int);
+        env.insert("Float".to_string(), Type::Float);
+        env.insert("Bool".to_string(), Type::Bool);
         env.insert("()".to_string(), Type::Unit);
         env
     }

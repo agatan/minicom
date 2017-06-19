@@ -1,0 +1,4 @@
+while true {
+  let x = ref(1)
+  x <- 0
+}

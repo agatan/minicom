@@ -2,39 +2,57 @@ use std::rc::Rc;
 use std::sync::{Once, ONCE_INIT};
 use std::collections::HashMap;
 
-use llvm::{self, Message, Context, Module, Builder, Value, BasicBlock};
+use llvm::{self, Context, Module, Builder, Value, BasicBlock};
+use llvm::target;
 use sem::ir::*;
+
+use super::{Error, ResultExt};
 
 pub struct Compiler {
     ctx: Rc<Context>,
     pub module: Module,
     builder: Builder,
     globals: HashMap<String, Value>,
+
+    pub machine: target::TargetMachine,
+    target_data: target::TargetData,
 }
 
 static LLVM_INIT: Once = ONCE_INIT;
 
 impl Compiler {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self, Error> {
         LLVM_INIT.call_once(|| llvm::init());
         let ctx = Context::new();
         let module = Module::new(ctx.clone(), "main");
         let builder = Builder::new(ctx.clone());
-        Compiler {
-            ctx: ctx,
-            module: module,
-            builder: builder,
-            globals: HashMap::new(),
-        }
+        let triple = target::get_default_target_triple();
+        let t = target::Target::from_triple(triple)
+            .map_err(|err| Error::from(err.to_string()))
+            .chain_err(|| "failed to initialize llvm target")?;
+        let tm = target::TargetMachine::new(triple, t);
+        let data = tm.data_layout();
+        Ok(Compiler {
+               ctx: ctx,
+               module: module,
+               builder: builder,
+               globals: HashMap::new(),
+               machine: tm,
+               target_data: data,
+           })
     }
 
-    fn compile_type(&mut self, ty: &Type) -> llvm::Type {
+    fn compile_type(&self, ty: &Type) -> llvm::Type {
         match *ty {
             Type::Int => self.ctx.int32_type(),
             Type::Float => self.ctx.float_type(),
             Type::Bool => self.ctx.bool_type(),
             Type::Unit => self.ctx.unit_type(),
-            _ => unreachable!(),
+            Type::Ref(ref inner) => {
+                let inner = self.compile_type(inner);
+                inner.pointer_type()
+            }
+            Type::Var(_) => unreachable!(),
         }
     }
 
@@ -68,7 +86,7 @@ impl Compiler {
         fun
     }
 
-    pub fn compile_program(&mut self, program: &Program) -> Result<&Module, Message> {
+    pub fn compile_program(&mut self, program: &Program) -> Result<&Module, Error> {
         // FIXME(agatan): language items
         {
             // print_unit
@@ -94,6 +112,19 @@ impl Compiler {
                 .function_type(self.ctx.float_type(), &[self.ctx.float_type()], false);
             self.module.add_function("print_float", fun_ty);
         }
+        {
+            // gc_malloc
+            let fun_ty = self.ctx
+                .function_type(self.ctx.void_ptr_type(),
+                               &[self.target_data.int_ptr_typ()],
+                               false);
+            self.module.add_function("gc_malloc", fun_ty);
+        }
+        let gc_init_fun = {
+            // gc_init
+            let fun_ty = self.ctx.function_type(self.ctx.void_type(), &[], false);
+            self.module.add_function("gc_init", fun_ty)
+        };
         // declare global variables and functions
         for entry in program.entries.values() {
             match *entry {
@@ -121,6 +152,8 @@ impl Compiler {
         self.builder.position_at_end(&start);
         {
             let mut fbuilder = FunBuilder::new(&entry, self);
+            // call gc_init
+            fbuilder.compiler.builder.call(gc_init_fun, &[], "");
             for node in program.toplevels.iter() {
                 fbuilder.compile_node(node);
             }
@@ -129,7 +162,13 @@ impl Compiler {
         self.builder.ret(ret);
         self.builder.position_at_end(&entry);
         self.builder.br(&start);
-        self.module.verify()?;
+        self.module
+            .verify()
+            .map_err(|err| Error::from(format!("{}", err)))
+            .chain_err(|| {
+                           format!("failed to generate valid LLVM IR: {}",
+                                   self.module.to_string())
+                       })?;
         Ok(&self.module)
     }
 
@@ -162,7 +201,8 @@ impl Compiler {
             Type::Int => self.int(0),
             Type::Bool => self.bool(false),
             Type::Float => self.float(0.0),
-            _ => unreachable!(),
+            Type::Ref(ref inner) => self.compile_type(inner).pointer_type().const_null(),
+            Type::Var(_) => unreachable!(),
         }
     }
 }
@@ -212,6 +252,19 @@ impl<'a, 's> FunBuilder<'a, 's> {
         let alloca = self.compiler.builder.alloca(typ, name);
         self.compiler.builder.position_at_end(&saved);
         alloca
+    }
+
+    pub fn malloc(&mut self, typ: llvm::Type) -> Value {
+        let size = self.compiler.target_data.store_size_of_type(&typ);
+        let size_value = self.compiler.target_data.int_ptr_typ().const_int(size);
+        let f = self.compiler
+            .module
+            .get_function("gc_malloc")
+            .expect("runtime function `gc_malloc` is undefined");
+        let void_ptr = self.compiler.builder.call(f, &[size_value], "malloctmp");
+        self.compiler
+            .builder
+            .bitcast(void_ptr, typ.pointer_type(), "mallocptr")
     }
 
     pub fn compile_node(&mut self, node: &'s Node) -> Value {
@@ -390,13 +443,24 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 let value = self.compile_node(&let_.value);
                 self.compiler.builder.store(value, ptr)
             }
-            NodeKind::Assign(ref var, ref value) => {
-                let ptr = self.getvar(&var.name);
+            NodeKind::AssignGlobal(ref var, ref value) => {
+                let ptr = self.compiler.getvar(&var.name);
                 let value = self.compile_node(value);
                 self.compiler.builder.store(value, ptr)
             }
-            NodeKind::AssignGlobal(ref var, ref value) => {
-                let ptr = self.compiler.getvar(&var.name);
+            NodeKind::Ref(ref e) => {
+                let value = self.compile_node(e);
+                let typ = value.get_type();
+                let ptr = self.malloc(typ);
+                self.compiler.builder.store(value, ptr);
+                ptr
+            }
+            NodeKind::Deref(ref e) => {
+                let value = self.compile_node(e);
+                self.compiler.builder.load(value, "loadtmp")
+            }
+            NodeKind::Assign(ref to, ref value) => {
+                let ptr = self.compile_node(to);
                 let value = self.compile_node(value);
                 self.compiler.builder.store(value, ptr)
             }

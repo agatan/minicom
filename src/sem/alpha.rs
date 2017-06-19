@@ -93,6 +93,8 @@ impl<'a> Alpha<'a> {
             }
             NodeKind::Parens(e) => NodeKind::Parens(Box::new(self.apply(*e))),
             NodeKind::Print(e) => NodeKind::Print(Box::new(self.apply(*e))),
+            NodeKind::Ref(e) => NodeKind::Ref(Box::new(self.apply(*e))),
+            NodeKind::Deref(e) => NodeKind::Deref(Box::new(self.apply(*e))),
             NodeKind::Call(name, args) => {
                 NodeKind::Call(self.transform(name),
                                args.into_iter().map(|n| self.apply(n)).collect())
@@ -119,10 +121,10 @@ impl<'a> Alpha<'a> {
                 let_.name = self.define(let_.name);
                 NodeKind::Let(Box::new(let_))
             }
-            NodeKind::Assign(name, value) => {
-                let name = self.transform(name);
+            NodeKind::Assign(to, value) => {
+                let to = self.apply(*to);
                 let value = self.apply(*value);
-                NodeKind::Assign(name, Box::new(value))
+                NodeKind::Assign(Box::new(to), Box::new(value))
             }
         };
         node

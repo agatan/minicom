@@ -11,6 +11,8 @@ extern {
     type Location = Location;
 
     enum Token<'input> {
+        "upper identifier" => Token::UpperIdentifier(<&'input str>),
+        "Ref" => Token::RefType,
         "identifier" => Token::Identifier(<&'input str>),
         "int literal" => Token::IntLiteral(<i32>),
         "float literal" => Token::FloatLiteral(<f64>),
@@ -36,11 +38,16 @@ extern {
         "let" => Token::Let,
         "def" => Token::Def,
         "print" => Token::Print,
+        "ref" => Token::Ref,
+        "@" => Token::Deref,
+        "<-" => Token::LeftArrow,
 
         ":" => Token::Colon,
         "," => Token::Comma,
         "(" => Token::LParen,
         ")" => Token::RParen,
+        "[" => Token::LBrack,
+        "]" => Token::RBrack,
         "{" => Token::LBrace,
         "}" => Token::RBrace,
 
@@ -73,18 +80,31 @@ Comma<R>: Vec<R> =
     };
 
 TypeSpec: Type = {
-    ":" <name:"identifier"> => {
-        Type::new(name.to_string())
-    },
-    ":" "(" ")" => {
-        Type::new("()".to_string())
-    },
+    ":" <typ:Type> => {
+        typ
+    }
 };
 
 Param: (String, Type) =
     <name:"identifier"> <typ:TypeSpec> => {
         (name.to_string(), typ)
     };
+
+// types
+
+PrimaryType: Type = {
+    "upper identifier" => Type::new(<>.to_string()),
+    "(" ")" => Type::new("()".to_string()),
+};
+
+RefType: Type = {
+    "Ref" "[" <inner:Type> "]" => Type::newref(inner),
+};
+
+Type: Type = {
+    PrimaryType,
+    RefType,
+};
 
 // expressions
 
@@ -125,9 +145,12 @@ Literal: Node = {
 AtomicExpr: Spanned<Node> = {
     <l:@L> "print" "(" <expr:Expression> ")" <r:@R> =>
         Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Print(Box::new(expr)))),
+    <l:@L> "ref" "(" <expr:Expression> ")" <r:@R> =>
+        Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Ref(Box::new(expr)))),
     <l:@L> <name:"identifier"> "(" <args:Comma<Expression>> ")" <r:@R> =>
         Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Call(name.to_string(), args))),
     <l:@L> "(" <expr:Expression> ")" <r:@R> => Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Parens(Box::new(expr)))),
+    <l:@L> "@" <expr:AtomicExpr> <r:@R> => Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Deref(Box::new(expr)))),
 
     Span<Literal>,
     SpannedBlockExpr,
@@ -187,8 +210,8 @@ LetStmt: Node = {
 };
 
 Assignment: Node = {
-    <name:"identifier"> "=" <value:Expression> => {
-        Node::new(env.next_id(), NodeKind::Assign(name.to_string(), Box::new(value)))
+    <reference:AtomicExpr> "<-" <value:Expression> => {
+        Node::new(env.next_id(), NodeKind::Assign(Box::new(reference), Box::new(value)))
     }
 };
 
