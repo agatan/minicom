@@ -13,7 +13,6 @@ impl NodeId {
 pub enum ToplevelKind {
     Def(Box<Def>),
     Let(Box<Let>),
-    Expr(Box<Spanned<Node>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -108,6 +107,12 @@ pub struct Def {
     pub args: Vec<(String, Type)>,
     pub ret: Option<Type>,
     pub body: Spanned<Node>,
+}
+
+impl Def {
+    pub fn is_main(&self) -> bool {
+        self.name == "main"
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

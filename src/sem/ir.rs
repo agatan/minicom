@@ -8,19 +8,21 @@ use super::Error;
 #[derive(Debug)]
 pub struct Program {
     pub entries: HashMap<String, Entry>,
-    pub toplevels: Vec<Node>,
+    pub inits: Vec<Node>,
+    pub main: Option<Node>,
 }
 
 impl Program {
     pub fn new() -> Self {
         Program {
             entries: HashMap::new(),
-            toplevels: Vec::new(),
+            inits: Vec::new(),
+            main: None,
         }
     }
 
-    pub fn append_toplevel(&mut self, node: Node) {
-        self.toplevels.push(node)
+    pub fn append_inits(&mut self, node: Node) {
+        self.inits.push(node)
     }
 
     pub fn define_function(&mut self, name: String, f: Function) {

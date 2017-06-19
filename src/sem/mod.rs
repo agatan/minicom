@@ -200,21 +200,22 @@ impl Context {
             typ: typ,
         };
         let assignment = Node::new(NodeKind::AssignGlobal(var, Box::new(irnode)), Type::Unit);
-        self.program.append_toplevel(assignment);
+        self.program.append_inits(assignment);
         Ok(())
     }
 
     fn process_toplevel(&mut self, toplevel: Spanned<Toplevel>) -> Result<()> {
         match toplevel.value.kind {
             ToplevelKind::Def(def) => {
-                self.process_global_def(toplevel.value.id, Spanned::span(toplevel.span, *def))
+                if def.is_main() {
+                    let main = self.process_node(def.body)?;
+                    self.program.main = Some(main);
+                    Ok(())
+                } else {
+                    self.process_global_def(toplevel.value.id, Spanned::span(toplevel.span, *def))
+                }
             }
             ToplevelKind::Let(let_) => self.process_global_let(Spanned::span(toplevel.span, *let_)),
-            ToplevelKind::Expr(expr) => {
-                let node = self.process_node(*expr)?;
-                self.program.append_toplevel(node);
-                Ok(())
-            }
         }
     }
 

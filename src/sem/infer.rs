@@ -140,26 +140,46 @@ impl Infer {
         self.envchain.last_mut().unwrap_or(&mut self.global_env)
     }
 
+    fn check_main_signature(&mut self, def: &ast::Def, span: Span) -> SemResult<()> {
+        let ret_is_unit = match def.ret {
+            Some(ast::Type::Primary(ref name)) => name == "()",
+            Some(_) => false,
+            None => true,
+        };
+        if !def.args.is_empty() || !ret_is_unit {
+            let err = Error::from("main function has wrong type");
+            return Err(BasisError::span(span, err));
+        }
+        Ok(())
+    }
+
+    fn collect_forward_def(&mut self, id: NodeId, def: &ast::Def, span: Span) -> SemResult<()> {
+        if def.name == "main" {
+            self.check_main_signature(def, span)?;
+        }
+        let ret_typ = def.ret
+            .as_ref()
+            .map(|typ| self.convert_type(typ))
+            .unwrap_or(Ok(Type::Unit))
+            .map_err(|err| BasisError::span(span, err))?;
+        let args = def.args
+            .iter()
+            .map(|&(_, ref typ)| {
+                     self.convert_type(typ)
+                         .map_err(|err| BasisError::span(span, err))
+                 })
+            .collect::<SemResult<Vec<_>>>()?;
+        let entry = Entry::Function(args, ret_typ);
+        self.toplevels.insert(id, entry.clone());
+        self.global_env
+            .define(def.name.clone(), Spanned::span(span, entry))
+    }
+
     pub fn collect_forward_declarations(&mut self, decls: &[Spanned<Toplevel>]) -> SemResult<()> {
         for decl in decls {
             match decl.value.kind {
                 ToplevelKind::Def(ref def) => {
-                    let ret_typ = def.ret
-                        .as_ref()
-                        .map(|typ| self.convert_type(typ))
-                        .unwrap_or(Ok(Type::Unit))
-                        .map_err(|err| BasisError::span(decl.span, err))?;
-                    let args = def.args
-                        .iter()
-                        .map(|&(_, ref typ)| {
-                                 self.convert_type(typ)
-                                     .map_err(|err| BasisError::span(decl.span, err))
-                             })
-                        .collect::<SemResult<Vec<_>>>()?;
-                    let entry = Entry::Function(args, ret_typ);
-                    self.toplevels.insert(decl.value.id, entry.clone());
-                    self.global_env
-                        .define(def.name.clone(), Spanned::span(decl.span, entry))?
+                    self.collect_forward_def(decl.value.id, def, decl.span)?
                 }
                 ToplevelKind::Let(ref let_) => {
                     let typ = let_.typ
@@ -172,7 +192,6 @@ impl Infer {
                     self.global_env
                         .define(let_.name.clone(), Spanned::span(decl.span, entry))?
                 }
-                _ => (),
             }
         }
         Ok(())
@@ -424,9 +443,6 @@ impl Infer {
                 let declared_typ = self.get_declared_global_var(&let_.name);
                 let expect = Expect::Type { typ: declared_typ };
                 self.infer_node(&let_.value, &expect)?;
-            }
-            ToplevelKind::Expr(ref node) => {
-                self.infer_node(node, &Expect::None)?;
             }
         }
         Ok(())
