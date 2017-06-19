@@ -109,6 +109,12 @@ pub struct Def {
     pub body: Spanned<Node>,
 }
 
+impl Def {
+    pub fn is_main(&self) -> bool {
+        self.name == "main"
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Primary(String),

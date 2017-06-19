@@ -140,7 +140,23 @@ impl Infer {
         self.envchain.last_mut().unwrap_or(&mut self.global_env)
     }
 
+    fn check_main_signature(&mut self, def: &ast::Def, span: Span) -> SemResult<()> {
+        let ret_is_unit = match def.ret {
+            Some(ast::Type::Primary(ref name)) => name == "()",
+            Some(_) => false,
+            None => true,
+        };
+        if !def.args.is_empty() || !ret_is_unit {
+            let err = Error::from("main function has wrong type");
+            return Err(BasisError::span(span, err));
+        }
+        Ok(())
+    }
+
     fn collect_forward_def(&mut self, id: NodeId, def: &ast::Def, span: Span) -> SemResult<()> {
+        if def.name == "main" {
+            return self.check_main_signature(def, span);
+        }
         let ret_typ = def.ret
             .as_ref()
             .map(|typ| self.convert_type(typ))

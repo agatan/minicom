@@ -9,7 +9,7 @@ use super::Error;
 pub struct Program {
     pub entries: HashMap<String, Entry>,
     pub inits: Vec<Node>,
-    pub main: Option<Box<Node>>,
+    pub main: Option<Node>,
 }
 
 impl Program {
