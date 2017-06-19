@@ -6,9 +6,10 @@ def fib(n: Int): Int = {
   }
 }
 
-
-let n: Ref[Int] = ref(0)
-while @n < 38 {
-  print(fib(@n))
-  n <- @n + 1
+def main() = {
+  let n = ref(0)
+  while @n < 38 {
+    print(fib(@n))
+    n <- @n + 1
+  }
 }
