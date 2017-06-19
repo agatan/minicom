@@ -2,7 +2,7 @@ FROM ubuntu:16.04
 
 MAINTAINER agatan
 
-RUN apt-get update -qq -y && apt install wget curl gcc make zlib1g-dev -qq -y && \
+RUN apt-get update -qq -y && apt install wget curl gcc make zlib1g-dev libgc-dev -qq -y && \
     wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
     echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-3.9 main" >> /etc/apt/sources.list && \
     echo "deb-src http://apt.llvm.org/xenial/ llvm-toolchain-xenial-3.9 main" >> /etc/apt/sources.list && \
