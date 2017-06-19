@@ -1,17 +1,20 @@
-if true {
-  print(1)
-} else {
-  print(2)
+def main() = {
+  if true {
+    print(1)
+  } else {
+    print(2)
+  }
+
+  if false {
+    print(1)
+  } else {
+    print(2)
+  }
+
+  let x: Int = if true { 1 } else { 2 }
+  print(x)
+
+  let y: Int = if false { 1 } else { 2 }
+  print(y)
+  ()
 }
-
-if false {
-  print(1)
-} else {
-  print(2)
-}
-
-let x: Int = if true { 1 } else { 2 }
-print(x)
-
-let y: Int = if false { 1 } else { 2 }
-print(y)

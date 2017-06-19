@@ -8,4 +8,7 @@ def sample(x: Int, y: Int): Int = {
   x + y + z
 }
 
-print(sample(1, 2));
+def main() = {
+  print(sample(1, 2))
+  ()
+}
