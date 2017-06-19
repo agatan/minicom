@@ -19,47 +19,53 @@ mod success {
     fn simple_literal() {
         let input = r#"
 
-        1
-        true
-        false
+            def f(): Bool = {
+                1
+                true
+                false
+            }
 
 "#;
         let program = run_semantic_check(input).unwrap();
-        assert!(program.entries.is_empty());
-        assert_eq!(program.toplevels.len(), 3);
+        assert_eq!(program.entries.len(), 1);
+        assert_eq!(program.toplevels.len(), 0);
     }
 
     #[test]
     fn arithmetic_infix_operations() {
         let input = r#"
 
-            1 - 2
-            1 + 2
-            1 * 2
-            1 / 2
-            1.0 - 2.0
-            1.0 + 2.0
-            1.0 * 2.0
-            1.0 / 2.0
+            def f(): Float = {
+                1 - 2
+                1 + 2
+                1 * 2
+                1 / 2
+                1.0 - 2.0
+                1.0 + 2.0
+                1.0 * 2.0
+                1.0 / 2.0
+            }
 
 "#;
         let program = run_semantic_check(input).unwrap();
-        assert!(program.entries.is_empty());
-        assert_eq!(program.toplevels.len(), 8);
+        assert_eq!(program.entries.len(), 1);
+        assert_eq!(program.toplevels.len(), 0);
     }
 
     #[test]
     fn global_identifier() {
         let input = r#"
 
-            let x: Int = 0
-            let y: Int = x
-            x + y
+            def f(): Int = {
+                let x: Int = 0
+                let y: Int = x
+                x + y
+            }
 
 "#;
         let program = run_semantic_check(input).unwrap();
-        assert_eq!(program.entries.len(), 2);
-        assert_eq!(program.toplevels.len(), 3);
+        assert_eq!(program.entries.len(), 1);
+        assert_eq!(program.toplevels.len(), 0);
     }
 
     #[test]
@@ -158,8 +164,8 @@ mod failure {
     #[test]
     fn arithmetic_infix_operations() {
         for op in &["+", "-", "/", "*"] {
-            let input = format!(r#"1 {} 2.3"#, op);
-            run(&input, &["<dummy>:1:5", "mismatched types"]);
+            let input = format!(r#"def foo() = {{ let x = 1 {} 2.3; () }} "#, op);
+            run(&input, &["<dummy>:1:27", "mismatched types"]);
         }
     }
 
@@ -179,10 +185,10 @@ mod failure {
 
             def add(x: Int, y: Int): Int = x + y
 
-            add(1.0, 2.0)
+            let x: Int = add(1.0, 2.0)
 
         "#;
-        run(input, &["<dummy>:5:17", "mismatched types"]);
+        run(input, &["<dummy>:5:30", "mismatched types"]);
     }
 
     #[test]
@@ -191,11 +197,11 @@ mod failure {
 
             def add(x: Int, y: Int): Int = x + y
 
-            add(0)
+            let x: Int = add(0)
 
         "#;
         run(input,
-            &["<dummy>:5:13", "invalid number", "expected 2", "given 1"]);
+            &["<dummy>:5:26", "invalid number", "expected 2", "given 1"]);
     }
 
     #[test]

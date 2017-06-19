@@ -73,10 +73,6 @@ impl<'a> Alpha<'a> {
                 let_.name = self.define(let_.name);
                 ToplevelKind::Let(Box::new(let_))
             }
-            ToplevelKind::Expr(e) => {
-                let e = self.apply(*e);
-                ToplevelKind::Expr(Box::new(e))
-            }
         };
         toplevel
     }

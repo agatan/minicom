@@ -13,7 +13,6 @@ impl NodeId {
 pub enum ToplevelKind {
     Def(Box<Def>),
     Let(Box<Let>),
-    Expr(Box<Spanned<Node>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

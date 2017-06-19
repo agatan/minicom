@@ -172,7 +172,6 @@ impl Infer {
                     self.global_env
                         .define(let_.name.clone(), Spanned::span(decl.span, entry))?
                 }
-                _ => (),
             }
         }
         Ok(())
@@ -424,9 +423,6 @@ impl Infer {
                 let declared_typ = self.get_declared_global_var(&let_.name);
                 let expect = Expect::Type { typ: declared_typ };
                 self.infer_node(&let_.value, &expect)?;
-            }
-            ToplevelKind::Expr(ref node) => {
-                self.infer_node(node, &Expect::None)?;
             }
         }
         Ok(())

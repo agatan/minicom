@@ -210,11 +210,6 @@ impl Context {
                 self.process_global_def(toplevel.value.id, Spanned::span(toplevel.span, *def))
             }
             ToplevelKind::Let(let_) => self.process_global_let(Spanned::span(toplevel.span, *let_)),
-            ToplevelKind::Expr(expr) => {
-                let node = self.process_node(*expr)?;
-                self.program.append_toplevel(node);
-                Ok(())
-            }
         }
     }
 
