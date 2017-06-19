@@ -87,7 +87,7 @@ impl Compiler {
     }
 
     fn compile_main_function(&mut self,
-                             f: Option<&Function>,
+                             main_body: &Option<Node>,
                              init_fun: llvm::Function)
                              -> llvm::Function {
         let fun_ty = self.ctx.function_type(self.ctx.int32_type(), &[], false);
@@ -95,14 +95,11 @@ impl Compiler {
         let alloc = fun.append_basic_block("entry");
         let start = fun.append_basic_block("start");
         self.builder.position_at_end(&start);
-        match f {
-            Some(f) => {
+        match *main_body {
+            Some(ref body) => {
                 self.builder.call(init_fun, &[], "calltmp");
                 let mut fbuilder = FunBuilder::new(&alloc, self);
-                for (name, i) in f.args.iter().map(|x| &x.0).zip(0..) {
-                    fbuilder.define_arg(name, fun.param(i));
-                }
-                fbuilder.compile_node(&f.body);
+                fbuilder.compile_node(body);
             }
             None => {
                 self.builder.call(init_fun, &[], "calltmp");
@@ -164,21 +161,14 @@ impl Compiler {
                     self.globals.insert(var.name.clone(), v);
                 }
                 Entry::Function(ref f) => {
-                    if !f.is_main() {
-                        self.declare_function(f);
-                    }
+                    self.declare_function(f);
                 }
             }
         }
         // compile functions
-        let mut main_function = None;
         for entry in program.entries.values() {
             if let Entry::Function(ref f) = *entry {
-                if f.is_main() {
-                    main_function = Some(f);
-                } else {
-                    self.compile_function(f);
-                }
+                self.compile_function(f);
             }
         }
         let init_fun_ty = self.ctx.function_type(self.ctx.int32_type(), &[], false);
@@ -200,7 +190,7 @@ impl Compiler {
         self.builder.br(&start);
 
         // compile main function
-        self.compile_main_function(main_function, init_fun);
+        self.compile_main_function(&program.main, init_fun);
 
         self.module
             .verify()

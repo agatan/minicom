@@ -155,7 +155,7 @@ impl Infer {
 
     fn collect_forward_def(&mut self, id: NodeId, def: &ast::Def, span: Span) -> SemResult<()> {
         if def.name == "main" {
-            return self.check_main_signature(def, span);
+            self.check_main_signature(def, span)?;
         }
         let ret_typ = def.ret
             .as_ref()
