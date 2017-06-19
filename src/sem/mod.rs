@@ -200,7 +200,7 @@ impl Context {
             typ: typ,
         };
         let assignment = Node::new(NodeKind::AssignGlobal(var, Box::new(irnode)), Type::Unit);
-        self.program.append_toplevel(assignment);
+        self.program.append_inits(assignment);
         Ok(())
     }
 

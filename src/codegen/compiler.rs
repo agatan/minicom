@@ -190,7 +190,7 @@ impl Compiler {
             let mut fbuilder = FunBuilder::new(&entry, self);
             // call gc_init
             fbuilder.compiler.builder.call(gc_init_fun, &[], "");
-            for node in program.toplevels.iter() {
+            for node in program.inits.iter() {
                 fbuilder.compile_node(node);
             }
         }

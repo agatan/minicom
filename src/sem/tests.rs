@@ -28,7 +28,7 @@ mod success {
 "#;
         let program = run_semantic_check(input).unwrap();
         assert_eq!(program.entries.len(), 1);
-        assert_eq!(program.toplevels.len(), 0);
+        assert_eq!(program.inits.len(), 0);
     }
 
     #[test]
@@ -49,7 +49,7 @@ mod success {
 "#;
         let program = run_semantic_check(input).unwrap();
         assert_eq!(program.entries.len(), 1);
-        assert_eq!(program.toplevels.len(), 0);
+        assert_eq!(program.inits.len(), 0);
     }
 
     #[test]
@@ -65,7 +65,7 @@ mod success {
 "#;
         let program = run_semantic_check(input).unwrap();
         assert_eq!(program.entries.len(), 1);
-        assert_eq!(program.toplevels.len(), 0);
+        assert_eq!(program.inits.len(), 0);
     }
 
     #[test]
@@ -84,7 +84,7 @@ mod success {
 "#;
         let program = run_semantic_check(input).unwrap();
         assert_eq!(program.entries.len(), 3);
-        assert_eq!(program.toplevels.len(), 0);
+        assert_eq!(program.inits.len(), 0);
     }
 
     #[test]
@@ -100,7 +100,7 @@ mod success {
 "#;
         let program = run_semantic_check(input).unwrap();
         assert_eq!(program.entries.len(), 4);
-        assert_eq!(program.toplevels.len(), 3);
+        assert_eq!(program.inits.len(), 3);
     }
 
     #[test]
@@ -117,7 +117,7 @@ mod success {
 "#;
         let program = run_semantic_check(input).unwrap();
         assert_eq!(program.entries.len(), 2);
-        assert_eq!(program.toplevels.len(), 2);
+        assert_eq!(program.inits.len(), 2);
     }
 
     #[test]
@@ -136,7 +136,7 @@ mod success {
 "#;
         let program = run_semantic_check(input).unwrap();
         assert_eq!(program.entries.len(), 3);
-        assert_eq!(program.toplevels.len(), 2);
+        assert_eq!(program.inits.len(), 2);
     }
 }
 

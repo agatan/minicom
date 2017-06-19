@@ -140,26 +140,30 @@ impl Infer {
         self.envchain.last_mut().unwrap_or(&mut self.global_env)
     }
 
+    fn collect_forward_def(&mut self, id: NodeId, def: &ast::Def, span: Span) -> SemResult<()> {
+        let ret_typ = def.ret
+            .as_ref()
+            .map(|typ| self.convert_type(typ))
+            .unwrap_or(Ok(Type::Unit))
+            .map_err(|err| BasisError::span(span, err))?;
+        let args = def.args
+            .iter()
+            .map(|&(_, ref typ)| {
+                     self.convert_type(typ)
+                         .map_err(|err| BasisError::span(span, err))
+                 })
+            .collect::<SemResult<Vec<_>>>()?;
+        let entry = Entry::Function(args, ret_typ);
+        self.toplevels.insert(id, entry.clone());
+        self.global_env
+            .define(def.name.clone(), Spanned::span(span, entry))
+    }
+
     pub fn collect_forward_declarations(&mut self, decls: &[Spanned<Toplevel>]) -> SemResult<()> {
         for decl in decls {
             match decl.value.kind {
                 ToplevelKind::Def(ref def) => {
-                    let ret_typ = def.ret
-                        .as_ref()
-                        .map(|typ| self.convert_type(typ))
-                        .unwrap_or(Ok(Type::Unit))
-                        .map_err(|err| BasisError::span(decl.span, err))?;
-                    let args = def.args
-                        .iter()
-                        .map(|&(_, ref typ)| {
-                                 self.convert_type(typ)
-                                     .map_err(|err| BasisError::span(decl.span, err))
-                             })
-                        .collect::<SemResult<Vec<_>>>()?;
-                    let entry = Entry::Function(args, ret_typ);
-                    self.toplevels.insert(decl.value.id, entry.clone());
-                    self.global_env
-                        .define(def.name.clone(), Spanned::span(decl.span, entry))?
+                    self.collect_forward_def(decl.value.id, def, decl.span)?
                 }
                 ToplevelKind::Let(ref let_) => {
                     let typ = let_.typ
