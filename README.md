@@ -1,4 +1,5 @@
-## minicom
+# minicom
+[![Build Status](https://travis-ci.org/agatan/minicom.svg?branch=master)](https://travis-ci.org/agatan/minicom)
 
 minicom is a compiler of mini toy language written in Rust using LLVM.
 
