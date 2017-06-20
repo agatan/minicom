@@ -1,6 +1,6 @@
 #![feature(box_syntax)]
 
-extern crate minivm_basis as basis;
+extern crate minicom_basis as basis;
 
 #[macro_use]
 extern crate quick_error;

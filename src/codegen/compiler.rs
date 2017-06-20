@@ -172,7 +172,7 @@ impl Compiler {
             }
         }
         let init_fun_ty = self.ctx.function_type(self.ctx.int32_type(), &[], false);
-        let mut init_fun = self.module.add_function("minivm.init", init_fun_ty);
+        let mut init_fun = self.module.add_function("minicom.init", init_fun_ty);
         let entry = init_fun.append_basic_block("entry");
         let start = init_fun.append_basic_block("start");
         self.builder.position_at_end(&start);

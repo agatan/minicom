@@ -6,7 +6,7 @@ use super::{Error, ResultExt};
 fn find_runtime_library() -> Result<String, Error> {
     let this_binary = PathBuf::from(::std::env::args().next().unwrap());
     let this_binary_dir = this_binary.parent().unwrap_or(".".as_ref());
-    let candidate = this_binary_dir.join("libminivm_rt.a");
+    let candidate = this_binary_dir.join("libminicom_rt.a");
     if !candidate.exists() {
         bail!("runtime library not found")
     }

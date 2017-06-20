@@ -1,5 +1,5 @@
 [package]
-name = "minivm-syntax"
+name = "minicom-syntax"
 version = "0.1.0"
 authors = ["agatan <agatan039@gmail.com>"]
 build = "build.rs"
@@ -8,7 +8,7 @@ build = "build.rs"
 quick-error = "1.2"
 lalrpop-util = "0.13"
 
-minivm-basis = { path = "../basis" }
+minicom-basis = { path = "../basis" }
 
 [build-dependencies]
 lalrpop = "0.13"

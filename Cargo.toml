@@ -1,5 +1,5 @@
 [package]
-name = "minivm"
+name = "mivicom"
 version = "0.1.0"
 authors = ["agatan <agatan039@gmail.com>"]
 
@@ -9,11 +9,11 @@ env_logger = "0.4"
 error-chain = "0.10"
 llvm-sys = "39"
 
-minivm-basis = { path = "./basis" }
-minivm-syntax = { path = "./syntax" }
+minicom-basis = { path = "./basis" }
+minicom-syntax = { path = "./syntax" }
 
 [lib]
-name = "minivm_rt"
+name = "minicom_rt"
 path = "runtime/src/lib.rs"
 crate-type = ["staticlib", "cdylib"]
 

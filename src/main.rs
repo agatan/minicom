@@ -9,8 +9,8 @@ extern crate llvm_sys;
 extern crate libc;
 
 #[macro_use]
-extern crate minivm_basis as basis;
-extern crate minivm_syntax as syntax;
+extern crate minicom_basis as basis;
+extern crate minicom_syntax as syntax;
 
 mod sem;
 mod llvm;
