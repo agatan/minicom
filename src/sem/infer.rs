@@ -321,7 +321,6 @@ impl Infer {
                 Ok(function_ret)
             }
             NodeKind::Parens(ref e) => self.infer_node(e, expect),
-            NodeKind::Print(ref e) => self.infer_node(e, expect),
             NodeKind::Ref(ref e) => {
                 let inner_typ = self.infer_node(e, &Expect::None)?;
                 Ok(Type::Ref(Box::new(inner_typ)))

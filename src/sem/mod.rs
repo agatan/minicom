@@ -88,10 +88,6 @@ impl Context {
                 let body = self.process_node(*body)?;
                 NodeKind::While(Box::new(cond), Box::new(body))
             }
-            AstNodeKind::Print(e) => {
-                let e = self.process_node(*e)?;
-                NodeKind::Print(Box::new(e))
-            }
             AstNodeKind::Ref(e) => {
                 let e = self.process_node(*e)?;
                 NodeKind::Ref(Box::new(e))
