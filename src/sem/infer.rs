@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut, Drop};
 use std::fmt;
 
-use basis::pos::{Span, Spanned};
+use basis::pos::{Span, Spanned, DUMMY_SPAN};
 use basis::errors::Error as BasisError;
 use syntax::ast::{self, NodeId, Toplevel, ToplevelKind, Node, NodeKind, Operator};
 
@@ -14,6 +14,7 @@ use sem::{Error, Result as SemResult};
 
 #[derive(Debug, Clone)]
 pub enum Entry {
+    ExternFunction(Vec<Type>, Type),
     Function(Vec<Type>, Type),
     Var(Type),
 }
@@ -28,6 +29,27 @@ impl Env {
         Env { table: HashMap::new() }
     }
 
+    fn with_prelude() -> Self {
+        let mut e = Self::new();
+        e.define("print_unit".into(),
+                    Spanned::span(DUMMY_SPAN,
+                                  Entry::ExternFunction(vec![Type::Unit], Type::Unit)))
+            .unwrap();
+        e.define("print_int".into(),
+                    Spanned::span(DUMMY_SPAN,
+                                  Entry::ExternFunction(vec![Type::Int], Type::Int)))
+            .unwrap();
+        e.define("print_float".into(),
+                    Spanned::span(DUMMY_SPAN,
+                                  Entry::ExternFunction(vec![Type::Float], Type::Float)))
+            .unwrap();
+        e.define("print_bool".into(),
+                    Spanned::span(DUMMY_SPAN,
+                                  Entry::ExternFunction(vec![Type::Bool], Type::Bool)))
+            .unwrap();
+        e
+    }
+
     fn define(&mut self, name: String, entry: Spanned<Entry>) -> SemResult<()> {
         use std::collections::hash_map::Entry::*;
         match self.table.entry(name) {
@@ -37,10 +59,12 @@ impl Env {
             Occupied(o) => {
                 let mut err = BasisError::span(entry.span,
                                                format!("duplicate definition: {:?}", o.key()));
-                note_in!(err,
-                         o.get().span,
-                         "previous definition of {:?} here",
-                         o.key());
+                if o.get().span != DUMMY_SPAN {
+                    note_in!(err,
+                             o.get().span,
+                             "previous definition of {:?} here",
+                             o.key());
+                }
                 return Err(err);
             }
         }
@@ -113,7 +137,7 @@ impl Infer {
             typemap: TypeMap::new(),
             toplevels: HashMap::new(),
             tyenv: Rc::new(TypeEnv::new()),
-            global_env: Env::new(),
+            global_env: Env::with_prelude(),
             envchain: Vec::new(),
         }
     }
@@ -218,6 +242,7 @@ impl Infer {
             match env.table.get(name) {
                 Some(spanned) => {
                     match spanned.value {
+                        Entry::ExternFunction(_, _) |
                         Entry::Function(_, _) => bail!("{:?} is not a variable", name),
                         Entry::Var(ref typ) => return Ok(Spanned::span(spanned.span, typ)),
                     }
@@ -233,6 +258,7 @@ impl Infer {
             match env.table.get(name) {
                 Some(spanned) => {
                     match spanned.value {
+                        Entry::ExternFunction(ref args, ref ret) |
                         Entry::Function(ref args, ref ret) => {
                             let f = Spanned::span(spanned.span, (args.clone(), ret.clone()));
                             return Ok(f);
