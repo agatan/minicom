@@ -40,8 +40,6 @@ pub enum NodeKind {
     Block(Vec<Spanned<Node>>),
     If(Box<Spanned<Node>>, Box<Spanned<Node>>, Option<Box<Spanned<Node>>>),
     While(Box<Spanned<Node>>, Box<Spanned<Node>>),
-    // FIXME(agatan): temporary builtin command
-    Print(Box<Spanned<Node>>),
     // ref(1)
     Ref(Box<Spanned<Node>>),
     // @x
