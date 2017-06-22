@@ -12,5 +12,4 @@ def main() = {
     print_int(fib(@n))
     n <- @n + 1
   }
-  print_unit(2)
 }

@@ -1,20 +1,20 @@
 def main() = {
   if true {
-    print(1)
+    print_int(1)
   } else {
-    print(2)
+    print_int(2)
   }
 
   if false {
-    print(1)
+    print_int(1)
   } else {
-    print(2)
+    print_int(2)
   }
 
   let x: Int = if true { 1 } else { 2 }
-  print(x)
+  print_int(x)
 
   let y: Int = if false { 1 } else { 2 }
-  print(y)
+  print_int(y)
   ()
 }

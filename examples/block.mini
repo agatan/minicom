@@ -9,6 +9,6 @@ def sample(x: Int, y: Int): Int = {
 }
 
 def main() = {
-  print(sample(1, 2))
+  print_int(sample(1, 2))
   ()
 }
