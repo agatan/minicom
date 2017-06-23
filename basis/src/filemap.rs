@@ -107,30 +107,34 @@ impl FileMap {
     }
 }
 
-#[test]
-fn test_filemap() {
-    let mut filemap = FileMap::new();
-    filemap.add_dummy("012".to_string());
-    filemap.add_dummy("345".to_string());
-    let f = filemap.file(Pos(1)).expect("Pos(1)");
-    assert_eq!(f.contents, "012", "Pos(1)");
-    let f = filemap.file(Pos(3)).expect("Pos(3)");
-    assert_eq!(f.contents, "012", "Pos(3)");
-    println!("{:?}", filemap);
-    let f = filemap.file(Pos(4)).expect("Pos(4)");
-    assert_eq!(f.contents, "345", "Pos(4)");
-    let f = filemap.file(Pos(6)).expect("Pos(6)");
-    assert_eq!(f.contents, "345", "Pos(6)");
-    assert_eq!(filemap.file(Pos(7)), None);
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_filemap() {
+        let mut filemap = FileMap::new();
+        filemap.add_dummy("012".to_string());
+        filemap.add_dummy("345".to_string());
+        let f = filemap.file(Pos(1)).expect("Pos(1)");
+        assert_eq!(f.contents, "012", "Pos(1)");
+        let f = filemap.file(Pos(3)).expect("Pos(3)");
+        assert_eq!(f.contents, "012", "Pos(3)");
+        println!("{:?}", filemap);
+        let f = filemap.file(Pos(4)).expect("Pos(4)");
+        assert_eq!(f.contents, "345", "Pos(4)");
+        let f = filemap.file(Pos(6)).expect("Pos(6)");
+        assert_eq!(f.contents, "345", "Pos(6)");
+        assert_eq!(filemap.file(Pos(7)), None);
+    }
 
-#[test]
-fn test_file_shift_pos() {
-    let mut filemap = FileMap::new();
-    filemap.add_dummy("012".to_string());
-    filemap.add_dummy("345".to_string());
-    let f = filemap.file(Pos(5)).unwrap();
-    assert_eq!(f.shift(Pos(0)), Pos(4));
-    assert_eq!(f.shift(Pos(1)), Pos(5));
-    assert_eq!(f.shift(Pos(2)), Pos(6));
+    #[test]
+    fn test_file_shift_pos() {
+        let mut filemap = FileMap::new();
+        filemap.add_dummy("012".to_string());
+        filemap.add_dummy("345".to_string());
+        let f = filemap.file(Pos(5)).unwrap();
+        assert_eq!(f.shift(Pos(0)), Pos(4));
+        assert_eq!(f.shift(Pos(1)), Pos(5));
+        assert_eq!(f.shift(Pos(2)), Pos(6));
+    }
 }
