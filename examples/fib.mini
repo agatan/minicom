@@ -9,7 +9,7 @@ def fib(n: Int): Int = {
 def main() = {
   let n = ref(0)
   while @n < 38 {
-    print(fib(@n))
+    print_int(fib(@n))
     n <- @n + 1
   }
 }

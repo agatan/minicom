@@ -31,7 +31,6 @@ pub enum Token<'input> {
     While,
     Let,
     Def,
-    Print,
     Ref,
     Deref,
     LeftArrow,
@@ -95,7 +94,6 @@ impl<'input> fmt::Display for Token<'input> {
             While => f.write_str("while"),
             Let => f.write_str("let"),
             Def => f.write_str("def"),
-            Print => f.write_str("print"),
             Ref => f.write_str("ref"),
             Deref => f.write_str("@"),
             LeftArrow => f.write_str("<-"),
@@ -246,7 +244,6 @@ impl<'input> Tokenizer<'input> {
             "while" => Token::While,
             "let" => Token::Let,
             "def" => Token::Def,
-            "print" => Token::Print,
             "ref" => Token::Ref,
             "Ref" => Token::RefType,
             ident => {

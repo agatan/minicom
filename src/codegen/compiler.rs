@@ -391,22 +391,6 @@ impl<'a, 's> FunBuilder<'a, 's> {
                     self.compiler.builder.fcmp(llvm::LLVMRealOLT, l, r, "lttmp")
                 }
             }
-            NodeKind::Print(ref e) => {
-                let typ = &e.typ;
-                let e = self.compile_node(e);
-                let fname = match *typ {
-                    Type::Unit => "print_unit",
-                    Type::Int => "print_int",
-                    Type::Bool => "print_bool",
-                    Type::Float => "print_float",
-                    _ => unreachable!(),
-                };
-                let f = self.compiler
-                    .module
-                    .get_function(fname)
-                    .expect("predefined builtin functions");
-                self.compiler.builder.call(f, &[e], "calltmp")
-            }
             NodeKind::Block(ref es) => {
                 match es.split_last() {
                     None => self.compiler.unit(),

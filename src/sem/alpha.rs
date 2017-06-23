@@ -88,7 +88,6 @@ impl<'a> Alpha<'a> {
                 NodeKind::Infix(Box::new(self.apply(*l)), op, Box::new(self.apply(*r)))
             }
             NodeKind::Parens(e) => NodeKind::Parens(Box::new(self.apply(*e))),
-            NodeKind::Print(e) => NodeKind::Print(Box::new(self.apply(*e))),
             NodeKind::Ref(e) => NodeKind::Ref(Box::new(self.apply(*e))),
             NodeKind::Deref(e) => NodeKind::Deref(Box::new(self.apply(*e))),
             NodeKind::Call(name, args) => {

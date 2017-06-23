@@ -37,7 +37,6 @@ extern {
         "while" => Token::While,
         "let" => Token::Let,
         "def" => Token::Def,
-        "print" => Token::Print,
         "ref" => Token::Ref,
         "@" => Token::Deref,
         "<-" => Token::LeftArrow,
@@ -143,8 +142,6 @@ Literal: Node = {
 };
 
 AtomicExpr: Spanned<Node> = {
-    <l:@L> "print" "(" <expr:Expression> ")" <r:@R> =>
-        Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Print(Box::new(expr)))),
     <l:@L> "ref" "(" <expr:Expression> ")" <r:@R> =>
         Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Ref(Box::new(expr)))),
     <l:@L> <name:"identifier"> "(" <args:Comma<Expression>> ")" <r:@R> =>
