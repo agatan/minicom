@@ -83,7 +83,8 @@ impl Source {
         Pos(pos.0 + self.base)
     }
 
-    pub fn line(&self, pos: Pos) -> Option<(usize, &str)> {
+    /// Returns line number, start index and end index
+    fn line_number_and_indices(&self, pos: Pos) -> Option<(usize, usize, usize)> {
         if pos.0 < self.base || self.base + self.size <= pos.0 {
             return None;
         }
@@ -91,32 +92,31 @@ impl Source {
         let mut newline_start = 0usize;
         for (i, &newline) in self.lines.iter().enumerate() {
             if newline > offset {
-                return Some((i, &self.contents[newline_start..newline - 1]));
+                return Some((i, newline_start, newline));
             }
             newline_start = newline;
         }
         None
     }
 
+    pub fn line(&self, pos: Pos) -> Option<(usize, &str)> {
+        self.line_number_and_indices(pos)
+            .map(|(linum, start, end)| (linum, &self.contents[start..end - 1]))
+    }
+
     pub fn position(&self, pos: Pos) -> Option<Position> {
-        if pos.0 < self.base || self.base + self.size <= pos.0 {
-            return None;
-        }
+        let (line, line_start, _) = match self.line_number_and_indices(pos) {
+            Some(x) => x,
+            None => return None,
+        };
         let offset = pos.0 - self.base;
-        let mut newline_start = 0usize;
-        for (i, &newline) in self.lines.iter().enumerate() {
-            if newline > offset {
-                let position = Position {
-                    filename: self.name.clone(),
-                    line: Line(i),
-                    column: Column(offset - newline_start + 1),
-                    absolute: Byte(offset),
-                };
-                return Some(position);
-            }
-            newline_start = newline;
-        }
-        None
+        let position = Position {
+            filename: self.name.clone(),
+            line: Line(line),
+            column: Column(offset - line_start + 1),
+            absolute: Byte(offset),
+        };
+        Some(position)
     }
 }
 
