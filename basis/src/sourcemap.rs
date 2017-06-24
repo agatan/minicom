@@ -31,9 +31,45 @@ pub const NPOS: Pos = Pos(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Span {
-    start: Pos,
-    end: Pos,
+    pub start: Pos,
+    pub end: Pos,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Spanned<T, S = Span> {
+    pub span: S,
+    pub value: T,
+}
+
+impl<T> Spanned<T, Span> {
+    pub fn new(start: Pos, end: Pos, value: T) -> Self {
+        Spanned {
+            span: Span {
+                start: start,
+                end: end,
+            },
+            value: value,
+        }
+    }
+}
+
+impl<T, S> Spanned<T, S> {
+    pub fn span(span: S, value: T) -> Self {
+        Spanned {
+            span: span,
+            value: value,
+        }
+    }
+
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Spanned<U, S> {
+        let Spanned { span, value } = self;
+        Spanned {
+            span: span,
+            value: f(value),
+        }
+    }
+}
+
 
 #[derive(Debug, Clone, PartialEq)]
 /// `Source` is a source file.
