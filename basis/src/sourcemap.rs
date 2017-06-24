@@ -111,18 +111,18 @@ impl SourceMap {
         self.add("<dummy>".to_string(), contents)
     }
 
-    fn search_sources(&self, x: usize) -> Option<Rc<Source>> {
+    fn search_sources(&self, x: usize) -> Option<&Rc<Source>> {
         let mut found = None;
         for source in self.sources.iter() {
             if source.base > x {
-                return found.cloned();
+                return found;
             }
             found = Some(source);
         }
-        found.cloned()
+        found
     }
 
-    pub fn source(&self, pos: Pos) -> Option<Rc<Source>> {
+    fn source_ref(&self, pos: Pos) -> Option<&Rc<Source>> {
         if pos == NPOS {
             return None;
         }
@@ -132,6 +132,14 @@ impl SourceMap {
             }
         }
         None
+    }
+
+    pub fn source(&self, pos: Pos) -> Option<Rc<Source>> {
+        self.source_ref(pos).cloned()
+    }
+
+    pub fn line(&self, pos: Pos) -> Option<(usize, &str)> {
+        self.source_ref(pos).and_then(|f| f.line(pos))
     }
 }
 
@@ -175,11 +183,10 @@ mod tests {
             line 4
         "#;
         sourcemap.add_dummy(input.to_string());
-        let f = sourcemap.source(Pos(5)).unwrap();
-        assert_eq!(f.line(Pos(0)), None);
-        assert_eq!(f.line(Pos(1)), Some((1, "line 1")));
-        assert_eq!(f.line(Pos(2)), Some((1, "line 1")));
-        assert_eq!(f.line(Pos(7)), Some((1, "line 1")));
-        assert_eq!(f.line(Pos(8)), Some((2, "            line 2")));
+        assert_eq!(sourcemap.line(Pos(0)), None);
+        assert_eq!(sourcemap.line(Pos(1)), Some((1, "line 1")));
+        assert_eq!(sourcemap.line(Pos(2)), Some((1, "line 1")));
+        assert_eq!(sourcemap.line(Pos(7)), Some((1, "line 1")));
+        assert_eq!(sourcemap.line(Pos(8)), Some((2, "            line 2")));
     }
 }
