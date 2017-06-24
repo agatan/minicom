@@ -20,9 +20,28 @@ pub struct File {
     size: usize,
     name: String,
     contents: String,
+    lines: Vec<usize>,
 }
 
 impl File {
+    fn new(base: usize, name: String, contents: String) -> Self {
+        let lines = Some(0)
+            .into_iter()
+            .chain(contents
+                       .as_str()
+                       .char_indices()
+                       .filter_map(|(i, c)| if c == '\n' { Some(i + 1) } else { None }))
+            .chain(Some(contents.len()))
+            .collect::<Vec<usize>>();
+        File {
+            base: base,
+            size: contents.len(),
+            name: name,
+            contents: contents,
+            lines: lines,
+        }
+    }
+
     pub fn executable_name(&self) -> String {
         let path: &::std::path::Path = self.name.as_ref();
         if let Some(ext) = path.extension() {
@@ -38,6 +57,21 @@ impl File {
     pub fn shift(&self, pos: Pos) -> Pos {
         debug_assert!(pos.0 <= self.size);
         Pos(pos.0 + self.base)
+    }
+
+    pub fn line(&self, pos: Pos) -> Option<(usize, &str)> {
+        if pos.0 < self.base || self.base + self.size <= pos.0 {
+            return None;
+        }
+        let offset = pos.0 - self.base;
+        let mut newline_start = 0usize;
+        for (i, &newline) in self.lines.iter().enumerate() {
+            if newline > offset {
+                return Some((i, &self.contents[newline_start..newline - 1]));
+            }
+            newline_start = newline;
+        }
+        None
     }
 }
 
@@ -59,16 +93,10 @@ impl FileMap {
 
     fn add(&mut self, name: String, contents: String) -> Rc<File> {
         let base = self.base;
-        let size = contents.len();
-        let file = File {
-            base: base,
-            size: size,
-            name: name,
-            contents: contents,
-        };
+        self.base += contents.len();
+        let file = File::new(base, name, contents);
         let rc_file = Rc::new(file);
         self.files.push(rc_file.clone());
-        self.base += size;
         rc_file
     }
 
@@ -136,5 +164,22 @@ mod tests {
         assert_eq!(f.shift(Pos(0)), Pos(4));
         assert_eq!(f.shift(Pos(1)), Pos(5));
         assert_eq!(f.shift(Pos(2)), Pos(6));
+    }
+
+    #[test]
+    fn test_file_get_line() {
+        let mut filemap = FileMap::new();
+        let input = r#"line 1
+            line 2
+            line 3
+            line 4
+        "#;
+        filemap.add_dummy(input.to_string());
+        let f = filemap.file(Pos(5)).unwrap();
+        assert_eq!(f.line(Pos(0)), None);
+        assert_eq!(f.line(Pos(1)), Some((1, "line 1")));
+        assert_eq!(f.line(Pos(2)), Some((1, "line 1")));
+        assert_eq!(f.line(Pos(7)), Some((1, "line 1")));
+        assert_eq!(f.line(Pos(8)), Some((2, "            line 2")));
     }
 }
