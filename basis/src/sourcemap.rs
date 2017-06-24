@@ -2,6 +2,24 @@ use std::io::prelude::*;
 use std::io;
 use std::fs;
 use std::rc::Rc;
+use std::fmt;
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Byte(pub usize);
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Line(pub usize);
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Column(pub usize);
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Position {
+    pub filename: Rc<String>,
+    pub line: Line,
+    pub column: Column,
+    pub absolute: Byte,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// `Pos` is a light-weight representation of source position.
@@ -11,6 +29,12 @@ pub struct Pos(usize);
 /// `NPOS` is a dummy position
 pub const NPOS: Pos = Pos(0);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Span {
+    start: Pos,
+    end: Pos,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 /// `Source` is a source file.
 pub struct Source {
@@ -18,7 +42,7 @@ pub struct Source {
     base: usize,
     /// `size` is a size of its contents
     size: usize,
-    name: String,
+    name: Rc<String>,
     contents: String,
     lines: Vec<usize>,
 }
@@ -36,14 +60,14 @@ impl Source {
         Source {
             base: base,
             size: contents.len(),
-            name: name,
+            name: Rc::new(name),
             contents: contents,
             lines: lines,
         }
     }
 
     pub fn executable_name(&self) -> String {
-        let path: &::std::path::Path = self.name.as_ref();
+        let path: &::std::path::Path = self.name.as_ref().as_ref();
         if let Some(ext) = path.extension() {
             if ext == "mini" {
                 return path.file_stem()
@@ -68,6 +92,27 @@ impl Source {
         for (i, &newline) in self.lines.iter().enumerate() {
             if newline > offset {
                 return Some((i, &self.contents[newline_start..newline - 1]));
+            }
+            newline_start = newline;
+        }
+        None
+    }
+
+    pub fn position(&self, pos: Pos) -> Option<Position> {
+        if pos.0 < self.base || self.base + self.size <= pos.0 {
+            return None;
+        }
+        let offset = pos.0 - self.base;
+        let mut newline_start = 0usize;
+        for (i, &newline) in self.lines.iter().enumerate() {
+            if newline > offset {
+                let position = Position {
+                    filename: self.name.clone(),
+                    line: Line(i),
+                    column: Column(offset - newline_start + 1),
+                    absolute: Byte(offset),
+                };
+                return Some(position);
             }
             newline_start = newline;
         }
@@ -141,6 +186,30 @@ impl SourceMap {
     pub fn line(&self, pos: Pos) -> Option<(usize, &str)> {
         self.source_ref(pos).and_then(|f| f.line(pos))
     }
+
+    pub fn position(&self, pos: Pos) -> Option<Position> {
+        self.source_ref(pos).and_then(|f| f.position(pos))
+    }
+}
+
+#[derive(Debug)]
+pub struct DisplaySpan<'a> {
+    span: Span,
+    sourcemap: &'a SourceMap,
+}
+
+impl<'a> fmt::Display for DisplaySpan<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let position = match self.sourcemap.position(self.span.start) {
+            Some(s) => s,
+            None => return Ok(()),
+        };
+        write!(f,
+               "{}:{}:{}",
+               position.filename,
+               position.line.0,
+               position.column.0)
+    }
 }
 
 #[cfg(test)]
@@ -188,5 +257,45 @@ mod tests {
         assert_eq!(sourcemap.line(Pos(2)), Some((1, "line 1")));
         assert_eq!(sourcemap.line(Pos(7)), Some((1, "line 1")));
         assert_eq!(sourcemap.line(Pos(8)), Some((2, "            line 2")));
+    }
+
+    #[test]
+    fn test_source_position() {
+        let mut sourcemap = SourceMap::new();
+        let input = r#"line 1
+            line 2
+            line 3
+            line 4
+        "#;
+        sourcemap.add_dummy(input.to_string());
+        assert_eq!(sourcemap.position(Pos(0)), None);
+        assert_eq!(sourcemap.position(Pos(1)),
+                   Some(Position {
+                            filename: Rc::new("<dummy>".to_string()),
+                            line: Line(1),
+                            column: Column(1),
+                            absolute: Byte(0),
+                        }));
+        assert_eq!(sourcemap.position(Pos(4)),
+                   Some(Position {
+                            filename: Rc::new("<dummy>".to_string()),
+                            line: Line(1),
+                            column: Column(4),
+                            absolute: Byte(3),
+                        }));
+        assert_eq!(sourcemap.position(Pos(7)),
+                   Some(Position {
+                            filename: Rc::new("<dummy>".to_string()),
+                            line: Line(1),
+                            column: Column(7),
+                            absolute: Byte(6),
+                        }));
+        assert_eq!(sourcemap.position(Pos(8)),
+                   Some(Position {
+                            filename: Rc::new("<dummy>".to_string()),
+                            line: Line(2),
+                            column: Column(1),
+                            absolute: Byte(7),
+                        }));
     }
 }
