@@ -74,9 +74,16 @@ pub struct Let {
 }
 
 #[derive(Debug, Clone)]
+pub struct Param {
+    pub name: String,
+    pub typ: Type,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
 pub struct Def {
     pub name: String,
-    pub params: Vec<(String, Type)>,
+    pub params: Vec<Param>,
     pub ret: Type,
     pub body: Node,
 }

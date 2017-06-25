@@ -7,7 +7,7 @@ use basis::errors::Error as BasisError;
 
 use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef, Node as AstNode, Let as AstLet};
 
-use typed_ast::{Module, Node, Type, Decl, DeclKind, Let};
+use typed_ast::{Module, Node, Type, Decl, DeclKind, Let, Param, Def};
 use type_env::TypeEnv;
 use super::Result as InferResult;
 use errors::Error;
@@ -136,6 +136,10 @@ impl Infer {
         self.envs.pop().expect("exit from global scope");
     }
 
+    fn current_scope(&mut self) -> &mut Env {
+        self.envs.last_mut().unwrap_or(&mut self.global_env)
+    }
+
     fn collect_forward_def(&mut self, def: &AstDef, span: Span) -> InferResult<Type> {
         let ret = def.ret
             .as_ref()
@@ -193,12 +197,51 @@ impl Infer {
         unimplemented!()
     }
 
-    fn process_def(&mut self,
-                   declare_typ: Type,
-                   def: AstDef,
-                   span: Span)
-                   -> InferResult<(String, Decl)> {
-        unimplemented!()
+    fn process_toplevel_def(&mut self,
+                            declare_typ: Type,
+                            def: AstDef,
+                            span: Span)
+                            -> InferResult<(String, Decl)> {
+        let mut scoped = self.enter_scope();
+        let mut typed_params = Vec::new();
+        for param in def.params {
+            let typ = scoped
+                .tyenv
+                .convert(&param.typ)
+                .map_err(|err| BasisError::span(param.span, err))?;
+            scoped
+                .current_scope()
+                .define(param.name.clone(), Spanned::span(param.span, typ.clone()))?;
+            typed_params.push(Param {
+                                  name: param.name,
+                                  typ: typ,
+                                  span: param.span,
+                              });
+        }
+        let declared_ret = def.ret
+            .as_ref()
+            .map(|typ| scoped.tyenv.convert(typ))
+            .unwrap_or(Ok(Type::Unit))
+            .map_err(|err| BasisError::span(span, err))?;
+        let msg = format_args!("return type of function, declared here");
+        let expect = Expect::WithSpan {
+            typ: declared_ret.clone(),
+            message: msg,
+            span: span,
+        };
+        let node = scoped.process_node(def.body, &expect)?;
+        let kind = DeclKind::Def(Box::new(Def {
+                                              name: def.name.clone(),
+                                              params: typed_params,
+                                              ret: declared_ret,
+                                              body: node,
+                                          }));
+        Ok((def.name,
+            Decl {
+                kind: kind,
+                declare_typ: declare_typ,
+                span: span,
+            }))
     }
 
     fn process_toplevel_let(&mut self,
@@ -227,7 +270,7 @@ impl Infer {
                         toplevel: Toplevel)
                         -> InferResult<(String, Decl)> {
         match toplevel.kind {
-            ToplevelKind::Def(def) => self.process_def(declare_typ, *def, toplevel.span),
+            ToplevelKind::Def(def) => self.process_toplevel_def(declare_typ, *def, toplevel.span),
             ToplevelKind::Let(let_) => self.process_toplevel_let(declare_typ, *let_, toplevel.span),
         }
     }
