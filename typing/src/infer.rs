@@ -5,9 +5,9 @@ use std::ops::{Drop, Deref, DerefMut};
 use basis::sourcemap::{Spanned, Span, NSPAN};
 use basis::errors::Error as BasisError;
 
-use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef, Node as AstNode};
+use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef, Node as AstNode, Let as AstLet};
 
-use typed_ast::{Module, Node, Type, Decl};
+use typed_ast::{Module, Node, Type, Decl, DeclKind, Let};
 use type_env::TypeEnv;
 use super::Result as InferResult;
 use errors::Error;
@@ -136,7 +136,7 @@ impl Infer {
         self.envs.pop().expect("exit from global scope");
     }
 
-    fn collect_forward_def(&mut self, def: &AstDef, span: Span) -> InferResult<()> {
+    fn collect_forward_def(&mut self, def: &AstDef, span: Span) -> InferResult<Type> {
         let ret = def.ret
             .as_ref()
             .map(|typ| self.tyenv.convert(typ))
@@ -152,14 +152,18 @@ impl Infer {
             .collect::<InferResult<_>>()?;
         let ftyp = Type::new_fun(params, ret);
         self.global_env
-            .define(def.name.clone(), Spanned::span(span, ftyp))
+            .define(def.name.clone(), Spanned::span(span, ftyp.clone()))?;
+        Ok(ftyp)
     }
 
-    fn collect_forward_declarations(&mut self, decls: &[Toplevel]) -> InferResult<()> {
+    fn collect_forward_declarations(&mut self,
+                                    decls: Vec<Toplevel>)
+                                    -> InferResult<Vec<(Type, Toplevel)>> {
+        let mut results = Vec::new();
         for decl in decls {
-            match decl.kind {
-                ToplevelKind::Def(ref def) => self.collect_forward_def(def, decl.span)?,
-                ToplevelKind::Let(ref let_) => {
+            let typ = match &decl.kind {
+                &ToplevelKind::Def(ref def) => self.collect_forward_def(def, decl.span)?,
+                &ToplevelKind::Let(ref let_) => {
                     let typ = let_.typ
                         .as_ref()
                         .expect("global `let` should have type specification");
@@ -167,11 +171,13 @@ impl Infer {
                         .convert(&typ.value)
                         .map_err(|err| BasisError::span(typ.span, err))?;
                     self.global_env
-                        .define(let_.name.clone(), Spanned::span(decl.span, typ))?
+                        .define(let_.name.clone(), Spanned::span(decl.span, typ.clone()))?;
+                    typ
                 }
-            }
+            };
+            results.push((typ, decl))
         }
-        Ok(())
+        Ok(results)
     }
 
     fn lookup_symbol(&self, name: &str) -> Result<Spanned<Type>, Error> {
@@ -183,22 +189,57 @@ impl Infer {
         bail!("undefined symbol: {:?}", name)
     }
 
-    fn process_node<'a>(&mut self, node: &AstNode, expect: &Expect<'a>) -> InferResult<Node> {
+    fn process_node<'a>(&mut self, node: AstNode, expect: &Expect<'a>) -> InferResult<Node> {
         unimplemented!()
     }
 
-    fn process_toplevel(&mut self, toplevel: &Toplevel) -> InferResult<(String, Decl)> {
+    fn process_def(&mut self,
+                   declare_typ: Type,
+                   def: AstDef,
+                   span: Span)
+                   -> InferResult<(String, Decl)> {
         unimplemented!()
     }
 
-    pub fn process(&mut self, modname: String, program: &[Toplevel]) -> InferResult<Module> {
+    fn process_toplevel_let(&mut self,
+                            declare_typ: Type,
+                            let_: AstLet,
+                            span: Span)
+                            -> InferResult<(String, Decl)> {
+        let AstLet { name, value, .. } = let_;
+        let expect = Expect::Type { typ: declare_typ.clone() };
+        let value = self.process_node(value, &expect)?;
+        let kind = DeclKind::Let(Box::new(Let {
+                                              name: name.clone(),
+                                              typ: declare_typ.clone(),
+                                              value: value,
+                                          }));
+        Ok((name,
+            Decl {
+                kind: kind,
+                declare_typ: declare_typ,
+                span: span,
+            }))
+    }
+
+    fn process_toplevel(&mut self,
+                        declare_typ: Type,
+                        toplevel: Toplevel)
+                        -> InferResult<(String, Decl)> {
+        match toplevel.kind {
+            ToplevelKind::Def(def) => self.process_def(declare_typ, *def, toplevel.span),
+            ToplevelKind::Let(let_) => self.process_toplevel_let(declare_typ, *let_, toplevel.span),
+        }
+    }
+
+    pub fn process(&mut self, modname: String, program: Vec<Toplevel>) -> InferResult<Module> {
         let mut module = Module {
             name: modname,
             decls: HashMap::new(),
         };
-        self.collect_forward_declarations(program)?;
-        for decl in program {
-            let (name, decl) = self.process_toplevel(decl)?;
+        let program = self.collect_forward_declarations(program)?;
+        for (typ, decl) in program {
+            let (name, decl) = self.process_toplevel(typ, decl)?;
             module.decls.insert(name, decl);
         }
         Ok(module)
