@@ -2,7 +2,7 @@ use std::str::Chars;
 use std::iter::Iterator;
 use std::fmt;
 
-use basis::pos::{Byte, Line, Column, Location, Spanned};
+use basis::sourcemap::{Source, Pos, Spanned};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token<'input> {
@@ -134,64 +134,60 @@ fn is_ident_continue(ch: char) -> bool {
 }
 
 struct CharLocations<'input> {
-    location: Location,
+    pos: Pos,
     chars: Chars<'input>,
 }
 
 impl<'input> CharLocations<'input> {
-    fn new(input: &'input str) -> Self {
+    fn new(base: Pos, input: &'input str) -> Self {
         CharLocations {
-            location: Location {
-                line: Line(0),
-                column: Column(1),
-                absolute: Byte(0),
-            },
+            pos: base,
             chars: input.chars(),
         }
     }
 }
 
 impl<'input> Iterator for CharLocations<'input> {
-    type Item = (Location, char);
+    type Item = (Pos, char);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.chars
             .next()
             .map(|ch| {
-                     let loc = self.location;
-                     self.location = self.location.shift(ch);
-                     (loc, ch)
+                     let pos = self.pos;
+                     self.pos = self.pos.shift(ch);
+                     (pos, ch)
                  })
     }
 }
 
 pub struct Tokenizer<'input> {
-    input: &'input str,
+    src: &'input Source,
     chars: CharLocations<'input>,
-    eof_location: Location,
-    lookahead: Option<(Location, char)>,
+    eof_pos: Pos,
+    lookahead: Option<(Pos, char)>,
     last: Option<Token<'input>>,
 }
 
 impl<'input> Tokenizer<'input> {
-    pub fn new(input: &'input str) -> Self {
-        let mut chars = CharLocations::new(input);
-        let eof_location = chars.location;
+    pub fn new(src: &'input Source) -> Self {
+        let mut chars = CharLocations::new(src.base, &src.contents);
+        let eof_pos = chars.pos;
         Tokenizer {
-            input: input,
+            src: src,
             lookahead: chars.next(),
-            eof_location: eof_location,
+            eof_pos: eof_pos,
             chars: chars,
             last: None,
         }
     }
 
-    fn bump(&mut self) -> Option<(Location, char)> {
+    fn bump(&mut self) -> Option<(Pos, char)> {
         match self.lookahead {
-            Some((location, ch)) => {
-                self.eof_location = self.eof_location.shift(ch);
+            Some((pos, ch)) => {
+                self.eof_pos = self.eof_pos.shift(ch);
                 self.lookahead = self.chars.next();
-                Some((location, ch))
+                Some((pos, ch))
             }
             None => None,
         }
@@ -203,13 +199,13 @@ impl<'input> Tokenizer<'input> {
         }
     }
 
-    fn error<T>(&mut self, location: Location, err: Error) -> Result<T, SpannedError> {
+    fn error<T>(&mut self, pos: Pos, err: Error) -> Result<T, SpannedError> {
         self.discard_all();
-        Err(Spanned::new(location, location, err))
+        Err(Spanned::new(pos, pos, err))
     }
 
-    fn substr(&self, start: Location, end: Location) -> &'input str {
-        &self.input[start.absolute.0..end.absolute.0]
+    fn substr(&self, start: Pos, end: Pos) -> &'input str {
+        self.src.substr(start, end)
     }
 
     fn test_lookahead<F>(&self, mut f: F) -> bool
@@ -221,7 +217,7 @@ impl<'input> Tokenizer<'input> {
             .unwrap_or(false)
     }
 
-    fn take_while<F>(&mut self, start: Location, mut f: F) -> (Location, &'input str)
+    fn take_while<F>(&mut self, start: Pos, mut f: F) -> (Pos, &'input str)
         where F: FnMut(char) -> bool
     {
         while let Some((end, ch)) = self.lookahead {
@@ -231,10 +227,10 @@ impl<'input> Tokenizer<'input> {
                 return (end, self.substr(start, end));
             }
         }
-        (self.eof_location, self.substr(start, self.eof_location))
+        (self.eof_pos, self.substr(start, self.eof_pos))
     }
 
-    fn identifier(&mut self, start: Location) -> SpannedToken<'input> {
+    fn identifier(&mut self, start: Pos) -> SpannedToken<'input> {
         let (end, ident) = self.take_while(start, is_ident_continue);
         let token = match ident {
             "true" => Token::True,
@@ -257,7 +253,7 @@ impl<'input> Tokenizer<'input> {
         Spanned::new(start, end, token)
     }
 
-    fn numeric_literal(&mut self, start: Location) -> Result<SpannedToken<'input>, SpannedError> {
+    fn numeric_literal(&mut self, start: Pos) -> Result<SpannedToken<'input>, SpannedError> {
         let (end, int) = self.take_while(start, |ch: char| ch.is_digit(10));
 
         let (start, end, token) = match self.lookahead {
@@ -347,7 +343,7 @@ impl<'input> Tokenizer<'input> {
         }
         match self.last {
             Some(ref tok) if tok.follows_implicit_semi() => {
-                Some(Ok(Spanned::new(self.eof_location, self.eof_location, Token::ImplicitSemi)))
+                Some(Ok(Spanned::new(self.eof_pos, self.eof_pos, Token::ImplicitSemi)))
             }
             _ => None,
         }
@@ -370,25 +366,23 @@ impl<'input> Iterator for Tokenizer<'input> {
 
 #[cfg(test)]
 mod test {
-    use basis::pos::*;
+    use basis::sourcemap::*;
 
     use super::*;
     use token::Token;
 
-    fn make_loc(bytepos: usize) -> Location {
-        Location {
-            line: Line(0),
-            column: Column(bytepos + 1),
-            absolute: Byte(bytepos),
-        }
+    fn make_pos(bytepos: usize) -> Pos {
+        Pos(1 + bytepos)
     }
 
     fn runtest(input: &str, expected: Vec<(&str, Token)>) {
-        let tokenizer = Tokenizer::new(input);
+        let mut srcmap = SourceMap::new();
+        let src = srcmap.add_dummy(input.to_string());
+        let tokenizer = Tokenizer::new(&*src);
 
         for (token, (expected_span, expected_tok)) in tokenizer.zip(expected) {
-            let start = make_loc(expected_span.find("^").unwrap());
-            let end = make_loc(expected_span.rfind("^").unwrap() + 1);
+            let start = make_pos(expected_span.find("^").unwrap());
+            let end = make_pos(expected_span.rfind("^").unwrap() + 1);
             assert_eq!(Ok(Spanned::new(start, end, expected_tok)), token);
         }
     }
@@ -427,7 +421,9 @@ mod test {
     fn implicit_semicolons() {
         let tests = ["1\n", "1.2", "true\n", "false", "foo\n", ")", "}\n"];
         for test in tests.iter() {
-            let mut tokenizer = Tokenizer::new(test);
+            let mut srcmap = SourceMap::new();
+            let src = srcmap.add_dummy(test.to_string());
+            let mut tokenizer = Tokenizer::new(&*src);
             assert!(tokenizer.next().unwrap().is_ok());
             assert_eq!(tokenizer.next().unwrap().unwrap().value,
                        Token::ImplicitSemi);

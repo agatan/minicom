@@ -21,10 +21,16 @@ pub struct Position {
     pub absolute: Byte,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// `Pos` is a light-weight representation of source position.
 /// `Pos` can be converted to canonical position with `SourceMap`.
 pub struct Pos(pub usize);
+
+impl Pos {
+    pub fn shift(self, ch: char) -> Self {
+        Pos(self.0 + ch.len_utf8())
+    }
+}
 
 /// `NPOS` is a dummy position
 pub const NPOS: Pos = Pos(0);
@@ -84,11 +90,11 @@ impl<T, S> Spanned<T, S> {
 /// `Source` is a source file.
 pub struct Source {
     /// `base` is a base offset of this source in `SourceMap`
-    base: usize,
+    pub base: Pos,
     /// `size` is a size of its contents
-    size: usize,
-    name: Rc<String>,
-    contents: String,
+    pub size: usize,
+    pub name: Rc<String>,
+    pub contents: String,
     lines: Vec<usize>,
 }
 
@@ -103,7 +109,7 @@ impl Source {
             .chain(Some(contents.len() + 1))
             .collect::<Vec<usize>>();
         Source {
-            base: base,
+            base: Pos(base),
             size: contents.len(),
             name: Rc::new(name),
             contents: contents,
@@ -125,15 +131,15 @@ impl Source {
 
     pub fn shift(&self, pos: Pos) -> Pos {
         debug_assert!(pos.0 <= self.size);
-        Pos(pos.0 + self.base)
+        Pos(pos.0 + self.base.0)
     }
 
     /// Returns line number, start index and end index
     fn line_number_and_indices(&self, pos: Pos) -> Option<(usize, usize, usize)> {
-        if pos.0 < self.base || self.base + self.size <= pos.0 {
+        if pos.0 < self.base.0 || self.base.0 + self.size <= pos.0 {
             return None;
         }
-        let offset = pos.0 - self.base;
+        let offset = pos.0 - self.base.0;
         let mut newline_start = 0usize;
         for (i, &newline) in self.lines.iter().enumerate() {
             if newline > offset {
@@ -154,7 +160,7 @@ impl Source {
             Some(x) => x,
             None => return None,
         };
-        let offset = pos.0 - self.base;
+        let offset = pos.0 - self.base.0;
         let position = Position {
             filename: self.name.clone(),
             line: Line(line),
@@ -162,6 +168,12 @@ impl Source {
             absolute: Byte(offset),
         };
         Some(position)
+    }
+
+    pub fn substr(&self, start: Pos, end: Pos) -> &str {
+        let start = start.0 - self.base.0;
+        let end = end.0 - self.base.0;
+        &self.contents[start..end]
     }
 }
 
@@ -204,7 +216,7 @@ impl SourceMap {
     fn search_sources(&self, x: usize) -> Option<&Rc<Source>> {
         let mut found = None;
         for source in self.sources.iter() {
-            if source.base > x {
+            if source.base.0 > x {
                 return found;
             }
             found = Some(source);
@@ -217,7 +229,7 @@ impl SourceMap {
             return None;
         }
         if let Some(source) = self.search_sources(pos.0) {
-            if pos.0 < source.base + source.size {
+            if pos.0 < source.base.0 + source.size {
                 return Some(source);
             }
         }
