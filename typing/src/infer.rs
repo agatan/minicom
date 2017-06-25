@@ -284,6 +284,29 @@ impl Infer {
                        span: node.span,
                    })
             }
+            AstNodeKind::Block(mut e) => {
+                let mut scoped = self.enter_scope();
+                match e.pop() {
+                    None => {
+                        Ok(Node {
+                               typ: Type::Unit,
+                               kind: NodeKind::Unit,
+                               span: node.span,
+                           })
+                    }
+                    Some(last) => {
+                        let stmts = e.into_iter()
+                            .map(|e| scoped.process_node(e, &Expect::None))
+                            .collect::<InferResult<Vec<_>>>()?;
+                        let last = scoped.process_node(last, expect)?;
+                        Ok(Node {
+                               typ: last.typ.clone(),
+                               kind: NodeKind::Block(stmts, Box::new(last)),
+                               span: node.span,
+                           })
+                    }
+                }
+            }
             _ => unimplemented!(),
         }
     }

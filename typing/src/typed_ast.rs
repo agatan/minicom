@@ -23,7 +23,8 @@ pub enum NodeKind {
     Call(String, Vec<Node>),
     Infix(Box<Node>, Operator, Box<Node>),
     Parens(Box<Node>),
-    Block(Vec<Node>),
+    /// statements and last expression
+    Block(Vec<Node>, Box<Node>),
     If(Box<Node>, Box<Node>, Option<Box<Node>>),
     While(Box<Node>, Box<Node>),
     // ref(1)
