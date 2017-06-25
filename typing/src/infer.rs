@@ -5,9 +5,10 @@ use std::ops::{Drop, Deref, DerefMut};
 use basis::sourcemap::{Spanned, Span, NSPAN};
 use basis::errors::Error as BasisError;
 
-use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef, Node as AstNode, Let as AstLet};
+use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef, Node as AstNode, NodeKind as AstNodeKind,
+                  Let as AstLet};
 
-use typed_ast::{Module, Node, Type, Decl, DeclKind, Let, Param, Def};
+use typed_ast::{Module, Node, NodeKind, Type, Decl, DeclKind, Let, Param, Def};
 use type_env::TypeEnv;
 use super::Result as InferResult;
 use errors::Error;
@@ -233,7 +234,58 @@ impl Infer {
                                       node: AstNode,
                                       expect: &Expect<'a>)
                                       -> InferResult<Node> {
-        unimplemented!()
+        match node.kind {
+            AstNodeKind::Unit => {
+                Ok(Node {
+                       typ: Type::Unit,
+                       kind: NodeKind::Unit,
+                       span: node.span,
+                   })
+            }
+            AstNodeKind::Int(n) => {
+                Ok(Node {
+                       typ: Type::Int,
+                       kind: NodeKind::Int(n),
+                       span: node.span,
+                   })
+            }
+            AstNodeKind::Float(n) => {
+                Ok(Node {
+                       typ: Type::Float,
+                       kind: NodeKind::Float(n),
+                       span: node.span,
+                   })
+            }
+            AstNodeKind::Bool(n) => {
+                Ok(Node {
+                       typ: Type::Bool,
+                       kind: NodeKind::Bool(n),
+                       span: node.span,
+                   })
+            }
+            AstNodeKind::Parens(e) => self.process_node(*e, expect),
+            AstNodeKind::Ref(e) => {
+                let inner = self.process_node(*e, &Expect::None)?;
+                Ok(Node {
+                       typ: Type::new_ref(inner.typ.clone()),
+                       kind: NodeKind::Ref(Box::new(inner)),
+                       span: node.span,
+                   })
+            }
+            AstNodeKind::Deref(e) => {
+                let inner_typ = Type::new_var();
+                let inner = self.process_node(*e, &Expect::WithMessage{
+                    typ: Type::new_ref(inner_typ.clone()),
+                    message: format_args!("cannot dereference non-reference value"),
+                })?;
+                Ok(Node {
+                       typ: inner_typ,
+                       kind: NodeKind::Deref(Box::new(inner)),
+                       span: node.span,
+                   })
+            }
+            _ => unimplemented!(),
+        }
     }
 
     fn process_node<'a>(&mut self, node: AstNode, expect: &Expect<'a>) -> InferResult<Node> {
