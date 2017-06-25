@@ -7,7 +7,7 @@ use basis::sourcemap::{Spanned, Span, NSPAN};
 use basis::errors::Error as BasisError;
 
 use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef, Node as AstNode, NodeKind as AstNodeKind,
-                  Let as AstLet};
+                  Let as AstLet, Operator};
 
 use typed_ast::{Module, Node, NodeKind, Type, Decl, DeclKind, Let, Param, Def};
 use type_env::TypeEnv;
@@ -239,6 +239,26 @@ impl Infer {
         }
     }
 
+    fn process_binary_operation<'a>(&mut self,
+                                    lhs: AstNode,
+                                    op: Operator,
+                                    rhs: AstNode)
+                                    -> InferResult<Node> {
+        let lhs = self.process_node(lhs, &Expect::None)?;
+        let rhs = self.process_node(rhs, &Expect::Type { typ: lhs.typ.clone() })?;
+        let typ = if op.is_arithmetic() {
+            rhs.typ.clone()
+        } else {
+            Type::Bool
+        };
+        let span = Span::new(lhs.span.start, rhs.span.end);
+        Ok(Node {
+               typ: typ,
+               kind: NodeKind::Infix(Box::new(lhs), op, Box::new(rhs)),
+               span: span,
+           })
+    }
+
     fn process_node_without_check<'a>(&mut self,
                                       node: AstNode,
                                       expect: &Expect<'a>)
@@ -441,7 +461,7 @@ impl Infer {
                        span: node.span,
                    })
             }
-            AstNodeKind::Infix(_, _, _) => unimplemented!(),
+            AstNodeKind::Infix(lhs, op, rhs) => self.process_binary_operation(*lhs, op, *rhs),
         }
     }
 
