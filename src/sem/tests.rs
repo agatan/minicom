@@ -1,15 +1,16 @@
 use super::*;
 
-use basis::pos::Source;
+use basis::sourcemap::SourceMap;
 use syntax;
 
 fn run_semantic_check(input: &str) -> ::std::result::Result<ir::Program, String> {
-    let source = Source::with_dummy(input.to_string());
+    let mut srcmap = SourceMap::new();
+    let source = srcmap.add_dummy(input.to_string());
     // We're testing semantic checking, not syntax parsing.
-    let nodes = syntax::parse(&source).unwrap();
+    let nodes = syntax::parse(&srcmap, &*source).unwrap();
     let mut ctx = Context::new();
     ctx.check_and_transform(nodes)
-        .map_err(|err| err.with_source(&source).to_string())
+        .map_err(|err| err.with_source_map(&srcmap).to_string())
 }
 
 mod success {

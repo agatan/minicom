@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use basis::pos::Spanned;
+use basis::sourcemap::Spanned;
 use syntax::ast::*;
 
 #[derive(Debug)]

@@ -50,6 +50,12 @@ impl Span {
     }
 }
 
+/// `NSPAN` is a dummy span
+pub const NSPAN: Span = Span {
+    start: NPOS,
+    end: NPOS,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Spanned<T, S = Span> {
     pub span: S,
@@ -193,7 +199,7 @@ impl SourceMap {
         }
     }
 
-    fn add(&mut self, name: String, contents: String) -> Rc<Source> {
+    pub fn add(&mut self, name: String, contents: String) -> Rc<Source> {
         let base = self.base;
         self.base += contents.len();
         let source = Source::new(base, name, contents);

@@ -20,7 +20,7 @@ use std::io::prelude::*;
 
 use error_chain::ChainedError;
 
-use basis::pos::Source;
+use basis::sourcemap::SourceMap;
 
 use sem::Context;
 use sem::infer::Infer;
@@ -43,20 +43,26 @@ fn main() {
 
     let mut ctx = Context::new();
 
+    let mut srcmap = SourceMap::new();
+
     let source = match ::std::env::args().nth(1) {
-        None => try_or_exit!(Source::from_stdin()),
-        Some(filename) => try_or_exit!(Source::from_file(filename)),
+        None => {
+            let mut contents = String::new();
+            try_or_exit!(::std::io::stdin().read_to_string(&mut contents));
+            srcmap.add("<stdin>".to_string(), contents)
+        }
+        Some(filename) => try_or_exit!(srcmap.add_file_source(filename)),
     };
-    let nodes = try_or_exit!(syntax::parse(&source));
+    let nodes = try_or_exit!(syntax::parse(&srcmap, &*source));
     debug!("nodes: {:?}", nodes);
     let mut inferer = Infer::new();
     try_or_exit!(inferer
                      .infer_program(&nodes)
-                     .map_err(|err| err.with_source(&source)));
+                     .map_err(|err| err.with_source_map(&srcmap)));
     let prog = try_or_exit!(ctx.check_and_transform(nodes)
-                                .map_err(|err| err.with_source(&source)));
+                                .map_err(|err| err.with_source_map(&srcmap)));
     debug!("program: {:?}", prog);
     let emitter = try_or_exit!(Emitter::new(&prog).map_err(|err| err.display().to_string()));
     println!("{}", emitter.emit_llvm_ir());
-    try_or_exit!(emitter.emit_executable(&source.stem()));
+    try_or_exit!(emitter.emit_executable(&source.executable_name()));
 }
