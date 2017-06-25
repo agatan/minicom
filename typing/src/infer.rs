@@ -340,7 +340,64 @@ impl Infer {
                     }
                 }
             }
-            _ => unimplemented!(),
+            AstNodeKind::While(cond, body) => {
+                let cond =
+                    self.process_node(*cond,
+                                      &Expect::WithMessage {
+                                          typ: Type::Bool,
+                                          message: format_args!("condition of 'while' expression"),
+                                      })?;
+                let body = self.process_node(*body, &Expect::None)?;
+                Ok(Node {
+                       typ: Type::Unit,
+                       kind: NodeKind::While(Box::new(cond), Box::new(body)),
+                       span: node.span,
+                   })
+            }
+            AstNodeKind::Let(let_) => {
+                let let_ = *let_;
+                let AstLet { name, typ, value } = let_;
+                let expected_typ = match typ {
+                    None => Type::new_var(),
+                    Some(ref typ) => {
+                        self.tyenv
+                            .convert(&typ.value)
+                            .map_err(|err| BasisError::span(typ.span, err))?
+                    }
+                };
+                let value = self.process_node(value, &Expect::Type { typ: expected_typ })?;
+                self.current_scope()
+                    .define(name.clone(), Spanned::span(node.span, value.typ.clone()))?;
+                Ok(Node {
+                       typ: Type::Unit,
+                       kind: NodeKind::Let(Box::new(Let {
+                                                        name: name,
+                                                        typ: value.typ.clone(),
+                                                        value: value,
+                                                    })),
+                       span: node.span,
+                   })
+            }
+            AstNodeKind::Assign(to, value) => {
+                let inner_typ = Type::new_var();
+                let to = self.process_node(*to, &Expect::WithMessage {
+                    typ: Type::new_ref(inner_typ.clone()),
+                    message: format_args!("cannot assign to non-reference value"),
+                })?;
+                let value = self.process_node(*value, &Expect::WithSpan {
+                    typ: inner_typ.clone(),
+                    message: format_args!("assignment destination and value have incompatible types"),
+                    span: to.span,
+                })?;
+                Ok(Node {
+                       typ: Type::Unit,
+                       kind: NodeKind::Assign(Box::new(to), Box::new(value)),
+                       span: node.span,
+                   })
+            }
+            AstNodeKind::Ident(_) |
+            AstNodeKind::Call(_, _) |
+            AstNodeKind::Infix(_, _, _) => unimplemented!(),
         }
     }
 
