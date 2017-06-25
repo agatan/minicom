@@ -5,6 +5,8 @@ use std::ops::{Drop, Deref, DerefMut};
 use basis::sourcemap::{Spanned, Span, NSPAN};
 use basis::errors::Error as BasisError;
 
+use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef};
+
 use typed_ast::Type;
 use type_env::TypeEnv;
 use super::Result as InferResult;
@@ -131,6 +133,44 @@ impl Infer {
 
     fn exit_scope(&mut self) {
         self.envs.pop().expect("exit from global scope");
+    }
+
+    fn collect_forward_def(&mut self, def: &AstDef, span: Span) -> InferResult<()> {
+        let ret = def.ret
+            .as_ref()
+            .map(|typ| self.tyenv.convert(typ))
+            .unwrap_or(Ok(Type::Unit))
+            .map_err(|err| BasisError::span(span, err))?;
+        let params = def.params
+            .iter()
+            .map(|param| {
+                     self.tyenv
+                         .convert(&param.typ)
+                         .map_err(|err| BasisError::span(param.span, err))
+                 })
+            .collect::<InferResult<_>>()?;
+        let ftyp = Type::new_fun(params, ret);
+        self.global_env
+            .define(def.name.clone(), Spanned::span(span, ftyp))
+    }
+
+    fn collect_forward_declarations(&mut self, decls: &[Toplevel]) -> InferResult<()> {
+        for decl in decls {
+            match decl.kind {
+                ToplevelKind::Def(ref def) => self.collect_forward_def(def, decl.span)?,
+                ToplevelKind::Let(ref let_) => {
+                    let typ = let_.typ
+                        .as_ref()
+                        .expect("global `let` should have type specification");
+                    let typ = self.tyenv
+                        .convert(&typ.value)
+                        .map_err(|err| BasisError::span(typ.span, err))?;
+                    self.global_env
+                        .define(let_.name.clone(), Spanned::span(decl.span, typ))?
+                }
+            }
+        }
+        Ok(())
     }
 }
 
