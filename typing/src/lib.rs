@@ -9,6 +9,7 @@ use basis::errors::Error as BasisError;
 pub mod typed_ast;
 pub mod type_env;
 pub mod infer;
+pub mod deref;
 
 pub mod errors {
     error_chain! {
