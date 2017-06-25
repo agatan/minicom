@@ -239,11 +239,11 @@ impl Infer {
         }
     }
 
-    fn process_binary_operation<'a>(&mut self,
-                                    lhs: AstNode,
-                                    op: Operator,
-                                    rhs: AstNode)
-                                    -> InferResult<Node> {
+    fn process_infix_operation<'a>(&mut self,
+                                   lhs: AstNode,
+                                   op: Operator,
+                                   rhs: AstNode)
+                                   -> InferResult<Node> {
         let lhs = self.process_node(lhs, &Expect::None)?;
         let rhs = self.process_node(rhs, &Expect::Type { typ: lhs.typ.clone() })?;
         let typ = if op.is_arithmetic() {
@@ -461,7 +461,7 @@ impl Infer {
                        span: node.span,
                    })
             }
-            AstNodeKind::Infix(lhs, op, rhs) => self.process_binary_operation(*lhs, op, *rhs),
+            AstNodeKind::Infix(lhs, op, rhs) => self.process_infix_operation(*lhs, op, *rhs),
         }
     }
 
