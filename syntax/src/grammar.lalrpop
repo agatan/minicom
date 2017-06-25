@@ -1,14 +1,14 @@
-use basis::pos::{Spanned, Location};
+use basis::sourcemap::{Spanned, Source, Pos};
 
 use token::Token;
 use ast::{Node, NodeKind, Type, Let, Def, Operator, Toplevel, ToplevelKind};
 
 use MutNodeEnv;
 
-grammar<'input, 'env>(src: &'input str, env: MutNodeEnv<'env>);
+grammar<'input, 'env>(input: &'input Source, env: MutNodeEnv<'env>);
 
 extern {
-    type Location = Location;
+    type Location = Pos;
 
     enum Token<'input> {
         "upper identifier" => Token::UpperIdentifier(<&'input str>),

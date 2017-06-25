@@ -4,7 +4,7 @@ mod alpha;
 mod tyenv;
 pub mod infer;
 
-use basis::pos::Spanned;
+use basis::sourcemap::Spanned;
 use basis::errors::Error as BasisError;
 use syntax::ast::{self, Toplevel, ToplevelKind, NodeId, Node as AstNode, NodeKind as AstNodeKind,
                   Operator};

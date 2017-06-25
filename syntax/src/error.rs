@@ -1,6 +1,6 @@
 use lalrpop_util;
 
-use basis::pos::{DUMMY_LOCATION, Location, Spanned};
+use basis::sourcemap::{NPOS, Pos, Spanned};
 
 use token::{Token, Error as TokenizeError};
 
@@ -32,7 +32,7 @@ quick_error! {
 }
 
 impl Error {
-    pub fn from_lalrpop<'input>(err: lalrpop_util::ParseError<Location, Token<'input>, ()>)
+    pub fn from_lalrpop<'input>(err: lalrpop_util::ParseError<Pos, Token<'input>, ()>)
                                 -> Spanned<Error> {
         use lalrpop_util::ParseError::*;
         match err {
@@ -48,11 +48,7 @@ impl Error {
             UnrecognizedToken {
                 token: None,
                 expected,
-            } => {
-                Spanned::new(DUMMY_LOCATION,
-                             DUMMY_LOCATION,
-                             Error::UnexpectedEof(expected))
-            }
+            } => Spanned::new(NPOS, NPOS, Error::UnexpectedEof(expected)),
             ExtraToken { token: (start, token, end) } => {
                 Spanned::new(start, end, Error::ExtraToken(token.to_string()))
             }

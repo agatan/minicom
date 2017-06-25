@@ -1,4 +1,4 @@
-use basis::pos::Spanned;
+use basis::sourcemap::Spanned;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId(u32);

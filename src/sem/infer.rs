@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut, Drop};
 use std::fmt;
 
-use basis::pos::{Span, Spanned, DUMMY_SPAN};
+use basis::sourcemap::{Span, Spanned, NSPAN};
 use basis::errors::Error as BasisError;
 use syntax::ast::{self, NodeId, Toplevel, ToplevelKind, Node, NodeKind, Operator};
 
@@ -32,20 +32,16 @@ impl Env {
     fn with_prelude() -> Self {
         let mut e = Self::new();
         e.define("print_unit".into(),
-                    Spanned::span(DUMMY_SPAN,
-                                  Entry::ExternFunction(vec![Type::Unit], Type::Unit)))
+                    Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Unit], Type::Unit)))
             .unwrap();
         e.define("print_int".into(),
-                    Spanned::span(DUMMY_SPAN,
-                                  Entry::ExternFunction(vec![Type::Int], Type::Int)))
+                    Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Int], Type::Int)))
             .unwrap();
         e.define("print_float".into(),
-                    Spanned::span(DUMMY_SPAN,
-                                  Entry::ExternFunction(vec![Type::Float], Type::Float)))
+                    Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Float], Type::Float)))
             .unwrap();
         e.define("print_bool".into(),
-                    Spanned::span(DUMMY_SPAN,
-                                  Entry::ExternFunction(vec![Type::Bool], Type::Bool)))
+                    Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Bool], Type::Bool)))
             .unwrap();
         e
     }
@@ -59,7 +55,7 @@ impl Env {
             Occupied(o) => {
                 let mut err = BasisError::span(entry.span,
                                                format!("duplicate definition: {:?}", o.key()));
-                if o.get().span != DUMMY_SPAN {
+                if o.get().span != NSPAN {
                     note_in!(err,
                              o.get().span,
                              "previous definition of {:?} here",
