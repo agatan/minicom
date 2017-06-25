@@ -6,6 +6,7 @@ use std::fmt;
 use basis::sourcemap::Span;
 use syntax::ast::Operator;
 
+use errors::Error;
 
 #[derive(Debug, Clone)]
 pub struct Module {
@@ -65,6 +66,37 @@ impl Type {
 
     pub fn new_ref(inner: Type) -> Self {
         Type::Ref(Box::new(inner))
+    }
+
+    pub fn deref(self) -> Result<Type, Error> {
+        match self {
+            Type::Unit => Ok(Type::Unit),
+            Type::Int => Ok(Type::Int),
+            Type::Float => Ok(Type::Float),
+            Type::Bool => Ok(Type::Bool),
+            Type::Ref(inner) => {
+                let inner = inner.deref()?;
+                Ok(Type::new_ref(inner))
+            }
+            Type::Fun(f) => {
+                let params = f.0
+                    .iter()
+                    .map(|t| Type::deref(t.clone()))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let ret = f.1.clone().deref()?;
+                Ok(Type::new_fun(params, ret))
+            }
+            Type::Var(inner) => {
+                match inner.borrow_mut().as_mut() {
+                    None => bail!("type annotation required"),
+                    Some(inner) => {
+                        let typ = inner.clone().deref()?;
+                        *inner = typ.clone();
+                        Ok(typ)
+                    }
+                }
+            }
+        }
     }
 }
 
