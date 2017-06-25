@@ -1,6 +1,7 @@
 use std::collections::HashMap;
+use std::fmt;
 
-use basis::sourcemap::{Spanned, NSPAN};
+use basis::sourcemap::{Spanned, Span, NSPAN};
 use basis::errors::Error as BasisError;
 
 use typed_ast::Type;
@@ -52,5 +53,55 @@ impl Env {
             }
         }
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+enum Expect<'a> {
+    None,
+    Type { typ: Type },
+    WithMessage {
+        typ: Type,
+        message: fmt::Arguments<'a>,
+    },
+    WithSpan {
+        typ: Type,
+        message: fmt::Arguments<'a>,
+        span: Span,
+    },
+}
+
+impl<'a> Expect<'a> {
+    fn typ(&self) -> Option<&Type> {
+        match *self {
+            Expect::Type { ref typ } => Some(typ),
+            Expect::WithMessage { ref typ, .. } => Some(typ),
+            Expect::WithSpan { ref typ, .. } => Some(typ),
+            Expect::None => None,
+        }
+    }
+
+    fn message(&self) -> Option<fmt::Arguments<'a>> {
+        match *self {
+            Expect::WithMessage { message, .. } => Some(message),
+            Expect::WithSpan { message, .. } => Some(message),
+            _ => None,
+        }
+    }
+
+    fn span(&self) -> Option<Span> {
+        match *self {
+            Expect::WithSpan { span, .. } => Some(span),
+            _ => None,
+        }
+    }
+
+    fn add_note_to_error<E>(&self, err: &mut BasisError<E>) {
+        if let Some(msg) = self.message() {
+            match self.span() {
+                Some(span) => note_in!(err, span, "{}", msg),
+                None => note!(err, "{}", msg),
+            }
+        }
     }
 }
