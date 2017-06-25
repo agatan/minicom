@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::ops::{Drop, Deref, DerefMut};
 
 use basis::sourcemap::{Spanned, Span, NSPAN};
 use basis::errors::Error as BasisError;
@@ -121,5 +122,35 @@ impl Infer {
             global_env: Env::with_prelude(),
             envs: Vec::new(),
         }
+    }
+
+    fn enter_scope(&mut self) -> Scope {
+        self.envs.push(Env::new());
+        Scope(self)
+    }
+
+    fn exit_scope(&mut self) {
+        self.envs.pop().expect("exit from global scope");
+    }
+}
+
+struct Scope<'a>(&'a mut Infer);
+
+impl<'a> Drop for Scope<'a> {
+    fn drop(&mut self) {
+        self.0.exit_scope();
+    }
+}
+
+impl<'a> Deref for Scope<'a> {
+    type Target = Infer;
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
+impl<'a> DerefMut for Scope<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.0
     }
 }
