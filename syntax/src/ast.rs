@@ -108,9 +108,16 @@ pub struct Let {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct Param {
+    pub span: Span,
+    pub name: String,
+    pub typ: Type,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Def {
     pub name: String,
-    pub args: Vec<(String, Type)>,
+    pub args: Vec<Param>,
     pub ret: Option<Type>,
     pub body: Node,
 }

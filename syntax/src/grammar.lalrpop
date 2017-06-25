@@ -1,7 +1,7 @@
 use basis::sourcemap::{Spanned, Span, Source, Pos};
 
 use token::Token;
-use ast::{Node, NodeKind, Type, Let, Def, Operator, Toplevel, ToplevelKind};
+use ast::{Node, NodeKind, Type, Let, Param, Def, Operator, Toplevel, ToplevelKind};
 
 grammar<'input>(input: &'input Source);
 
@@ -82,9 +82,13 @@ TypeSpec: Type = {
     }
 };
 
-Param: (String, Type) =
-    <name:"identifier"> <typ:TypeSpec> => {
-        (name.to_string(), typ)
+Param: Param =
+    <l:@L> <name:"identifier"> <typ:TypeSpec> <r:@R> => {
+        Param {
+            span: Span::new(l, r),
+            name: name.to_string(),
+            typ: typ,
+        }
     };
 
 // types
