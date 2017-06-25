@@ -45,12 +45,16 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn newvar() -> Type {
+    pub fn new_var() -> Type {
         Type::Var(Rc::new(RefCell::new(None)))
     }
 
-    pub fn fun(params: Vec<Type>, ret: Type) -> Self {
+    pub fn new_fun(params: Vec<Type>, ret: Type) -> Self {
         Type::Fun(Rc::new((params, ret)))
+    }
+
+    pub fn new_ref(inner: Type) -> Self {
+        Type::Ref(Box::new(inner))
     }
 }
 

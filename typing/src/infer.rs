@@ -5,6 +5,7 @@ use basis::sourcemap::{Spanned, Span, NSPAN};
 use basis::errors::Error as BasisError;
 
 use typed_ast::Type;
+use type_env::TypeEnv;
 use super::Result as InferResult;
 
 #[derive(Debug)]
@@ -20,16 +21,16 @@ impl Env {
     fn with_prelude() -> Self {
         let mut e = Self::new();
         e.define("print_unit".into(),
-                    Spanned::span(NSPAN, Type::fun(vec![Type::Unit], Type::Unit)))
+                    Spanned::span(NSPAN, Type::new_fun(vec![Type::Unit], Type::Unit)))
             .unwrap();
         e.define("print_int".into(),
-                    Spanned::span(NSPAN, Type::fun(vec![Type::Int], Type::Int)))
+                    Spanned::span(NSPAN, Type::new_fun(vec![Type::Int], Type::Int)))
             .unwrap();
         e.define("print_float".into(),
-                    Spanned::span(NSPAN, Type::fun(vec![Type::Float], Type::Float)))
+                    Spanned::span(NSPAN, Type::new_fun(vec![Type::Float], Type::Float)))
             .unwrap();
         e.define("print_bool".into(),
-                    Spanned::span(NSPAN, Type::fun(vec![Type::Bool], Type::Bool)))
+                    Spanned::span(NSPAN, Type::new_fun(vec![Type::Bool], Type::Bool)))
             .unwrap();
         e
     }
@@ -102,6 +103,23 @@ impl<'a> Expect<'a> {
                 Some(span) => note_in!(err, span, "{}", msg),
                 None => note!(err, "{}", msg),
             }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Infer {
+    tyenv: TypeEnv,
+    global_env: Env,
+    envs: Vec<Env>,
+}
+
+impl Infer {
+    pub fn new() -> Self {
+        Infer {
+            tyenv: TypeEnv::new(),
+            global_env: Env::with_prelude(),
+            envs: Vec::new(),
         }
     }
 }

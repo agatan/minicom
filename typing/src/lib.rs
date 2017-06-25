@@ -7,6 +7,7 @@ extern crate error_chain;
 use basis::errors::Error as BasisError;
 
 pub mod typed_ast;
+pub mod type_env;
 pub mod infer;
 
 pub mod errors {
