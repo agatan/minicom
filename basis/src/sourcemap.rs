@@ -42,6 +42,10 @@ pub struct Span {
 }
 
 impl Span {
+    pub fn new(l: Pos, r: Pos) -> Self {
+        Span { start: l, end: r }
+    }
+
     pub fn display<'a>(&self, srcmap: &'a SourceMap) -> DisplaySpan<'a> {
         DisplaySpan {
             span: *self,

@@ -30,18 +30,18 @@ pub enum NodeKind {
     Float(f64),
     Bool(bool),
     Ident(String),
-    Call(String, Vec<Box<Node>>),
-    Infix(Box<Box<Node>>, Operator, Box<Box<Node>>),
-    Parens(Box<Box<Node>>),
-    Block(Vec<Box<Node>>),
-    If(Box<Box<Node>>, Box<Box<Node>>, Option<Box<Box<Node>>>),
-    While(Box<Box<Node>>, Box<Box<Node>>),
+    Call(String, Vec<Node>),
+    Infix(Box<Node>, Operator, Box<Node>),
+    Parens(Box<Node>),
+    Block(Vec<Node>),
+    If(Box<Node>, Box<Node>, Option<Box<Node>>),
+    While(Box<Node>, Box<Node>),
     // ref(1)
-    Ref(Box<Box<Node>>),
+    Ref(Box<Node>),
     // @x
-    Deref(Box<Box<Node>>),
+    Deref(Box<Node>),
     // x <- 1
-    Assign(Box<Box<Node>>, Box<Box<Node>>),
+    Assign(Box<Node>, Box<Node>),
     Let(Box<Let>),
 }
 

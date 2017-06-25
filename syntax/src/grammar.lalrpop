@@ -1,11 +1,9 @@
-use basis::sourcemap::{Spanned, Source, Pos};
+use basis::sourcemap::{Spanned, Span, Source, Pos};
 
 use token::Token;
 use ast::{Node, NodeKind, Type, Let, Def, Operator, Toplevel, ToplevelKind};
 
-use MutNodeEnv;
-
-grammar<'input, 'env>(input: &'input Source, env: MutNodeEnv<'env>);
+grammar<'input>(input: &'input Source);
 
 extern {
     type Location = Pos;
@@ -107,59 +105,65 @@ Type: Type = {
 
 // expressions
 
-IfExpr: Node = {
-    "if" <cond:Expression> <then:SpannedBlockExpr> => {
-        Node::new(env.next_id(), NodeKind::If(Box::new(cond), Box::new(then), None))
+IfExpr_: NodeKind = {
+    "if" <cond:Expression> <then:BlockExpr> => {
+        NodeKind::If(Box::new(cond), Box::new(then), None)
     },
-    "if" <cond:Expression> <then:SpannedBlockExpr> "else" <els:SpannedBlockExpr> => {
-        Node::new(env.next_id(), NodeKind::If(Box::new(cond), Box::new(then), Some(Box::new(els))))
+    "if" <cond:Expression> <then:BlockExpr> "else" <els:BlockExpr> => {
+        NodeKind::If(Box::new(cond), Box::new(then), Some(Box::new(els)))
     },
-    "if" <cond:Expression> <then:SpannedBlockExpr> "else" <elsif:SpannedIfExpr> => {
-        Node::new(env.next_id(), NodeKind::If(Box::new(cond), Box::new(then), Some(Box::new(elsif))))
+    "if" <cond:Expression> <then:BlockExpr> "else" <elsif:IfExpr> => {
+        NodeKind::If(Box::new(cond), Box::new(then), Some(Box::new(elsif)))
     },
 };
 
-SpannedIfExpr: Spanned<Node> = Span<IfExpr>;
+IfExpr: Node = Span<IfExpr_> => { <>.into() };
 
-WhileExpr: Node =
-    "while" <cond:Expression> <body:SpannedBlockExpr> => {
-        Node::new(env.next_id(), NodeKind::While(Box::new(cond), Box::new(body)))
+WhileExpr_: NodeKind =
+    "while" <cond:Expression> <body:BlockExpr> => {
+        NodeKind::While(Box::new(cond), Box::new(body))
     };
 
-BlockExpr: Node = {
-    "{" <nodes:Nodes> "}" => Node::new(env.next_id(), NodeKind::Block(nodes)),
+WhileExpr: Node = Span<WhileExpr_> => { <>.into() };
+
+BlockExpr_: NodeKind = {
+    "{" <nodes:Nodes> "}" => NodeKind::Block(nodes),
 };
 
-SpannedBlockExpr: Spanned<Node> = Span<BlockExpr>;
+BlockExpr: Node = Span<BlockExpr_> => { <>.into() };
 
-Literal: Node = {
-    <ident:"identifier"> => Node::new(env.next_id(), NodeKind::Ident(ident.to_string())),
-    <v:"int literal"> => Node::new(env.next_id(), NodeKind::Int(v)),
-    <v:"float literal"> => Node::new(env.next_id(), NodeKind::Float(v)),
-    <v:"true"> => Node::new(env.next_id(), NodeKind::Bool(true)),
-    <v:"false"> => Node::new(env.next_id(), NodeKind::Bool(false)),
-    "(" ")" => Node::new(env.next_id(), NodeKind::Unit),
+Literal_: NodeKind = {
+    <ident:"identifier"> => NodeKind::Ident(ident.to_string()),
+    <v:"int literal"> => NodeKind::Int(v),
+    <v:"float literal"> => NodeKind::Float(v),
+    <v:"true"> => NodeKind::Bool(true),
+    <v:"false"> => NodeKind::Bool(false),
+    "(" ")" => NodeKind::Unit,
 };
 
-AtomicExpr: Spanned<Node> = {
+Literal: Node = Span<Literal_> => { <>.into() };
+
+AtomicExpr: Node = {
     <l:@L> "ref" "(" <expr:Expression> ")" <r:@R> =>
-        Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Ref(Box::new(expr)))),
+        Node { span: Span::new(l, r), kind: NodeKind::Ref(Box::new(expr)) },
     <l:@L> <name:"identifier"> "(" <args:Comma<Expression>> ")" <r:@R> =>
-        Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Call(name.to_string(), args))),
-    <l:@L> "(" <expr:Expression> ")" <r:@R> => Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Parens(Box::new(expr)))),
-    <l:@L> "@" <expr:AtomicExpr> <r:@R> => Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Deref(Box::new(expr)))),
+        Node { span: Span::new(l, r), kind: NodeKind::Call(name.to_string(), args) },
+    <l:@L> "(" <expr:Expression> ")" <r:@R> =>
+        Node { span: Span::new(l, r), kind: NodeKind::Parens(Box::new(expr)) },
+    <l:@L> "@" <expr:AtomicExpr> <r:@R> =>
+        Node { span: Span::new(l, r), kind: NodeKind::Deref(Box::new(expr)) },
 
-    Span<Literal>,
-    SpannedBlockExpr,
-    SpannedIfExpr,
-    Span<WhileExpr>,
+    Literal,
+    BlockExpr,
+    IfExpr,
+    WhileExpr,
 };
 
-Factor: Spanned<Node> = {
+Factor: Node = {
     <l:@L> <lhs:Factor> "*" <rhs:AtomicExpr> <r:@R> =>
-        Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Infix(Box::new(lhs), Operator::Mul, Box::new(rhs)))),
+        Node { span: Span::new(l, r), kind: NodeKind::Infix(Box::new(lhs), Operator::Mul, Box::new(rhs)) },
     <l:@L> <lhs:Factor> "/" <rhs:AtomicExpr> <r:@R> =>
-        Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Infix(Box::new(lhs), Operator::Div, Box::new(rhs)))),
+        Node { span: Span::new(l, r), kind: NodeKind::Infix(Box::new(lhs), Operator::Div, Box::new(rhs)) },
     AtomicExpr,
 };
 
@@ -168,9 +172,9 @@ AdditiveOp: Operator = {
     "-" => Operator::Sub,
 };
 
-AdditiveExpr: Spanned<Node> = {
+AdditiveExpr: Node = {
     <l:@L> <lhs:AdditiveExpr> <op:AdditiveOp> <rhs:Factor> <r:@R> =>
-        Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Infix(Box::new(lhs), op, Box::new(rhs)))),
+        Node { span: Span::new(l, r), kind: NodeKind::Infix(Box::new(lhs), op, Box::new(rhs)) },
     Factor,
 };
 
@@ -183,38 +187,38 @@ CompareOp: Operator = {
     ">" => Operator::GT,
 };
 
-ComparativeExpr: Spanned<Node> = {
+ComparativeExpr: Node = {
     <l:@L> <lhs:AdditiveExpr> <op:CompareOp> <rhs:AdditiveExpr> <r:@R> =>
-        Spanned::new(l, r, Node::new(env.next_id(), NodeKind::Infix(Box::new(lhs), op, Box::new(rhs)))),
+        Node { span: Span::new(l, r), kind: NodeKind::Infix(Box::new(lhs), op, Box::new(rhs)) },
     AdditiveExpr,
 };
 
-Expression: Spanned<Node> = {
+Expression: Node = {
     ComparativeExpr,
 };
 
 // statement
 
 LetStmt: Node = {
-    "let" <name:"identifier"> <typ:Span<TypeSpec>?> "=" <value:Expression> => {
+    <l:@L> "let" <name:"identifier"> <typ:Span<TypeSpec>?> "=" <value:Expression> <r:@R> => {
         let let_ = Let {
             name: name.to_string(),
             typ: typ,
             value: value,
         };
-        Node::new(env.next_id(), NodeKind::Let(Box::new(let_)))
+        Node { span: Span::new(l, r), kind: NodeKind::Let(Box::new(let_)) }
     },
 };
 
 Assignment: Node = {
-    <reference:AtomicExpr> "<-" <value:Expression> => {
-        Node::new(env.next_id(), NodeKind::Assign(Box::new(reference), Box::new(value)))
+    <l:@L> <reference:AtomicExpr> "<-" <value:Expression> <r:@R> => {
+        Node { span: Span::new(l, r), kind: NodeKind::Assign(Box::new(reference), Box::new(value)) }
     }
 };
 
-Statement: Spanned<Node> = {
-    Span<LetStmt>,
-    Span<Assignment>,
+Statement: Node = {
+    LetStmt,
+    Assignment,
 };
 
 // definition
@@ -232,12 +236,12 @@ Def: Def = {
 
 // nodes
 
-AnyNode: Spanned<Node> = {
+AnyNode: Node = {
     Statement,
     Expression,
 };
 
-Nodes: Vec<Spanned<Node>> = SepSeq<AnyNode>;
+Nodes: Vec<Node> = SepSeq<AnyNode>;
 
 // toplevels
 
@@ -258,7 +262,7 @@ ToplevelKind: ToplevelKind = {
 };
 
 Toplevel: Toplevel =
-    ToplevelKind => Toplevel::new(env.next_id(),  <>)
+    <l:@L> <kind:ToplevelKind> <r:@R> => Toplevel { span: Span::new(l, r), kind: kind }
     ;
 
-pub Program = SepSeq<Span<Toplevel>>;
+pub Program = SepSeq<Toplevel>;
