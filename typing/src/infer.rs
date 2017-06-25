@@ -10,6 +10,7 @@ use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef};
 use typed_ast::Type;
 use type_env::TypeEnv;
 use super::Result as InferResult;
+use errors::Error;
 
 #[derive(Debug)]
 struct Env {
@@ -171,6 +172,15 @@ impl Infer {
             }
         }
         Ok(())
+    }
+
+    fn lookup_symbol(&self, name: &str) -> Result<Spanned<Type>, Error> {
+        for env in self.envs.iter().rev().chain(Some(&self.global_env)) {
+            if let Some(sptyp) = env.table.get(name) {
+                return Ok(sptyp.cloned());
+            }
+        }
+        bail!("undefined symbol: {:?}", name)
     }
 }
 

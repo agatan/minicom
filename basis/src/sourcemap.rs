@@ -95,6 +95,18 @@ impl<T, S> Spanned<T, S> {
     }
 }
 
+impl<T: Clone, S: Clone> Spanned<T, S> {
+    pub fn cloned(&self) -> Spanned<T, S> {
+        let Spanned {
+            ref span,
+            ref value,
+        } = *self;
+        Spanned {
+            span: span.clone(),
+            value: value.clone(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 /// `Source` is a source file.
