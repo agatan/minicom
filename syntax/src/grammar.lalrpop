@@ -228,10 +228,10 @@ Statement: Node = {
 // definition
 
 Def: Def = {
-    "def" <name:"identifier"> "(" <args:Comma<Param>> ")" <ret:TypeSpec?> "=" <body:Expression> => {
+    "def" <name:"identifier"> "(" <params:Comma<Param>> ")" <ret:TypeSpec?> "=" <body:Expression> => {
         Def {
             name: name.to_string(),
-            args: args,
+            params: params,
             ret: ret,
             body: body,
         }

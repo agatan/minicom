@@ -117,7 +117,7 @@ pub struct Param {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Def {
     pub name: String,
-    pub args: Vec<Param>,
+    pub params: Vec<Param>,
     pub ret: Option<Type>,
     pub body: Node,
 }
