@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt;
 
 use basis::sourcemap::Span;
 use syntax::ast::Operator;
@@ -41,7 +42,7 @@ pub struct Node {
     pub span: Span,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Unit,
     Int,
@@ -63,6 +64,36 @@ impl Type {
 
     pub fn new_ref(inner: Type) -> Self {
         Type::Ref(Box::new(inner))
+    }
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Type::Unit => f.write_str("()"),
+            Type::Int => f.write_str("Int"),
+            Type::Float => f.write_str("Float"),
+            Type::Bool => f.write_str("Bool"),
+            Type::Ref(ref inner) => write!(f, "Ref[{}]", inner),
+            Type::Fun(ref fun) => {
+                let params = fun.0
+                    .iter()
+                    .map(|p| p.to_string())
+                    .fold("".to_string(), |acc, param| if acc.is_empty() {
+                        param
+                    } else {
+                        format!("{}, {}", acc, param)
+                    });
+                let ret = &fun.1;
+                write!(f, "({}) => {}", params, ret)
+            }
+            Type::Var(ref inner) => {
+                match inner.borrow().as_ref() {
+                    None => f.write_str("_"),
+                    Some(ty) => write!(f, "{}", ty),
+                }
+            }
+        }
     }
 }
 

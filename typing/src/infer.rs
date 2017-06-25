@@ -193,8 +193,59 @@ impl Infer {
         bail!("undefined symbol: {:?}", name)
     }
 
-    fn process_node<'a>(&mut self, node: AstNode, expect: &Expect<'a>) -> InferResult<Node> {
+    fn unify(&self, expected: &Type, actual: &Type) -> Result<(), Error> {
+        match (expected, actual) {
+            (&Type::Var(ref rvar), _) => {
+                if rvar.borrow().is_none() {
+                    *rvar.borrow_mut() = Some(actual.clone());
+                    return Ok(());
+                } else {
+                    return self.unify(rvar.borrow().as_ref().unwrap(), actual);
+                }
+            }
+            (_, &Type::Var(ref lvar)) => {
+                if lvar.borrow().is_none() {
+                    *lvar.borrow_mut() = Some(expected.clone());
+                    return Ok(());
+                } else {
+                    return self.unify(expected, lvar.borrow().as_ref().unwrap());
+                }
+            }
+            (&Type::Ref(ref l_inner), &Type::Ref(ref r_inner)) => self.unify(l_inner, r_inner),
+            (&Type::Fun(ref lfun), &Type::Fun(ref rfun)) => {
+                for (lparam, rparam) in lfun.0.iter().zip(rfun.0.iter()) {
+                    self.unify(lparam, rparam)?;
+                }
+                self.unify(&lfun.1, &rfun.1)?;
+                Ok(())
+            }
+            (_, _) => {
+                if expected == actual {
+                    Ok(())
+                } else {
+                    bail!("mismatched types: {} and {}", expected, actual)
+                }
+            }
+        }
+    }
+
+    fn process_node_without_check<'a>(&mut self,
+                                      node: AstNode,
+                                      expect: &Expect<'a>)
+                                      -> InferResult<Node> {
         unimplemented!()
+    }
+
+    fn process_node<'a>(&mut self, node: AstNode, expect: &Expect<'a>) -> InferResult<Node> {
+        let node = self.process_node_without_check(node, expect)?;
+        if let Some(expected_typ) = expect.typ() {
+            if let Err(err) = self.unify(expected_typ, &node.typ) {
+                let mut err = BasisError::span(node.span, err);
+                expect.add_note_to_error(&mut err);
+                return Err(err);
+            }
+        }
+        Ok(node)
     }
 
     fn process_toplevel_def(&mut self,
