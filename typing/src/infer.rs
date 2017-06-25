@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::ops::{Drop, Deref, DerefMut};
+use std::rc::Rc;
 
 use basis::sourcemap::{Spanned, Span, NSPAN};
 use basis::errors::Error as BasisError;
@@ -194,6 +195,14 @@ impl Infer {
         bail!("undefined symbol: {:?}", name)
     }
 
+    fn lookup_function(&self, name: &str) -> Result<Spanned<Rc<(Vec<Type>, Type)>>, Error> {
+        let spanned_typ = self.lookup_symbol(name)?;
+        match spanned_typ.value {
+            Type::Fun(fun) => Ok(Spanned::span(spanned_typ.span, fun)),
+            _ => bail!("not a function: {:?}", name),
+        }
+    }
+
     fn unify(&self, expected: &Type, actual: &Type) -> Result<(), Error> {
         match (expected, actual) {
             (&Type::Var(ref rvar), _) => {
@@ -261,6 +270,43 @@ impl Infer {
                        typ: Type::Bool,
                        kind: NodeKind::Bool(n),
                        span: node.span,
+                   })
+            }
+            AstNodeKind::Ident(name) => {
+                let span = node.span;
+                let sptyp = self.lookup_symbol(&name)
+                    .map_err(|err| BasisError::span(span, err))?;
+                Ok(Node {
+                       typ: sptyp.value,
+                       kind: NodeKind::Ident(name),
+                       span: node.span,
+                   })
+            }
+            AstNodeKind::Call(fname, args) => {
+                let span = node.span;
+                let spanned_fun = self.lookup_function(&fname)
+                    .map_err(|err| BasisError::span(span, err))?;
+                let (ref function_args, ref function_ret) = *spanned_fun.value;
+                if args.len() != function_args.len() {
+                    let msg = format!("invalid number of arguments for {:?}: expected {}, but given {}",
+                                      fname,
+                                      function_args.len(),
+                                      args.len());
+                    let mut err = BasisError::span(node.span, msg);
+                    note_in!(err, spanned_fun.span, "{:?} is defined here", fname);
+                    return Err(err);
+                }
+                let args = args.into_iter()
+                    .zip(function_args)
+                    .map(|(arg, expected)| {
+                             let expect = Expect::Type { typ: expected.clone() };
+                             self.process_node(arg, &expect)
+                         })
+                    .collect::<InferResult<Vec<_>>>()?;
+                Ok(Node {
+                       typ: function_ret.clone(),
+                       kind: NodeKind::Call(fname, args),
+                       span: span,
                    })
             }
             AstNodeKind::Parens(e) => self.process_node(*e, expect),
@@ -395,8 +441,6 @@ impl Infer {
                        span: node.span,
                    })
             }
-            AstNodeKind::Ident(_) |
-            AstNodeKind::Call(_, _) |
             AstNodeKind::Infix(_, _, _) => unimplemented!(),
         }
     }
