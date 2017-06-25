@@ -5,9 +5,9 @@ use std::ops::{Drop, Deref, DerefMut};
 use basis::sourcemap::{Spanned, Span, NSPAN};
 use basis::errors::Error as BasisError;
 
-use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef};
+use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef, Node as AstNode};
 
-use typed_ast::Type;
+use typed_ast::{Module, Node, Type, Decl};
 use type_env::TypeEnv;
 use super::Result as InferResult;
 use errors::Error;
@@ -181,6 +181,27 @@ impl Infer {
             }
         }
         bail!("undefined symbol: {:?}", name)
+    }
+
+    fn process_node<'a>(&mut self, node: &AstNode, expect: &Expect<'a>) -> InferResult<Node> {
+        unimplemented!()
+    }
+
+    fn process_toplevel(&mut self, toplevel: &Toplevel) -> InferResult<(String, Decl)> {
+        unimplemented!()
+    }
+
+    pub fn process(&mut self, modname: String, program: &[Toplevel]) -> InferResult<Module> {
+        let mut module = Module {
+            name: modname,
+            decls: HashMap::new(),
+        };
+        self.collect_forward_declarations(program)?;
+        for decl in program {
+            let (name, decl) = self.process_toplevel(decl)?;
+            module.decls.insert(name, decl);
+        }
+        Ok(module)
     }
 }
 

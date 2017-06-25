@@ -1,8 +1,16 @@
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 use basis::sourcemap::Span;
 use syntax::ast::Operator;
+
+
+#[derive(Debug, Clone)]
+pub struct Module {
+    pub name: String,
+    pub decls: HashMap<String, Decl>,
+}
 
 #[derive(Debug, Clone)]
 pub enum NodeKind {
@@ -77,4 +85,11 @@ pub struct Def {
 pub enum DeclKind {
     Def(Box<Def>),
     Let(Box<Let>),
+}
+
+#[derive(Debug, Clone)]
+pub struct Decl {
+    pub kind: DeclKind,
+    pub declare_typ: Type,
+    pub span: Span,
 }
