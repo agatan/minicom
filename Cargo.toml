@@ -11,6 +11,7 @@ llvm-sys = "39"
 
 minicom-basis = { path = "./basis" }
 minicom-syntax = { path = "./syntax" }
+minicom-typing = { path = "./typing" }
 
 [lib]
 name = "minicom_rt"
