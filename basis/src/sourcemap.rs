@@ -24,7 +24,7 @@ pub struct Position {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// `Pos` is a light-weight representation of source position.
 /// `Pos` can be converted to canonical position with `SourceMap`.
-pub struct Pos(usize);
+pub struct Pos(pub usize);
 
 /// `NPOS` is a dummy position
 pub const NPOS: Pos = Pos(0);
@@ -33,6 +33,15 @@ pub const NPOS: Pos = Pos(0);
 pub struct Span {
     pub start: Pos,
     pub end: Pos,
+}
+
+impl Span {
+    pub fn display<'a>(&self, srcmap: &'a SourceMap) -> DisplaySpan<'a> {
+        DisplaySpan {
+            span: *self,
+            sourcemap: srcmap,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -91,7 +100,7 @@ impl Source {
                        .as_str()
                        .char_indices()
                        .filter_map(|(i, c)| if c == '\n' { Some(i + 1) } else { None }))
-            .chain(Some(contents.len()))
+            .chain(Some(contents.len() + 1))
             .collect::<Vec<usize>>();
         Source {
             base: base,
@@ -135,9 +144,9 @@ impl Source {
         None
     }
 
-    pub fn line(&self, pos: Pos) -> Option<(usize, &str)> {
+    pub fn line(&self, pos: Pos) -> Option<&str> {
         self.line_number_and_indices(pos)
-            .map(|(linum, start, end)| (linum, &self.contents[start..end - 1]))
+            .map(|(_, start, end)| &self.contents[start..end - 1])
     }
 
     pub fn position(&self, pos: Pos) -> Option<Position> {
@@ -219,7 +228,7 @@ impl SourceMap {
         self.source_ref(pos).cloned()
     }
 
-    pub fn line(&self, pos: Pos) -> Option<(usize, &str)> {
+    pub fn line(&self, pos: Pos) -> Option<&str> {
         self.source_ref(pos).and_then(|f| f.line(pos))
     }
 
@@ -289,10 +298,10 @@ mod tests {
         "#;
         sourcemap.add_dummy(input.to_string());
         assert_eq!(sourcemap.line(Pos(0)), None);
-        assert_eq!(sourcemap.line(Pos(1)), Some((1, "line 1")));
-        assert_eq!(sourcemap.line(Pos(2)), Some((1, "line 1")));
-        assert_eq!(sourcemap.line(Pos(7)), Some((1, "line 1")));
-        assert_eq!(sourcemap.line(Pos(8)), Some((2, "            line 2")));
+        assert_eq!(sourcemap.line(Pos(1)), Some("line 1"));
+        assert_eq!(sourcemap.line(Pos(2)), Some("line 1"));
+        assert_eq!(sourcemap.line(Pos(7)), Some("line 1"));
+        assert_eq!(sourcemap.line(Pos(8)), Some("            line 2"));
     }
 
     #[test]

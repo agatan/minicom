@@ -4,7 +4,7 @@ use std::cell::Cell;
 
 use ansi_term::{Colour, Style};
 
-use pos::{Source, Span, Spanned, SpanWithSource};
+use sourcemap::{SourceMap, Span, Spanned};
 
 #[derive(Debug)]
 pub struct Error<E> {
@@ -32,8 +32,8 @@ impl<E> Error<E> {
         self.notes.push(Spanned::span(None, note.into()));
     }
 
-    pub fn with_source<'a>(self, source: &'a Source) -> ErrorWithSource<'a, E> {
-        ErrorWithSource::new(self, source)
+    pub fn with_source_map<'a>(self, sourcemap: &'a SourceMap) -> ErrorWithSource<'a, E> {
+        ErrorWithSource::new(self, sourcemap)
     }
 }
 
@@ -60,14 +60,14 @@ macro_rules! note {
 #[derive(Debug)]
 pub struct ErrorWithSource<'a, E> {
     error: Error<E>,
-    source: &'a Source,
+    sourcemap: &'a SourceMap,
 }
 
 impl<'a, E> ErrorWithSource<'a, E> {
-    pub fn new(error: Error<E>, source: &'a Source) -> Self {
+    pub fn new(error: Error<E>, sourcemap: &'a SourceMap) -> Self {
         ErrorWithSource {
             error: error,
-            source: source,
+            sourcemap: sourcemap,
         }
     }
 }
@@ -81,22 +81,19 @@ thread_local! {
 
 impl<'a, E: fmt::Display> fmt::Display for ErrorWithSource<'a, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let span_with_source = format!("{}:",
-                                       SpanWithSource::new(self.error.main_error.span,
-                                                           self.source));
+        let span_with_source = format!("{}:", self.error.main_error.span.display(self.sourcemap));
         writeln!(f,
                  "{} {} {}",
                  BOLD_STYLE.with(|s| s.get().paint(span_with_source)),
                  ERROR_STYLE.with(|s| s.get().paint("error:")),
                  BOLD_STYLE.with(|s| s.get().paint(self.error.main_error.value.to_string())))?;
-        if let Some(line) =
-            UNDERLINE_STYLE.with(|s| self.source.get_span(self.error.main_error.span, s.get())) {
+        if let Some(line) = self.sourcemap.line(self.error.main_error.span.start) {
             writeln!(f, "    {}", line)?;
         }
         for note in self.error.notes.iter() {
             match note.span {
                 Some(span) => {
-                    let span = format!("{}:", SpanWithSource::new(span, self.source));
+                    let span = format!("{}:", span.display(self.sourcemap));
                     write!(f, "  {}", BOLD_STYLE.with(|s| s.get().paint(span)))?
                 }
                 None => write!(f, "  {}", BOLD_STYLE.with(|s| s.get().paint(":")))?,
@@ -106,7 +103,7 @@ impl<'a, E: fmt::Display> fmt::Display for ErrorWithSource<'a, E> {
                      NOTE_STYLE.with(|s| s.get().paint("note:")),
                      BOLD_STYLE.with(|s| s.get().paint(note.value.to_string())))?;
             if let Some(span) = note.span {
-                if let Some(line) = UNDERLINE_STYLE.with(|s| self.source.get_span(span, s.get())) {
+                if let Some(line) = self.sourcemap.line(span.start) {
                     writeln!(f, "    {}", line)?;
                 }
             }
@@ -125,31 +122,25 @@ pub fn disable_colorized_error() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pos::*;
+    use sourcemap::*;
 
     const ZERO_SPAN: Span = Span {
-        start: Location {
-            line: Line(0),
-            column: Column(0),
-            absolute: Byte(0),
-        },
-        end: Location {
-            line: Line(0),
-            column: Column(0),
-            absolute: Byte(0),
-        },
+        start: Pos(1),
+        end: Pos(1),
     };
 
-    fn dummy_source() -> Source {
-        Source::with_dummy("".to_owned())
+    fn dummy_source_map() -> SourceMap {
+        let mut srcmap = SourceMap::new();
+        srcmap.add_dummy("dummy".to_string());
+        srcmap
     }
 
     #[test]
     fn only_main_error() {
         disable_colorized_error();
         let err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
-        let source = dummy_source();
-        let expected = "<dummy>:1:0: error: main error\n";
+        let source = dummy_source_map();
+        let expected = "<dummy>:1:1: error: main error\n    dummy\n";
         assert_eq!(format!("{}", ErrorWithSource::new(err, &source)), expected);
     }
 
@@ -159,9 +150,11 @@ mod tests {
         let mut err: Error<&str> = Error::new(Spanned::span(ZERO_SPAN, "main error"));
         note_in!(err, ZERO_SPAN, "spanned {}", "note");
         note!(err, "non-spanned note");
-        let source = dummy_source();
-        let expected = r#"<dummy>:1:0: error: main error
-  <dummy>:1:0: note: spanned note
+        let source = dummy_source_map();
+        let expected = r#"<dummy>:1:1: error: main error
+    dummy
+  <dummy>:1:1: note: spanned note
+    dummy
   : note: non-spanned note
 "#;
         assert_eq!(format!("{}", ErrorWithSource::new(err, &source)), expected);
