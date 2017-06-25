@@ -567,6 +567,88 @@ impl Infer {
         }
         Ok(module)
     }
+
+    pub fn deref_node(&self, node: &mut Node) -> InferResult<()> {
+        let span = node.span;
+        node.typ = node.typ
+            .deref()
+            .map_err(|err| BasisError::span(node.span, err))?;
+        match node.kind {
+            NodeKind::Call(_, ref mut args) => {
+                for arg in args.iter_mut() {
+                    self.deref_node(arg)?;
+                }
+            }
+            NodeKind::Infix(ref mut lhs, _, ref mut rhs) => {
+                self.deref_node(lhs)?;
+                self.deref_node(rhs)?;
+            }
+            NodeKind::Block(ref mut nodes, ref mut last) => {
+                for n in nodes.iter_mut() {
+                    self.deref_node(n)?;
+                }
+                self.deref_node(last)?;
+            }
+            NodeKind::If(ref mut cond, ref mut then, ref mut els) => {
+                self.deref_node(cond)?;
+                self.deref_node(then)?;
+                if let Some(ref mut els) = *els {
+                    self.deref_node(els)?;
+                }
+            }
+            NodeKind::While(ref mut cond, ref mut body) => {
+                self.deref_node(cond)?;
+                self.deref_node(body)?;
+            }
+            NodeKind::Ref(ref mut e) => self.deref_node(e)?,
+            NodeKind::Deref(ref mut e) => self.deref_node(e)?,
+            NodeKind::Assign(ref mut to, ref mut value) => {
+                self.deref_node(to)?;
+                self.deref_node(value)?;
+            }
+            NodeKind::Let(ref mut let_) => {
+                let_.typ = let_.typ.deref().map_err(|err| BasisError::span(span, err))?;
+                self.deref_node(&mut let_.value)?;
+            }
+            NodeKind::Unit |
+            NodeKind::Int(_) |
+            NodeKind::Float(_) |
+            NodeKind::Bool(_) |
+            NodeKind::Ident(_) => {}
+        }
+        Ok(())
+    }
+
+    pub fn deref_decl(&self, decl: &mut Decl) -> InferResult<()> {
+        let span = decl.span;
+        match decl.kind {
+            DeclKind::Def(ref mut def) => {
+                for param in def.params.iter_mut() {
+                    param.typ = param
+                        .typ
+                        .deref()
+                        .map_err(|err| BasisError::span(span, err))?;
+                }
+                def.ret = def.ret.deref().map_err(|err| BasisError::span(span, err))?;
+                self.deref_node(&mut def.body)?;
+            }
+            DeclKind::Let(ref mut let_) => {
+                let_.typ = let_.typ.deref().map_err(|err| BasisError::span(span, err))?;
+                self.deref_node(&mut let_.value)?;
+            }
+        }
+        decl.declare_typ = decl.declare_typ
+            .deref()
+            .map_err(|err| BasisError::span(decl.span, err))?;
+        Ok(())
+    }
+
+    pub fn deref(&self, module: &mut Module) -> InferResult<()> {
+        for decl in module.decls.values_mut() {
+            self.deref_decl(decl)?;
+        }
+        Ok(())
+    }
 }
 
 struct Scope<'a>(&'a mut Infer);
