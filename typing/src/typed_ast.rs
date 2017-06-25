@@ -37,14 +37,20 @@ pub struct Node {
 pub enum Type {
     Unit,
     Int,
+    Float,
     Bool,
     Ref(Box<Type>),
+    Fun(Rc<(Vec<Type>, Type)>),
     Var(Rc<RefCell<Option<Type>>>),
 }
 
 impl Type {
     pub fn newvar() -> Type {
         Type::Var(Rc::new(RefCell::new(None)))
+    }
+
+    pub fn fun(params: Vec<Type>, ret: Type) -> Self {
+        Type::Fun(Rc::new((params, ret)))
     }
 }
 

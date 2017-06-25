@@ -6,3 +6,5 @@ authors = ["agatan <agatan039@gmail.com>"]
 [dependencies]
 minicom-basis = { path = "../basis" }
 minicom-syntax = { path = "../syntax" }
+
+error-chain = "0.10"

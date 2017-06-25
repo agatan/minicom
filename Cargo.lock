@@ -295,6 +295,7 @@ dependencies = [
 name = "minicom-typing"
 version = "0.1.0"
 dependencies = [
+ "error-chain 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "minicom-basis 0.1.0",
  "minicom-syntax 0.1.0",
 ]
