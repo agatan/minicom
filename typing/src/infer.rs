@@ -307,6 +307,39 @@ impl Infer {
                     }
                 }
             }
+            AstNodeKind::If(cond, then, els) => {
+                let cond =
+                    self.process_node(*cond,
+                                      &Expect::WithMessage {
+                                          typ: Type::Bool,
+                                          message: format_args!("condition of 'if' expression"),
+                                      })?;
+                match els {
+                    None => {
+                        let then = self.process_node(*then, &Expect::Type { typ: Type::Unit })?;
+                        Ok(Node {
+                               typ: Type::Unit,
+                               kind: NodeKind::If(Box::new(cond), Box::new(then), None),
+                               span: node.span,
+                           })
+                    }
+                    Some(els) => {
+                        let then = self.process_node(*then, &Expect::None)?;
+                        let els = self.process_node(*els, &Expect::WithSpan {
+                            typ: then.typ.clone(),
+                            message: format_args!("'then' clause and 'else' clause have incompatible types"),
+                            span: node.span,
+                        })?;
+                        Ok(Node {
+                               typ: els.typ.clone(),
+                               kind: NodeKind::If(Box::new(cond),
+                                                  Box::new(then),
+                                                  Some(Box::new(els))),
+                               span: node.span,
+                           })
+                    }
+                }
+            }
             _ => unimplemented!(),
         }
     }
