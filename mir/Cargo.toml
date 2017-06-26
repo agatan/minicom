@@ -1,0 +1,9 @@
+[package]
+name = "minicom-mir"
+version = "0.1.0"
+authors = ["agatan <agatan039@gmail.com>"]
+
+[dependencies]
+minicom-basis = { path = "../basis" }
+minicom-syntax = { path = "../syntax" }
+minicom-typing = { path = "../typing" }

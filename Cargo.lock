@@ -7,6 +7,7 @@ dependencies = [
  "llvm-sys 39.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "minicom-basis 0.1.0",
+ "minicom-mir 0.1.0",
  "minicom-syntax 0.1.0",
  "minicom-typing 0.1.0",
 ]
@@ -279,6 +280,15 @@ name = "minicom-basis"
 version = "0.1.0"
 dependencies = [
  "ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "minicom-mir"
+version = "0.1.0"
+dependencies = [
+ "minicom-basis 0.1.0",
+ "minicom-syntax 0.1.0",
+ "minicom-typing 0.1.0",
 ]
 
 [[package]]
