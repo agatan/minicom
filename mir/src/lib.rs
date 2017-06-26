@@ -5,9 +5,3 @@ extern crate minicom_typing as typing;
 mod mir;
 
 pub use mir::*;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {}
-}

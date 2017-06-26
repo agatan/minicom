@@ -7,3 +7,5 @@ authors = ["agatan <agatan039@gmail.com>"]
 minicom-basis = { path = "../basis" }
 minicom-syntax = { path = "../syntax" }
 minicom-typing = { path = "../typing" }
+
+error-chain = "0.10"
