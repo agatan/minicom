@@ -163,3 +163,12 @@ pub struct Decl {
     pub declare_typ: Type,
     pub span: Span,
 }
+
+impl Decl {
+    pub fn name(&self) -> &str {
+        match self.kind {
+            DeclKind::Def(ref def) => &def.name,
+            DeclKind::Let(ref let_) => &let_.name,
+        }
+    }
+}
