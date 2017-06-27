@@ -1,7 +1,7 @@
 use basis::errors::Error as BasisError;
 
-use typed_ast::{Node, NodeKind, Decl, DeclKind, Module};
-use super::Result as InferResult;
+use super::typed_ast::{Node, NodeKind, Decl, DeclKind, Module};
+use Result as InferResult;
 
 pub fn deref_node(node: &mut Node) -> InferResult<()> {
     let span = node.span;

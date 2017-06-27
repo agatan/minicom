@@ -1,27 +1,14 @@
-#[macro_use]
-extern crate minicom_basis as basis;
-extern crate minicom_syntax as syntax;
-#[macro_use]
-extern crate error_chain;
-
-use basis::errors::Error as BasisError;
 use syntax::ast::Toplevel;
 
 mod typed_ast;
-pub use typed_ast::*;
+pub use self::typed_ast::*;
 mod type_env;
 mod infer;
-pub use infer::Infer;
+pub use self::infer::Infer;
 mod deref;
-pub use deref::*;
+pub use self::deref::*;
 
-pub mod errors {
-    error_chain! {
-        errors { }
-    }
-}
-
-pub type Result<T> = ::std::result::Result<T, BasisError<self::errors::Error>>;
+use Result;
 
 pub fn typecheck(module_name: String, program: Vec<Toplevel>) -> Result<Module> {
     let mut infer = Infer::new();

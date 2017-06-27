@@ -9,9 +9,9 @@ use basis::errors::Error as BasisError;
 use syntax::ast::{Toplevel, ToplevelKind, Def as AstDef, Node as AstNode, NodeKind as AstNodeKind,
                   Let as AstLet, Operator};
 
-use typed_ast::{Module, Node, NodeKind, Type, Decl, DeclKind, Let, Param, Def};
-use type_env::TypeEnv;
-use super::Result as InferResult;
+use super::typed_ast::{Module, Node, NodeKind, Type, Decl, DeclKind, Let, Param, Def};
+use super::type_env::TypeEnv;
+use super::super::Result as InferResult;
 use errors::Error;
 
 #[derive(Debug)]

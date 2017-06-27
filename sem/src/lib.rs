@@ -1,12 +1,14 @@
+#[macro_use]
 extern crate minicom_basis as basis;
 extern crate minicom_syntax as syntax;
-extern crate minicom_typing as typing;
 extern crate minicom_mir as mir;
 
 #[macro_use]
 extern crate error_chain;
 
 use basis::errors::Error as BasisError;
+
+pub mod typing;
 
 pub mod errors {
     error_chain! {
@@ -23,6 +25,6 @@ pub fn ast_to_mir(module_name: String,
     typed_ast_to_mir(module)
 }
 
-pub fn typed_ast_to_mir(module: typing::Module) -> Result<mir::Program> {
+pub fn typed_ast_to_mir(_module: typing::Module) -> Result<mir::Program> {
     unimplemented!()
 }

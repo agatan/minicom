@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use syntax::ast::Type as AstType;
 
 use super::typed_ast::Type;
-use super::errors::Error;
+use errors::Error;
 
 #[derive(Debug)]
 pub struct TypeEnv {
