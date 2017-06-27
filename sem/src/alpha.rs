@@ -62,7 +62,7 @@ impl AlphaTrans {
         }
     }
 
-    fn process_node(&mut self, mut node: Node) -> Node {
+    pub fn process_node(&mut self, mut node: Node) -> Node {
         node.kind = match node.kind {
             NodeKind::Unit |
             NodeKind::Int(_) |
@@ -117,7 +117,7 @@ impl AlphaTrans {
         node
     }
 
-    fn process_decl(&mut self, mut decl: Decl) -> Decl {
+    pub fn process_decl(&mut self, mut decl: Decl) -> Decl {
         decl.kind = match decl.kind {
             DeclKind::Def(def) => {
                 let def = *def;
@@ -165,4 +165,35 @@ impl AlphaTrans {
 pub fn transform(module: Module) -> Module {
     let mut trans = AlphaTrans::new();
     trans.process(module)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use typing::*;
+    use basis::sourcemap::NSPAN;
+
+    fn unit() -> Node {
+        Node {
+            kind: NodeKind::Unit,
+            typ: Type::Unit,
+            span: NSPAN,
+        }
+    }
+
+    #[test]
+    fn test_let() {
+        let let_ = Decl {
+            kind: DeclKind::Let(Box::new(Let {
+                                             name: "x".to_string(),
+                                             typ: Type::Unit,
+                                             value: unit(),
+                                         })),
+            declare_typ: Type::Unit,
+            span: NSPAN,
+        };
+        let mut trans = AlphaTrans::new();
+        let result = trans.process_decl(let_);
+        assert_eq!(result.name(), "x$0");
+    }
 }
