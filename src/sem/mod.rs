@@ -43,22 +43,22 @@ impl Context {
 
     fn process_node(&mut self, node: Spanned<AstNode>) -> Result<Node> {
         let Spanned { value: node, span } = node;
-        let typ = self.inferer
-            .gettyp(node.id)
-            .map_err(|err| BasisError::span(span, err))?;
+        let typ = self.inferer.gettyp(node.id).map_err(|err| {
+            BasisError::span(span, err)
+        })?;
         let kind = match node.kind {
             AstNodeKind::Unit => NodeKind::Unit,
             AstNodeKind::Int(n) => NodeKind::Int(n),
             AstNodeKind::Float(n) => NodeKind::Float(n),
             AstNodeKind::Bool(n) => NodeKind::Bool(n),
             AstNodeKind::Ident(name) => {
-                let typ = self.inferer
-                    .gettyp(node.id)
-                    .map_err(|err| BasisError::span(span, err))?;
+                let typ = self.inferer.gettyp(node.id).map_err(|err| {
+                    BasisError::span(span, err)
+                })?;
                 NodeKind::Ident(Var {
-                                    name: name,
-                                    typ: typ.clone(),
-                                })
+                    name: name,
+                    typ: typ.clone(),
+                })
             }
             AstNodeKind::Call(fname, args) => {
                 let args = args.into_iter()
@@ -99,15 +99,15 @@ impl Context {
             AstNodeKind::Let(let_) => {
                 let let_ = *let_;
                 let ast::Let { value, name, .. } = let_;
-                let value_typ = self.inferer
-                    .gettyp(value.value.id)
-                    .map_err(|err| BasisError::span(span, err))?;
+                let value_typ = self.inferer.gettyp(value.value.id).map_err(|err| {
+                    BasisError::span(span, err)
+                })?;
                 let value = self.process_node(value)?;
                 NodeKind::Let(Box::new(Let {
-                                           name: name,
-                                           typ: value_typ,
-                                           value: value,
-                                       }))
+                    name: name,
+                    typ: value_typ,
+                    value: value,
+                }))
             }
             AstNodeKind::Assign(to, value) => {
                 let to = Box::new(self.process_node(*to)?);
@@ -186,9 +186,9 @@ impl Context {
     fn process_global_let(&mut self, let_: Spanned<ast::Let>) -> Result<()> {
         let Spanned { value: let_, span } = let_;
         let ast::Let { name, value, .. } = let_;
-        let typ = self.inferer
-            .gettyp(value.value.id)
-            .map_err(|err| BasisError::span(span, err))?;
+        let typ = self.inferer.gettyp(value.value.id).map_err(|err| {
+            BasisError::span(span, err)
+        })?;
         let irnode = self.process_node(value)?;
         self.program.define_global(name.clone(), typ.clone());
         let var = Var {

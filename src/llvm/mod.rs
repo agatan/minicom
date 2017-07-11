@@ -93,7 +93,9 @@ impl Context {
     }
 
     pub fn void_ptr_type(&self) -> Type {
-        Type(unsafe { core::LLVMPointerType(core::LLVMInt8TypeInContext(self.get()), 0) })
+        Type(unsafe {
+            core::LLVMPointerType(core::LLVMInt8TypeInContext(self.get()), 0)
+        })
     }
 
     pub fn bool_type(&self) -> Type {
@@ -113,10 +115,12 @@ impl Context {
         let param_types = params.as_ptr() as *mut LLVMTypeRef;
         let param_count = params.len() as ::libc::c_uint;
         unsafe {
-            let ty = core::LLVMFunctionType(ret.get(),
-                                            param_types,
-                                            param_count,
-                                            if is_var_arg { 1 } else { 0 });
+            let ty = core::LLVMFunctionType(
+                ret.get(),
+                param_types,
+                param_count,
+                if is_var_arg { 1 } else { 0 },
+            );
             Type(ty)
         }
     }
@@ -161,7 +165,14 @@ impl Builder {
     }
 
     pub fn cond_br(&mut self, cond: Value, then: &BasicBlock, els: &BasicBlock) -> Value {
-        unsafe { Value(core::LLVMBuildCondBr(self.get(), cond.get(), then.get(), els.get())) }
+        unsafe {
+            Value(core::LLVMBuildCondBr(
+                self.get(),
+                cond.get(),
+                then.get(),
+                els.get(),
+            ))
+        }
     }
 
     pub fn phi(&mut self, typ: Type, name: &str) -> Value {
@@ -177,7 +188,15 @@ impl Builder {
         let name = CString::new(name).unwrap();
         let num_args = args.len() as ::libc::c_uint;
         let args = args.as_ptr() as *mut _;
-        unsafe { Value(core::LLVMBuildCall(self.get(), f.get(), args, num_args, name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildCall(
+                self.get(),
+                f.get(),
+                args,
+                num_args,
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn alloca(&mut self, ty: Type, name: &str) -> Value {
@@ -189,57 +208,132 @@ impl Builder {
     }
 
     pub fn store(&mut self, v: Value, ptr: Value) -> Value {
-        unsafe { Value(core::LLVMBuildStore(self.get(), v.to_value(), ptr.to_value())) }
+        unsafe {
+            Value(core::LLVMBuildStore(
+                self.get(),
+                v.to_value(),
+                ptr.to_value(),
+            ))
+        }
     }
 
     pub fn load(&mut self, ptr: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
-        unsafe { Value(core::LLVMBuildLoad(self.get(), ptr.to_value(), name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildLoad(
+                self.get(),
+                ptr.to_value(),
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn bitcast(&mut self, ptr: Value, typ: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
-        unsafe { Value(core::LLVMBuildBitCast(self.get(), ptr.get(), typ.get(), name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildBitCast(
+                self.get(),
+                ptr.get(),
+                typ.get(),
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn add(&mut self, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
-        unsafe { Value(core::LLVMBuildAdd(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildAdd(
+                self.get(),
+                a.to_value(),
+                b.to_value(),
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn sub(&mut self, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
-        unsafe { Value(core::LLVMBuildSub(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildSub(
+                self.get(),
+                a.to_value(),
+                b.to_value(),
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn mul(&mut self, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
-        unsafe { Value(core::LLVMBuildMul(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildMul(
+                self.get(),
+                a.to_value(),
+                b.to_value(),
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn div(&mut self, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
-        unsafe { Value(core::LLVMBuildSDiv(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildSDiv(
+                self.get(),
+                a.to_value(),
+                b.to_value(),
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn fadd(&mut self, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
-        unsafe { Value(core::LLVMBuildFAdd(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildFAdd(
+                self.get(),
+                a.to_value(),
+                b.to_value(),
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn fsub(&mut self, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
-        unsafe { Value(core::LLVMBuildFSub(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildFSub(
+                self.get(),
+                a.to_value(),
+                b.to_value(),
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn fmul(&mut self, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
-        unsafe { Value(core::LLVMBuildFMul(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildFMul(
+                self.get(),
+                a.to_value(),
+                b.to_value(),
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn fdiv(&mut self, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
-        unsafe { Value(core::LLVMBuildFDiv(self.get(), a.to_value(), b.to_value(), name.as_ptr())) }
+        unsafe {
+            Value(core::LLVMBuildFDiv(
+                self.get(),
+                a.to_value(),
+                b.to_value(),
+                name.as_ptr(),
+            ))
+        }
     }
 
     pub fn not(&mut self, a: Value, name: &str) -> Value {
@@ -250,14 +344,26 @@ impl Builder {
     pub fn icmp(&mut self, op: LLVMIntPredicate, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         unsafe {
-            Value(core::LLVMBuildICmp(self.get(), op, a.to_value(), b.to_value(), name.as_ptr()))
+            Value(core::LLVMBuildICmp(
+                self.get(),
+                op,
+                a.to_value(),
+                b.to_value(),
+                name.as_ptr(),
+            ))
         }
     }
 
     pub fn fcmp(&mut self, op: LLVMRealPredicate, a: Value, b: Value, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         unsafe {
-            Value(core::LLVMBuildFCmp(self.get(), op, a.to_value(), b.to_value(), name.as_ptr()))
+            Value(core::LLVMBuildFCmp(
+                self.get(),
+                op,
+                a.to_value(),
+                b.to_value(),
+                name.as_ptr(),
+            ))
         }
     }
 }
@@ -312,7 +418,8 @@ impl Module {
             let ret = analysis::LLVMVerifyModule(
                 self.get(),
                 analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction,
-                    msg.get_mut_ptr());
+                msg.get_mut_ptr(),
+            );
             if ret == 1 {
                 Err(msg.to_string())
             } else {
@@ -330,7 +437,8 @@ impl Module {
                 self.get(),
                 LLVMCodeGenFileType::LLVMObjectFile,
                 err.get_mut_ptr(),
-                &mut membuf as *mut _)
+                &mut membuf as *mut _,
+            )
         };
         if failed == 1 {
             return Err(err);
@@ -423,10 +531,12 @@ impl Value {
         let values = incomings.iter().map(|x| x.1.get()).collect::<Vec<_>>();
         let count = incomings.len() as ::libc::c_uint;
         unsafe {
-            core::LLVMAddIncoming(self.get(),
-                                  values.as_ptr() as *mut _,
-                                  blocks.as_ptr() as *mut _,
-                                  count)
+            core::LLVMAddIncoming(
+                self.get(),
+                values.as_ptr() as *mut _,
+                blocks.as_ptr() as *mut _,
+                count,
+            )
         }
     }
 }
@@ -446,16 +556,20 @@ impl Function {
     }
 
     pub fn param(&self, i: i32) -> Value {
-        Value(unsafe { core::LLVMGetParam(self.get(), i as ::libc::c_uint) })
+        Value(unsafe {
+            core::LLVMGetParam(self.get(), i as ::libc::c_uint)
+        })
     }
 
     pub fn append_basic_block(&mut self, name: &str) -> BasicBlock {
         unsafe {
             let module = core::LLVMGetGlobalParent(self.to_value());
             let ctx = core::LLVMGetModuleContext(module);
-            let llbb = core::LLVMAppendBasicBlockInContext(ctx,
-                                                           self.to_value(),
-                                                           CString::new(name).unwrap().as_ptr());
+            let llbb = core::LLVMAppendBasicBlockInContext(
+                ctx,
+                self.to_value(),
+                CString::new(name).unwrap().as_ptr(),
+            );
             BasicBlock(llbb)
         }
     }

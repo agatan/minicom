@@ -29,9 +29,9 @@ impl Emitter {
         let mut c = compiler::Compiler::new()?;
         c.compile_program(program)?;
         Ok(Emitter {
-               module: c.module,
-               machine: c.machine,
-           })
+            module: c.module,
+            machine: c.machine,
+        })
     }
 
     pub fn emit_executable(&self, executable: &str) -> Result<(), Error> {
@@ -40,16 +40,18 @@ impl Emitter {
         let mut objfile = File::create(&objpath)
             .map_err(|err| Error::from(err.to_string()))
             .chain_err(|| {
-                           format!("failed to create an object file: {}",
-                                   objpath.to_string_lossy())
-                       })?;
+                format!(
+                    "failed to create an object file: {}",
+                    objpath.to_string_lossy()
+                )
+            })?;
         let objbytes = self.module
             .emit_object(self.machine)
             .map_err(|err| Error::from(err.to_string()))
             .chain_err(|| "failed to emit object code")?;
-        objfile
-            .write_all(&objbytes)
-            .chain_err(|| "failed to write object code to a tmpfile")?;
+        objfile.write_all(&objbytes).chain_err(
+            || "failed to write object code to a tmpfile",
+        )?;
         link::link(executable, &objpath.to_string_lossy())
     }
 

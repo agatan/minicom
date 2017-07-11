@@ -31,18 +31,22 @@ impl Env {
 
     fn with_prelude() -> Self {
         let mut e = Self::new();
-        e.define("print_unit".into(),
-                    Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Unit], Type::Unit)))
-            .unwrap();
-        e.define("print_int".into(),
-                    Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Int], Type::Int)))
-            .unwrap();
-        e.define("print_float".into(),
-                    Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Float], Type::Float)))
-            .unwrap();
-        e.define("print_bool".into(),
-                    Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Bool], Type::Bool)))
-            .unwrap();
+        e.define(
+            "print_unit".into(),
+            Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Unit], Type::Unit)),
+        ).unwrap();
+        e.define(
+            "print_int".into(),
+            Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Int], Type::Int)),
+        ).unwrap();
+        e.define(
+            "print_float".into(),
+            Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Float], Type::Float)),
+        ).unwrap();
+        e.define(
+            "print_bool".into(),
+            Spanned::span(NSPAN, Entry::ExternFunction(vec![Type::Bool], Type::Bool)),
+        ).unwrap();
         e
     }
 
@@ -53,13 +57,15 @@ impl Env {
                 v.insert(entry);
             }
             Occupied(o) => {
-                let mut err = BasisError::span(entry.span,
-                                               format!("duplicate definition: {:?}", o.key()));
+                let mut err =
+                    BasisError::span(entry.span, format!("duplicate definition: {:?}", o.key()));
                 if o.get().span != NSPAN {
-                    note_in!(err,
-                             o.get().span,
-                             "previous definition of {:?} here",
-                             o.key());
+                    note_in!(
+                        err,
+                        o.get().span,
+                        "previous definition of {:?} here",
+                        o.key()
+                    );
                 }
                 return Err(err);
             }
@@ -185,14 +191,17 @@ impl Infer {
         let args = def.args
             .iter()
             .map(|&(_, ref typ)| {
-                     self.convert_type(typ)
-                         .map_err(|err| BasisError::span(span, err))
-                 })
+                self.convert_type(typ).map_err(
+                    |err| BasisError::span(span, err),
+                )
+            })
             .collect::<SemResult<Vec<_>>>()?;
         let entry = Entry::Function(args, ret_typ);
         self.toplevels.insert(id, entry.clone());
-        self.global_env
-            .define(def.name.clone(), Spanned::span(span, entry))
+        self.global_env.define(
+            def.name.clone(),
+            Spanned::span(span, entry),
+        )
     }
 
     pub fn collect_forward_declarations(&mut self, decls: &[Spanned<Toplevel>]) -> SemResult<()> {
@@ -202,15 +211,18 @@ impl Infer {
                     self.collect_forward_def(decl.value.id, def, decl.span)?
                 }
                 ToplevelKind::Let(ref let_) => {
-                    let typ = let_.typ
-                        .as_ref()
-                        .expect("global `let` shuold have type specification");
-                    let typ = self.convert_type(&typ.value)
-                        .map_err(|err| BasisError::span(typ.span, err))?;
+                    let typ = let_.typ.as_ref().expect(
+                        "global `let` shuold have type specification",
+                    );
+                    let typ = self.convert_type(&typ.value).map_err(|err| {
+                        BasisError::span(typ.span, err)
+                    })?;
                     let entry = Entry::Var(typ);
                     self.toplevels.insert(decl.value.id, entry.clone());
-                    self.global_env
-                        .define(let_.name.clone(), Spanned::span(decl.span, entry))?
+                    self.global_env.define(
+                        let_.name.clone(),
+                        Spanned::span(decl.span, entry),
+                    )?
                 }
             }
         }
@@ -297,11 +309,12 @@ impl Infer {
         }
     }
 
-    fn infer_binary_operation<'a>(&mut self,
-                                  lhs: &Spanned<Node>,
-                                  op: Operator,
-                                  rhs: &Spanned<Node>)
-                                  -> SemResult<Type> {
+    fn infer_binary_operation<'a>(
+        &mut self,
+        lhs: &Spanned<Node>,
+        op: Operator,
+        rhs: &Spanned<Node>,
+    ) -> SemResult<Type> {
         let lhs_typ = self.infer_node(lhs, &Expect::None)?;
         let rhs_typ = self.infer_node(rhs, &Expect::Type { typ: lhs_typ.clone() })?;
         if op.is_arithmetic() {
@@ -311,29 +324,35 @@ impl Infer {
         }
     }
 
-    fn infer_node_without_check<'a>(&mut self,
-                                    node: &Spanned<Node>,
-                                    expect: &Expect<'a>)
-                                    -> SemResult<Type> {
+    fn infer_node_without_check<'a>(
+        &mut self,
+        node: &Spanned<Node>,
+        expect: &Expect<'a>,
+    ) -> SemResult<Type> {
         match node.value.kind {
             NodeKind::Unit => Ok(Type::Unit),
             NodeKind::Int(_) => Ok(Type::Int),
             NodeKind::Float(_) => Ok(Type::Float),
             NodeKind::Bool(_) => Ok(Type::Bool),
             NodeKind::Ident(ref name) => {
-                self.getvar(name)
-                    .map(|typ| typ.value.clone())
-                    .map_err(|err| BasisError::span(node.span, err))
+                self.getvar(name).map(|typ| typ.value.clone()).map_err(
+                    |err| {
+                        BasisError::span(node.span, err)
+                    },
+                )
             }
             NodeKind::Call(ref fname, ref args) => {
-                let spanned_fun = self.get_function(fname)
-                    .map_err(|err| BasisError::span(node.span, err))?;
+                let spanned_fun = self.get_function(fname).map_err(|err| {
+                    BasisError::span(node.span, err)
+                })?;
                 let (function_args, function_ret) = spanned_fun.value;
                 if args.len() != function_args.len() {
-                    let msg = format!("invalid number of arguments for {:?}: expected {}, but given {}",
-                                      fname,
-                                      function_args.len(),
-                                      args.len());
+                    let msg = format!(
+                        "invalid number of arguments for {:?}: expected {}, but given {}",
+                        fname,
+                        function_args.len(),
+                        args.len()
+                    );
                     return Err(BasisError::span(node.span, msg));
                 }
                 for (arg, expected_arg) in args.iter().zip(function_args) {
@@ -349,11 +368,13 @@ impl Infer {
             }
             NodeKind::Deref(ref e) => {
                 let inner_typ = Type::newvar();
-                self.infer_node(e,
-                                &Expect::WithMessage {
-                                    typ: Type::Ref(Box::new(inner_typ.clone())),
-                                    message: format_args!("cannot dereference non-reference value"),
-                                })?;
+                self.infer_node(
+                    e,
+                    &Expect::WithMessage {
+                        typ: Type::Ref(Box::new(inner_typ.clone())),
+                        message: format_args!("cannot dereference non-reference value"),
+                    },
+                )?;
                 Ok(inner_typ)
             }
             NodeKind::Block(ref nodes) => {
@@ -369,30 +390,36 @@ impl Infer {
                 }
             }
             NodeKind::If(ref cond, ref then, ref els) => {
-                self.infer_node(cond,
-                                &Expect::WithMessage {
-                                    typ: Type::Bool,
-                                    message: format_args!("condition of 'if' expression"),
-                                })?;
+                self.infer_node(
+                    cond,
+                    &Expect::WithMessage {
+                        typ: Type::Bool,
+                        message: format_args!("condition of 'if' expression"),
+                    },
+                )?;
                 match *els {
                     None => self.infer_node(then, &Expect::Type { typ: Type::Unit }),
                     Some(ref els) => {
                         let then_typ = self.infer_node(then, &Expect::None)?;
-                        self.infer_node(els,
-                                        &Expect::WithSpan {
-                                            typ: then_typ.clone(),
-                                            message: format_args!("'if' and 'else' have incompatible types"),
-                                            span: node.span,
-                                        })
+                        self.infer_node(
+                            els,
+                            &Expect::WithSpan {
+                                typ: then_typ.clone(),
+                                message: format_args!("'if' and 'else' have incompatible types"),
+                                span: node.span,
+                            },
+                        )
                     }
                 }
             }
             NodeKind::While(ref cond, ref body) => {
-                self.infer_node(cond,
-                                &Expect::WithMessage {
-                                    typ: Type::Bool,
-                                    message: format_args!("condition of 'while' expression"),
-                                })?;
+                self.infer_node(
+                    cond,
+                    &Expect::WithMessage {
+                        typ: Type::Bool,
+                        message: format_args!("condition of 'while' expression"),
+                    },
+                )?;
                 self.infer_node(body, &Expect::None)?;
                 Ok(Type::Unit)
             }
@@ -400,28 +427,38 @@ impl Infer {
                 let expected_typ = match let_.typ {
                     None => Type::newvar(),
                     Some(ref typ) => {
-                        self.convert_type(&typ.value)
-                            .map_err(|err| BasisError::span(typ.span, err))?
+                        self.convert_type(&typ.value).map_err(|err| {
+                            BasisError::span(typ.span, err)
+                        })?
                     }
                 };
-                let typ = self.infer_node(&let_.value, &Expect::Type { typ: expected_typ })?;
+                let typ = self.infer_node(
+                    &let_.value,
+                    &Expect::Type { typ: expected_typ },
+                )?;
                 let var = Spanned::span(node.span, Entry::Var(typ));
                 self.current_scope().define(let_.name.clone(), var)?;
                 Ok(Type::Unit)
             }
             NodeKind::Assign(ref to, ref value) => {
                 let inner_typ = Type::newvar();
-                self.infer_node(to,
-                                &Expect::WithMessage {
-                                    typ: Type::Ref(Box::new(inner_typ.clone())),
-                                    message: format_args!("cannot assign to non-reference value"),
-                                })?;
-                self.infer_node(value,
-                                &Expect::WithSpan {
-                                    typ: inner_typ,
-                                    message: format_args!("assignment destination and value have incompatible types"),
-                                    span: to.span,
-                                })?;
+                self.infer_node(
+                    to,
+                    &Expect::WithMessage {
+                        typ: Type::Ref(Box::new(inner_typ.clone())),
+                        message: format_args!("cannot assign to non-reference value"),
+                    },
+                )?;
+                self.infer_node(
+                    value,
+                    &Expect::WithSpan {
+                        typ: inner_typ,
+                        message: format_args!(
+                            "assignment destination and value have incompatible types"
+                        ),
+                        span: to.span,
+                    },
+                )?;
                 Ok(Type::Unit)
             }
             NodeKind::Infix(ref lhs, op, ref rhs) => self.infer_binary_operation(lhs, op, rhs),
@@ -448,9 +485,13 @@ impl Infer {
                 let mut scoped = self.enter_scope();
                 let arg_names = def.args.iter().map(|arg| arg.0.clone());
                 for (name, typ) in arg_names.into_iter().zip(declared_args) {
-                    scoped
-                        .current_scope()
-                        .define(name, Spanned::span(node.span, Entry::Var(typ)))?;
+                    scoped.current_scope().define(
+                        name,
+                        Spanned::span(
+                            node.span,
+                            Entry::Var(typ),
+                        ),
+                    )?;
                 }
                 let msg = format_args!("return type of function, declared here");
                 let expect = Expect::WithSpan {

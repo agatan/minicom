@@ -9,8 +9,9 @@ fn run_semantic_check(input: &str) -> ::std::result::Result<ir::Program, String>
     // We're testing semantic checking, not syntax parsing.
     let nodes = syntax::parse(&srcmap, &*source).unwrap();
     let mut ctx = Context::new();
-    ctx.check_and_transform(nodes)
-        .map_err(|err| err.with_source_map(&srcmap).to_string())
+    ctx.check_and_transform(nodes).map_err(|err| {
+        err.with_source_map(&srcmap).to_string()
+    })
 }
 
 mod success {
@@ -149,10 +150,12 @@ mod failure {
         disable_colorized_error();
         let err = run_semantic_check(input).unwrap_err();
         for e in expected_messages {
-            assert!(err.contains(e),
-                    "expected error contains {:?}, but got error is {:?}",
-                    e,
-                    err.to_string());
+            assert!(
+                err.contains(e),
+                "expected error contains {:?}, but got error is {:?}",
+                e,
+                err.to_string()
+            );
         }
     }
 
@@ -201,8 +204,10 @@ mod failure {
             let x: Int = add(0)
 
         "#;
-        run(input,
-            &["<dummy>:5:26", "invalid number", "expected 2", "given 1"]);
+        run(
+            input,
+            &["<dummy>:5:26", "invalid number", "expected 2", "given 1"],
+        );
     }
 
     #[test]
@@ -217,8 +222,10 @@ mod failure {
 
         "#;
 
-        run(input,
-            &["<dummy>:6:17", "mismatched types", "'if' and 'else'"]);
+        run(
+            input,
+            &["<dummy>:6:17", "mismatched types", "'if' and 'else'"],
+        );
     }
 
     #[test]
@@ -244,11 +251,15 @@ mod failure {
 
         "#;
 
-        run(input,
-            &["<dummy>:5:13",
-              "duplicate definition",
-              "<dummy>:3:13: note",
-              "previous definition"]);
+        run(
+            input,
+            &[
+                "<dummy>:5:13",
+                "duplicate definition",
+                "<dummy>:3:13: note",
+                "previous definition",
+            ],
+        );
     }
 
     #[test]

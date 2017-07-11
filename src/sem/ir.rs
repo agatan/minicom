@@ -30,12 +30,13 @@ impl Program {
     }
 
     pub fn define_global(&mut self, name: String, typ: Type) {
-        self.entries
-            .insert(name.clone(),
-                    Entry::Var(Var {
-                                   name: name,
-                                   typ: typ,
-                               }));
+        self.entries.insert(
+            name.clone(),
+            Entry::Var(Var {
+                name: name,
+                typ: typ,
+            }),
+        );
     }
 }
 

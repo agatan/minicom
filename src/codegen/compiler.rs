@@ -33,13 +33,13 @@ impl Compiler {
         let tm = target::TargetMachine::new(triple, t);
         let data = tm.data_layout();
         Ok(Compiler {
-               ctx: ctx,
-               module: module,
-               builder: builder,
-               globals: HashMap::new(),
-               machine: tm,
-               target_data: data,
-           })
+            ctx: ctx,
+            module: module,
+            builder: builder,
+            globals: HashMap::new(),
+            machine: tm,
+            target_data: data,
+        })
     }
 
     fn compile_type(&self, ty: &Type) -> llvm::Type {
@@ -67,9 +67,9 @@ impl Compiler {
     }
 
     fn compile_function(&mut self, f: &Function) -> llvm::Function {
-        let mut fun = self.module
-            .get_function(&f.name)
-            .expect("undeclared function");
+        let mut fun = self.module.get_function(&f.name).expect(
+            "undeclared function",
+        );
         let alloc = fun.append_basic_block("entry");
         let start = fun.append_basic_block("start");
         self.builder.position_at_end(&start);
@@ -86,10 +86,11 @@ impl Compiler {
         fun
     }
 
-    fn compile_main_function(&mut self,
-                             main_body: &Option<Node>,
-                             init_fun: llvm::Function)
-                             -> llvm::Function {
+    fn compile_main_function(
+        &mut self,
+        main_body: &Option<Node>,
+        init_fun: llvm::Function,
+    ) -> llvm::Function {
         let fun_ty = self.ctx.function_type(self.ctx.int32_type(), &[], false);
         let mut fun = self.module.add_function("main", fun_ty);
         let alloc = fun.append_basic_block("entry");
@@ -116,34 +117,47 @@ impl Compiler {
         // FIXME(agatan): language items
         {
             // print_unit
-            let fun_ty = self.ctx
-                .function_type(self.ctx.unit_type(), &[self.ctx.unit_type()], false);
+            let fun_ty = self.ctx.function_type(
+                self.ctx.unit_type(),
+                &[self.ctx.unit_type()],
+                false,
+            );
             self.module.add_function("print_unit", fun_ty);
         }
         {
             // print_int
-            let fun_ty = self.ctx
-                .function_type(self.ctx.int32_type(), &[self.ctx.int32_type()], false);
+            let fun_ty = self.ctx.function_type(
+                self.ctx.int32_type(),
+                &[self.ctx.int32_type()],
+                false,
+            );
             self.module.add_function("print_int", fun_ty);
         }
         {
             // print_bool
-            let fun_ty = self.ctx
-                .function_type(self.ctx.bool_type(), &[self.ctx.bool_type()], false);
+            let fun_ty = self.ctx.function_type(
+                self.ctx.bool_type(),
+                &[self.ctx.bool_type()],
+                false,
+            );
             self.module.add_function("print_bool", fun_ty);
         }
         {
             // print_float
-            let fun_ty = self.ctx
-                .function_type(self.ctx.float_type(), &[self.ctx.float_type()], false);
+            let fun_ty = self.ctx.function_type(
+                self.ctx.float_type(),
+                &[self.ctx.float_type()],
+                false,
+            );
             self.module.add_function("print_float", fun_ty);
         }
         {
             // gc_malloc
-            let fun_ty = self.ctx
-                .function_type(self.ctx.void_ptr_type(),
-                               &[self.target_data.int_ptr_typ()],
-                               false);
+            let fun_ty = self.ctx.function_type(
+                self.ctx.void_ptr_type(),
+                &[self.target_data.int_ptr_typ()],
+                false,
+            );
             self.module.add_function("gc_malloc", fun_ty);
         }
         let gc_init_fun = {
@@ -196,16 +210,19 @@ impl Compiler {
             .verify()
             .map_err(|err| Error::from(format!("{}", err)))
             .chain_err(|| {
-                           format!("failed to generate valid LLVM IR: {}",
-                                   self.module.to_string())
-                       })?;
+                format!(
+                    "failed to generate valid LLVM IR: {}",
+                    self.module.to_string()
+                )
+            })?;
         Ok(&self.module)
     }
 
     fn getvar(&self, name: &str) -> Value {
-        *self.globals
-             .get(name)
-             .expect(&format!("undefined variable: {}", name))
+        *self.globals.get(name).expect(&format!(
+            "undefined variable: {}",
+            name
+        ))
     }
 
     // helpers
@@ -266,10 +283,9 @@ impl<'a, 's> FunBuilder<'a, 's> {
     }
 
     pub fn getvar(&self, name: &'s str) -> Value {
-        self.local_vars
-            .get(name)
-            .cloned()
-            .unwrap_or_else(|| self.compiler.getvar(name))
+        self.local_vars.get(name).cloned().unwrap_or_else(|| {
+            self.compiler.getvar(name)
+        })
     }
 
     pub fn getvar_opt(&self, name: &'s str) -> Option<Value> {
@@ -287,14 +303,15 @@ impl<'a, 's> FunBuilder<'a, 's> {
     pub fn malloc(&mut self, typ: llvm::Type) -> Value {
         let size = self.compiler.target_data.store_size_of_type(&typ);
         let size_value = self.compiler.target_data.int_ptr_typ().const_int(size);
-        let f = self.compiler
-            .module
-            .get_function("gc_malloc")
-            .expect("runtime function `gc_malloc` is undefined");
+        let f = self.compiler.module.get_function("gc_malloc").expect(
+            "runtime function `gc_malloc` is undefined",
+        );
         let void_ptr = self.compiler.builder.call(f, &[size_value], "malloctmp");
-        self.compiler
-            .builder
-            .bitcast(void_ptr, typ.pointer_type(), "mallocptr")
+        self.compiler.builder.bitcast(
+            void_ptr,
+            typ.pointer_type(),
+            "mallocptr",
+        )
     }
 
     pub fn compile_node(&mut self, node: &'s Node) -> Value {
@@ -308,10 +325,9 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 self.compiler.builder.load(ptr, "loadtmp")
             }
             NodeKind::Call(ref f, ref args) => {
-                let f = self.compiler
-                    .module
-                    .get_function(f)
-                    .expect("function should be defined");
+                let f = self.compiler.module.get_function(f).expect(
+                    "function should be defined",
+                );
                 let args = args.iter()
                     .map(|arg| self.compile_node(arg))
                     .collect::<Vec<_>>();
@@ -435,9 +451,11 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 let exit_bb = fun.append_basic_block("exit");
                 self.compiler.builder.position_at_end(&cond_bb);
                 let cond_value = self.compile_node(cond);
-                self.compiler
-                    .builder
-                    .cond_br(cond_value, &body_bb, &exit_bb);
+                self.compiler.builder.cond_br(
+                    cond_value,
+                    &body_bb,
+                    &exit_bb,
+                );
                 self.compiler.builder.position_at_end(&body_bb);
                 self.compile_node(body);
                 self.compiler.builder.br(&cond_bb);

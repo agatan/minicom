@@ -56,11 +56,12 @@ fn main() {
     let nodes = try_or_exit!(syntax::parse(&srcmap, &*source));
     debug!("nodes: {:?}", nodes);
     let mut inferer = Infer::new();
-    try_or_exit!(inferer
-                     .infer_program(&nodes)
-                     .map_err(|err| err.with_source_map(&srcmap)));
-    let prog = try_or_exit!(ctx.check_and_transform(nodes)
-                                .map_err(|err| err.with_source_map(&srcmap)));
+    try_or_exit!(inferer.infer_program(&nodes).map_err(|err| {
+        err.with_source_map(&srcmap)
+    }));
+    let prog = try_or_exit!(ctx.check_and_transform(nodes).map_err(|err| {
+        err.with_source_map(&srcmap)
+    }));
     debug!("program: {:?}", prog);
     let emitter = try_or_exit!(Emitter::new(&prog).map_err(|err| err.display().to_string()));
     println!("{}", emitter.emit_llvm_ir());

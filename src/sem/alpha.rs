@@ -91,8 +91,10 @@ impl<'a> Alpha<'a> {
             NodeKind::Ref(e) => NodeKind::Ref(Box::new(self.apply(*e))),
             NodeKind::Deref(e) => NodeKind::Deref(Box::new(self.apply(*e))),
             NodeKind::Call(name, args) => {
-                NodeKind::Call(self.transform(name),
-                               args.into_iter().map(|n| self.apply(n)).collect())
+                NodeKind::Call(
+                    self.transform(name),
+                    args.into_iter().map(|n| self.apply(n)).collect(),
+                )
             }
             NodeKind::Block(nodes) => {
                 let mut scope = self.scope();
@@ -101,7 +103,8 @@ impl<'a> Alpha<'a> {
             }
             NodeKind::If(cond, then, els) => {
                 let cond = self.apply(*cond);
-                let then = self.apply(*then); // `then` is always Block, so new scope will be created
+                // `then` is always Block, so new scope will be created
+                let then = self.apply(*then);
                 let els = els.map(|n| Box::new(self.apply(*n)));
                 NodeKind::If(Box::new(cond), Box::new(then), els)
             }
