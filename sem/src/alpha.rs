@@ -48,7 +48,7 @@ impl AlphaTrans {
                 return resolved.clone();
             }
         }
-        unreachable!()
+        String::from(name)
     }
 
     fn process_let(&mut self, let_: Let) -> Let {
