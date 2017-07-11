@@ -108,14 +108,16 @@ impl fmt::Display for Type {
             Type::Bool => f.write_str("Bool"),
             Type::Ref(ref inner) => write!(f, "Ref[{}]", inner),
             Type::Fun(ref fun) => {
-                let params = fun.0
-                    .iter()
-                    .map(|p| p.to_string())
-                    .fold("".to_string(), |acc, param| if acc.is_empty() {
-                        param
-                    } else {
-                        format!("{}, {}", acc, param)
-                    });
+                let params = fun.0.iter().map(|p| p.to_string()).fold(
+                    "".to_string(),
+                    |acc, param| {
+                        if acc.is_empty() {
+                            param
+                        } else {
+                            format!("{}, {}", acc, param)
+                        }
+                    },
+                );
                 let ret = &fun.1;
                 write!(f, "({}) => {}", params, ret)
             }

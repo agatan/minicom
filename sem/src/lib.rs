@@ -19,9 +19,10 @@ pub mod errors {
 
 pub type Result<T> = ::std::result::Result<T, BasisError<self::errors::Error>>;
 
-pub fn ast_to_mir(module_name: String,
-                  program: Vec<syntax::ast::Toplevel>)
-                  -> Result<mir::Program> {
+pub fn ast_to_mir(
+    module_name: String,
+    program: Vec<syntax::ast::Toplevel>,
+) -> Result<mir::Program> {
     let module = typing::typecheck(module_name, program)?;
     let module = alpha::transform(module);
     typed_ast_to_mir(module)

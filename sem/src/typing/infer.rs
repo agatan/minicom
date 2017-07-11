@@ -26,18 +26,22 @@ impl Env {
 
     fn with_prelude() -> Self {
         let mut e = Self::new();
-        e.define("print_unit".into(),
-                    Spanned::span(NSPAN, Type::new_fun(vec![Type::Unit], Type::Unit)))
-            .unwrap();
-        e.define("print_int".into(),
-                    Spanned::span(NSPAN, Type::new_fun(vec![Type::Int], Type::Int)))
-            .unwrap();
-        e.define("print_float".into(),
-                    Spanned::span(NSPAN, Type::new_fun(vec![Type::Float], Type::Float)))
-            .unwrap();
-        e.define("print_bool".into(),
-                    Spanned::span(NSPAN, Type::new_fun(vec![Type::Bool], Type::Bool)))
-            .unwrap();
+        e.define(
+            "print_unit".into(),
+            Spanned::span(NSPAN, Type::new_fun(vec![Type::Unit], Type::Unit)),
+        ).unwrap();
+        e.define(
+            "print_int".into(),
+            Spanned::span(NSPAN, Type::new_fun(vec![Type::Int], Type::Int)),
+        ).unwrap();
+        e.define(
+            "print_float".into(),
+            Spanned::span(NSPAN, Type::new_fun(vec![Type::Float], Type::Float)),
+        ).unwrap();
+        e.define(
+            "print_bool".into(),
+            Spanned::span(NSPAN, Type::new_fun(vec![Type::Bool], Type::Bool)),
+        ).unwrap();
         e
     }
 
@@ -48,13 +52,15 @@ impl Env {
                 v.insert(entry);
             }
             Occupied(o) => {
-                let mut err = BasisError::span(entry.span,
-                                               format!("duplicate definition: {:?}", o.key()));
+                let mut err =
+                    BasisError::span(entry.span, format!("duplicate definition: {:?}", o.key()));
                 if o.get().span != NSPAN {
-                    note_in!(err,
-                             o.get().span,
-                             "previous definition of {:?} here",
-                             o.key());
+                    note_in!(
+                        err,
+                        o.get().span,
+                        "previous definition of {:?} here",
+                        o.key()
+                    );
                 }
                 return Err(err);
             }
@@ -151,33 +157,38 @@ impl Infer {
         let params = def.params
             .iter()
             .map(|param| {
-                     self.tyenv
-                         .convert(&param.typ)
-                         .map_err(|err| BasisError::span(param.span, err))
-                 })
+                self.tyenv.convert(&param.typ).map_err(|err| {
+                    BasisError::span(param.span, err)
+                })
+            })
             .collect::<InferResult<_>>()?;
         let ftyp = Type::new_fun(params, ret);
-        self.global_env
-            .define(def.name.clone(), Spanned::span(span, ftyp.clone()))?;
+        self.global_env.define(
+            def.name.clone(),
+            Spanned::span(span, ftyp.clone()),
+        )?;
         Ok(ftyp)
     }
 
-    fn collect_forward_declarations(&mut self,
-                                    decls: Vec<Toplevel>)
-                                    -> InferResult<Vec<(Type, Toplevel)>> {
+    fn collect_forward_declarations(
+        &mut self,
+        decls: Vec<Toplevel>,
+    ) -> InferResult<Vec<(Type, Toplevel)>> {
         let mut results = Vec::new();
         for decl in decls {
             let typ = match &decl.kind {
                 &ToplevelKind::Def(ref def) => self.collect_forward_def(def, decl.span)?,
                 &ToplevelKind::Let(ref let_) => {
-                    let typ = let_.typ
-                        .as_ref()
-                        .expect("global `let` should have type specification");
-                    let typ = self.tyenv
-                        .convert(&typ.value)
-                        .map_err(|err| BasisError::span(typ.span, err))?;
-                    self.global_env
-                        .define(let_.name.clone(), Spanned::span(decl.span, typ.clone()))?;
+                    let typ = let_.typ.as_ref().expect(
+                        "global `let` should have type specification",
+                    );
+                    let typ = self.tyenv.convert(&typ.value).map_err(|err| {
+                        BasisError::span(typ.span, err)
+                    })?;
+                    self.global_env.define(
+                        let_.name.clone(),
+                        Spanned::span(decl.span, typ.clone()),
+                    )?;
                     typ
                 }
             };
@@ -239,13 +250,17 @@ impl Infer {
         }
     }
 
-    fn process_infix_operation<'a>(&mut self,
-                                   lhs: AstNode,
-                                   op: Operator,
-                                   rhs: AstNode)
-                                   -> InferResult<Node> {
+    fn process_infix_operation<'a>(
+        &mut self,
+        lhs: AstNode,
+        op: Operator,
+        rhs: AstNode,
+    ) -> InferResult<Node> {
         let lhs = self.process_node(lhs, &Expect::None)?;
-        let rhs = self.process_node(rhs, &Expect::Type { typ: lhs.typ.clone() })?;
+        let rhs = self.process_node(
+            rhs,
+            &Expect::Type { typ: lhs.typ.clone() },
+        )?;
         let typ = if op.is_arithmetic() {
             rhs.typ.clone()
         } else {
@@ -253,65 +268,70 @@ impl Infer {
         };
         let span = Span::new(lhs.span.start, rhs.span.end);
         Ok(Node {
-               typ: typ,
-               kind: NodeKind::Infix(Box::new(lhs), op, Box::new(rhs)),
-               span: span,
-           })
+            typ: typ,
+            kind: NodeKind::Infix(Box::new(lhs), op, Box::new(rhs)),
+            span: span,
+        })
     }
 
-    fn process_node_without_check<'a>(&mut self,
-                                      node: AstNode,
-                                      expect: &Expect<'a>)
-                                      -> InferResult<Node> {
+    fn process_node_without_check<'a>(
+        &mut self,
+        node: AstNode,
+        expect: &Expect<'a>,
+    ) -> InferResult<Node> {
         match node.kind {
             AstNodeKind::Unit => {
                 Ok(Node {
-                       typ: Type::Unit,
-                       kind: NodeKind::Unit,
-                       span: node.span,
-                   })
+                    typ: Type::Unit,
+                    kind: NodeKind::Unit,
+                    span: node.span,
+                })
             }
             AstNodeKind::Int(n) => {
                 Ok(Node {
-                       typ: Type::Int,
-                       kind: NodeKind::Int(n),
-                       span: node.span,
-                   })
+                    typ: Type::Int,
+                    kind: NodeKind::Int(n),
+                    span: node.span,
+                })
             }
             AstNodeKind::Float(n) => {
                 Ok(Node {
-                       typ: Type::Float,
-                       kind: NodeKind::Float(n),
-                       span: node.span,
-                   })
+                    typ: Type::Float,
+                    kind: NodeKind::Float(n),
+                    span: node.span,
+                })
             }
             AstNodeKind::Bool(n) => {
                 Ok(Node {
-                       typ: Type::Bool,
-                       kind: NodeKind::Bool(n),
-                       span: node.span,
-                   })
+                    typ: Type::Bool,
+                    kind: NodeKind::Bool(n),
+                    span: node.span,
+                })
             }
             AstNodeKind::Ident(name) => {
                 let span = node.span;
-                let sptyp = self.lookup_symbol(&name)
-                    .map_err(|err| BasisError::span(span, err))?;
+                let sptyp = self.lookup_symbol(&name).map_err(
+                    |err| BasisError::span(span, err),
+                )?;
                 Ok(Node {
-                       typ: sptyp.value,
-                       kind: NodeKind::Ident(name),
-                       span: node.span,
-                   })
+                    typ: sptyp.value,
+                    kind: NodeKind::Ident(name),
+                    span: node.span,
+                })
             }
             AstNodeKind::Call(fname, args) => {
                 let span = node.span;
-                let spanned_fun = self.lookup_function(&fname)
-                    .map_err(|err| BasisError::span(span, err))?;
+                let spanned_fun = self.lookup_function(&fname).map_err(|err| {
+                    BasisError::span(span, err)
+                })?;
                 let (ref function_args, ref function_ret) = *spanned_fun.value;
                 if args.len() != function_args.len() {
-                    let msg = format!("invalid number of arguments for {:?}: expected {}, but given {}",
-                                      fname,
-                                      function_args.len(),
-                                      args.len());
+                    let msg = format!(
+                        "invalid number of arguments for {:?}: expected {}, but given {}",
+                        fname,
+                        function_args.len(),
+                        args.len()
+                    );
                     let mut err = BasisError::span(node.span, msg);
                     note_in!(err, spanned_fun.span, "{:?} is defined here", fname);
                     return Err(err);
@@ -319,46 +339,49 @@ impl Infer {
                 let args = args.into_iter()
                     .zip(function_args)
                     .map(|(arg, expected)| {
-                             let expect = Expect::Type { typ: expected.clone() };
-                             self.process_node(arg, &expect)
-                         })
+                        let expect = Expect::Type { typ: expected.clone() };
+                        self.process_node(arg, &expect)
+                    })
                     .collect::<InferResult<Vec<_>>>()?;
                 Ok(Node {
-                       typ: function_ret.clone(),
-                       kind: NodeKind::Call(fname, args),
-                       span: span,
-                   })
+                    typ: function_ret.clone(),
+                    kind: NodeKind::Call(fname, args),
+                    span: span,
+                })
             }
             AstNodeKind::Parens(e) => self.process_node(*e, expect),
             AstNodeKind::Ref(e) => {
                 let inner = self.process_node(*e, &Expect::None)?;
                 Ok(Node {
-                       typ: Type::new_ref(inner.typ.clone()),
-                       kind: NodeKind::Ref(Box::new(inner)),
-                       span: node.span,
-                   })
+                    typ: Type::new_ref(inner.typ.clone()),
+                    kind: NodeKind::Ref(Box::new(inner)),
+                    span: node.span,
+                })
             }
             AstNodeKind::Deref(e) => {
                 let inner_typ = Type::new_var();
-                let inner = self.process_node(*e, &Expect::WithMessage{
-                    typ: Type::new_ref(inner_typ.clone()),
-                    message: format_args!("cannot dereference non-reference value"),
-                })?;
+                let inner = self.process_node(
+                    *e,
+                    &Expect::WithMessage {
+                        typ: Type::new_ref(inner_typ.clone()),
+                        message: format_args!("cannot dereference non-reference value"),
+                    },
+                )?;
                 Ok(Node {
-                       typ: inner_typ,
-                       kind: NodeKind::Deref(Box::new(inner)),
-                       span: node.span,
-                   })
+                    typ: inner_typ,
+                    kind: NodeKind::Deref(Box::new(inner)),
+                    span: node.span,
+                })
             }
             AstNodeKind::Block(mut e) => {
                 let mut scoped = self.enter_scope();
                 match e.pop() {
                     None => {
                         Ok(Node {
-                               typ: Type::Unit,
-                               kind: NodeKind::Unit,
-                               span: node.span,
-                           })
+                            typ: Type::Unit,
+                            kind: NodeKind::Unit,
+                            span: node.span,
+                        })
                     }
                     Some(last) => {
                         let stmts = e.into_iter()
@@ -366,59 +389,64 @@ impl Infer {
                             .collect::<InferResult<Vec<_>>>()?;
                         let last = scoped.process_node(last, expect)?;
                         Ok(Node {
-                               typ: last.typ.clone(),
-                               kind: NodeKind::Block(stmts, Box::new(last)),
-                               span: node.span,
-                           })
+                            typ: last.typ.clone(),
+                            kind: NodeKind::Block(stmts, Box::new(last)),
+                            span: node.span,
+                        })
                     }
                 }
             }
             AstNodeKind::If(cond, then, els) => {
-                let cond =
-                    self.process_node(*cond,
-                                      &Expect::WithMessage {
-                                          typ: Type::Bool,
-                                          message: format_args!("condition of 'if' expression"),
-                                      })?;
+                let cond = self.process_node(
+                    *cond,
+                    &Expect::WithMessage {
+                        typ: Type::Bool,
+                        message: format_args!("condition of 'if' expression"),
+                    },
+                )?;
                 match els {
                     None => {
                         let then = self.process_node(*then, &Expect::Type { typ: Type::Unit })?;
                         Ok(Node {
-                               typ: Type::Unit,
-                               kind: NodeKind::If(Box::new(cond), Box::new(then), None),
-                               span: node.span,
-                           })
+                            typ: Type::Unit,
+                            kind: NodeKind::If(Box::new(cond), Box::new(then), None),
+                            span: node.span,
+                        })
                     }
                     Some(els) => {
                         let then = self.process_node(*then, &Expect::None)?;
-                        let els = self.process_node(*els, &Expect::WithSpan {
-                            typ: then.typ.clone(),
-                            message: format_args!("'then' clause and 'else' clause have incompatible types"),
-                            span: node.span,
-                        })?;
+                        let els = self.process_node(
+                            *els,
+                            &Expect::WithSpan {
+                                typ: then.typ.clone(),
+                                message: format_args!(
+                                    "'then' clause and 'else' clause have incompatible types"
+                                ),
+                                span: node.span,
+                            },
+                        )?;
                         Ok(Node {
-                               typ: els.typ.clone(),
-                               kind: NodeKind::If(Box::new(cond),
-                                                  Box::new(then),
-                                                  Some(Box::new(els))),
-                               span: node.span,
-                           })
+                            typ: els.typ.clone(),
+                            kind: NodeKind::If(Box::new(cond), Box::new(then), Some(Box::new(els))),
+                            span: node.span,
+                        })
                     }
                 }
             }
             AstNodeKind::While(cond, body) => {
-                let cond =
-                    self.process_node(*cond,
-                                      &Expect::WithMessage {
-                                          typ: Type::Bool,
-                                          message: format_args!("condition of 'while' expression"),
-                                      })?;
+                let cond = self.process_node(
+                    *cond,
+                    &Expect::WithMessage {
+                        typ: Type::Bool,
+                        message: format_args!("condition of 'while' expression"),
+                    },
+                )?;
                 let body = self.process_node(*body, &Expect::None)?;
                 Ok(Node {
-                       typ: Type::Unit,
-                       kind: NodeKind::While(Box::new(cond), Box::new(body)),
-                       span: node.span,
-                   })
+                    typ: Type::Unit,
+                    kind: NodeKind::While(Box::new(cond), Box::new(body)),
+                    span: node.span,
+                })
             }
             AstNodeKind::Let(let_) => {
                 let let_ = *let_;
@@ -426,40 +454,56 @@ impl Infer {
                 let expected_typ = match typ {
                     None => Type::new_var(),
                     Some(ref typ) => {
-                        self.tyenv
-                            .convert(&typ.value)
-                            .map_err(|err| BasisError::span(typ.span, err))?
+                        self.tyenv.convert(&typ.value).map_err(|err| {
+                            BasisError::span(typ.span, err)
+                        })?
                     }
                 };
-                let value = self.process_node(value, &Expect::Type { typ: expected_typ })?;
-                self.current_scope()
-                    .define(name.clone(), Spanned::span(node.span, value.typ.clone()))?;
+                let value = self.process_node(
+                    value,
+                    &Expect::Type { typ: expected_typ },
+                )?;
+                self.current_scope().define(
+                    name.clone(),
+                    Spanned::span(
+                        node.span,
+                        value.typ.clone(),
+                    ),
+                )?;
                 Ok(Node {
-                       typ: Type::Unit,
-                       kind: NodeKind::Let(Box::new(Let {
-                                                        name: name,
-                                                        typ: value.typ.clone(),
-                                                        value: value,
-                                                    })),
-                       span: node.span,
-                   })
+                    typ: Type::Unit,
+                    kind: NodeKind::Let(Box::new(Let {
+                        name: name,
+                        typ: value.typ.clone(),
+                        value: value,
+                    })),
+                    span: node.span,
+                })
             }
             AstNodeKind::Assign(to, value) => {
                 let inner_typ = Type::new_var();
-                let to = self.process_node(*to, &Expect::WithMessage {
-                    typ: Type::new_ref(inner_typ.clone()),
-                    message: format_args!("cannot assign to non-reference value"),
-                })?;
-                let value = self.process_node(*value, &Expect::WithSpan {
-                    typ: inner_typ.clone(),
-                    message: format_args!("assignment destination and value have incompatible types"),
-                    span: to.span,
-                })?;
+                let to = self.process_node(
+                    *to,
+                    &Expect::WithMessage {
+                        typ: Type::new_ref(inner_typ.clone()),
+                        message: format_args!("cannot assign to non-reference value"),
+                    },
+                )?;
+                let value = self.process_node(
+                    *value,
+                    &Expect::WithSpan {
+                        typ: inner_typ.clone(),
+                        message: format_args!(
+                            "assignment destination and value have incompatible types"
+                        ),
+                        span: to.span,
+                    },
+                )?;
                 Ok(Node {
-                       typ: Type::Unit,
-                       kind: NodeKind::Assign(Box::new(to), Box::new(value)),
-                       span: node.span,
-                   })
+                    typ: Type::Unit,
+                    kind: NodeKind::Assign(Box::new(to), Box::new(value)),
+                    span: node.span,
+                })
             }
             AstNodeKind::Infix(lhs, op, rhs) => self.process_infix_operation(*lhs, op, *rhs),
         }
@@ -477,26 +521,27 @@ impl Infer {
         Ok(node)
     }
 
-    fn process_toplevel_def(&mut self,
-                            declare_typ: Type,
-                            def: AstDef,
-                            span: Span)
-                            -> InferResult<(String, Decl)> {
+    fn process_toplevel_def(
+        &mut self,
+        declare_typ: Type,
+        def: AstDef,
+        span: Span,
+    ) -> InferResult<(String, Decl)> {
         let mut scoped = self.enter_scope();
         let mut typed_params = Vec::new();
         for param in def.params {
-            let typ = scoped
-                .tyenv
-                .convert(&param.typ)
-                .map_err(|err| BasisError::span(param.span, err))?;
-            scoped
-                .current_scope()
-                .define(param.name.clone(), Spanned::span(param.span, typ.clone()))?;
+            let typ = scoped.tyenv.convert(&param.typ).map_err(|err| {
+                BasisError::span(param.span, err)
+            })?;
+            scoped.current_scope().define(
+                param.name.clone(),
+                Spanned::span(param.span, typ.clone()),
+            )?;
             typed_params.push(Param {
-                                  name: param.name,
-                                  typ: typ,
-                                  span: param.span,
-                              });
+                name: param.name,
+                typ: typ,
+                span: param.span,
+            });
         }
         let declared_ret = def.ret
             .as_ref()
@@ -511,44 +556,50 @@ impl Infer {
         };
         let node = scoped.process_node(def.body, &expect)?;
         let kind = DeclKind::Def(Box::new(Def {
-                                              name: def.name.clone(),
-                                              params: typed_params,
-                                              ret: declared_ret,
-                                              body: node,
-                                          }));
-        Ok((def.name,
+            name: def.name.clone(),
+            params: typed_params,
+            ret: declared_ret,
+            body: node,
+        }));
+        Ok((
+            def.name,
             Decl {
                 kind: kind,
                 declare_typ: declare_typ,
                 span: span,
-            }))
+            },
+        ))
     }
 
-    fn process_toplevel_let(&mut self,
-                            declare_typ: Type,
-                            let_: AstLet,
-                            span: Span)
-                            -> InferResult<(String, Decl)> {
+    fn process_toplevel_let(
+        &mut self,
+        declare_typ: Type,
+        let_: AstLet,
+        span: Span,
+    ) -> InferResult<(String, Decl)> {
         let AstLet { name, value, .. } = let_;
         let expect = Expect::Type { typ: declare_typ.clone() };
         let value = self.process_node(value, &expect)?;
         let kind = DeclKind::Let(Box::new(Let {
-                                              name: name.clone(),
-                                              typ: declare_typ.clone(),
-                                              value: value,
-                                          }));
-        Ok((name,
+            name: name.clone(),
+            typ: declare_typ.clone(),
+            value: value,
+        }));
+        Ok((
+            name,
             Decl {
                 kind: kind,
                 declare_typ: declare_typ,
                 span: span,
-            }))
+            },
+        ))
     }
 
-    fn process_toplevel(&mut self,
-                        declare_typ: Type,
-                        toplevel: Toplevel)
-                        -> InferResult<(String, Decl)> {
+    fn process_toplevel(
+        &mut self,
+        declare_typ: Type,
+        toplevel: Toplevel,
+    ) -> InferResult<(String, Decl)> {
         match toplevel.kind {
             ToplevelKind::Def(def) => self.process_toplevel_def(declare_typ, *def, toplevel.span),
             ToplevelKind::Let(let_) => self.process_toplevel_let(declare_typ, *let_, toplevel.span),

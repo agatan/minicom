@@ -165,10 +165,12 @@ mod tests {
             disable_colorized_error();
             let err = run_semantic_check(input).unwrap_err().to_string();
             for e in expected_messages {
-                assert!(err.contains(e),
-                        "expected error contains {:?}, but got error is {:?}",
-                        e,
-                        err.to_string());
+                assert!(
+                    err.contains(e),
+                    "expected error contains {:?}, but got error is {:?}",
+                    e,
+                    err.to_string()
+                );
             }
         }
 
@@ -217,8 +219,10 @@ mod tests {
             let x: Int = add(0)
 
         "#;
-            run(input,
-                &["<dummy>:5:26", "invalid number", "expected 2", "given 1"]);
+            run(
+                input,
+                &["<dummy>:5:26", "invalid number", "expected 2", "given 1"],
+            );
         }
 
         #[test]
@@ -233,10 +237,14 @@ mod tests {
 
         "#;
 
-            run(input,
-                &["<dummy>:6:17",
-                  "mismatched types",
-                  "'then' clause and 'else' clause"]);
+            run(
+                input,
+                &[
+                    "<dummy>:6:17",
+                    "mismatched types",
+                    "'then' clause and 'else' clause",
+                ],
+            );
         }
 
         #[test]
@@ -262,11 +270,15 @@ mod tests {
 
         "#;
 
-            run(input,
-                &["<dummy>:5:13",
-                  "duplicate definition",
-                  "<dummy>:3:13: note",
-                  "previous definition"]);
+            run(
+                input,
+                &[
+                    "<dummy>:5:13",
+                    "duplicate definition",
+                    "<dummy>:3:13: note",
+                    "previous definition",
+                ],
+            );
         }
 
         #[test]

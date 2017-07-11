@@ -5,9 +5,9 @@ use Result as InferResult;
 
 pub fn deref_node(node: &mut Node) -> InferResult<()> {
     let span = node.span;
-    node.typ = node.typ
-        .deref()
-        .map_err(|err| BasisError::span(node.span, err))?;
+    node.typ = node.typ.deref().map_err(
+        |err| BasisError::span(node.span, err),
+    )?;
     match node.kind {
         NodeKind::Call(_, ref mut args) => {
             for arg in args.iter_mut() {
@@ -59,10 +59,7 @@ pub fn deref_decl(decl: &mut Decl) -> InferResult<()> {
     match decl.kind {
         DeclKind::Def(ref mut def) => {
             for param in def.params.iter_mut() {
-                param.typ = param
-                    .typ
-                    .deref()
-                    .map_err(|err| BasisError::span(span, err))?;
+                param.typ = param.typ.deref().map_err(|err| BasisError::span(span, err))?;
             }
             def.ret = def.ret.deref().map_err(|err| BasisError::span(span, err))?;
             deref_node(&mut def.body)?;
@@ -72,9 +69,9 @@ pub fn deref_decl(decl: &mut Decl) -> InferResult<()> {
             deref_node(&mut let_.value)?;
         }
     }
-    decl.declare_typ = decl.declare_typ
-        .deref()
-        .map_err(|err| BasisError::span(decl.span, err))?;
+    decl.declare_typ = decl.declare_typ.deref().map_err(|err| {
+        BasisError::span(decl.span, err)
+    })?;
     Ok(())
 }
 

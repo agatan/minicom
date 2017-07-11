@@ -132,17 +132,17 @@ impl AlphaTrans {
                 let params = params
                     .into_iter()
                     .map(|mut param| {
-                             param.name = self.register(param.name);
-                             param
-                         })
+                        param.name = self.register(param.name);
+                        param
+                    })
                     .collect();
                 let body = self.process_node(body);
                 DeclKind::Def(Box::new(Def {
-                                           name: name,
-                                           params: params,
-                                           ret: ret,
-                                           body: body,
-                                       }))
+                    name: name,
+                    params: params,
+                    ret: ret,
+                    body: body,
+                }))
             }
             DeclKind::Let(let_) => DeclKind::Let(Box::new(self.process_let(*let_))),
         };
@@ -154,9 +154,9 @@ impl AlphaTrans {
             .decls
             .into_iter()
             .map(|(_, decl)| {
-                     let decl = self.process_decl(decl);
-                     (decl.name().to_string(), decl)
-                 })
+                let decl = self.process_decl(decl);
+                (decl.name().to_string(), decl)
+            })
             .collect();
         module
     }
@@ -185,10 +185,10 @@ mod tests {
     fn test_let() {
         let let_ = Decl {
             kind: DeclKind::Let(Box::new(Let {
-                                             name: "x".to_string(),
-                                             typ: Type::Unit,
-                                             value: unit(),
-                                         })),
+                name: "x".to_string(),
+                typ: Type::Unit,
+                value: unit(),
+            })),
             declare_typ: Type::Unit,
             span: NSPAN,
         };
