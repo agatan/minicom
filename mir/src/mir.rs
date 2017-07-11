@@ -92,13 +92,7 @@ pub struct Def {
 }
 
 #[derive(Debug, Clone)]
-pub struct Decl {
-    pub kind: DeclKind,
-    pub declare_typ: Type,
-}
-
-#[derive(Debug, Clone)]
-pub enum DeclKind {
+pub enum Decl {
     Def(Box<Def>),
     Let(Box<Let>),
 }
