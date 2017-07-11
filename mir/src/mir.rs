@@ -6,6 +6,19 @@ pub struct Program {
     pub main: Option<Box<Def>>,
 }
 
+impl Program {
+    pub fn new() -> Self {
+        Program {
+            decls: HashMap::new(),
+            main: None,
+        }
+    }
+
+    pub fn define(&mut self, name: String, decl: Decl) {
+        self.decls.insert(name, decl);
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,
