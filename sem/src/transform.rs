@@ -1,7 +1,7 @@
 use mir;
 
 use Result;
-use typing::{Module, Node, NodeKind, Decl, DeclKind, Def, Let};
+use typing::{Module, Node, NodeKind, Decl, DeclKind, Def, Let, Type};
 
 #[derive(Debug)]
 pub struct Transform {
@@ -13,12 +13,33 @@ impl Transform {
         Transform { program: mir::Program::new() }
     }
 
+    fn typ(&mut self, typ: Type) -> Result<mir::Type> {
+        unimplemented!()
+    }
+
     fn node(&mut self, node: Node) -> Result<mir::Node> {
         unimplemented!()
     }
 
     fn def(&mut self, def: Def) -> Result<mir::Def> {
-        unimplemented!()
+        let body = self.node(def.body)?;
+        let params = def.params
+            .into_iter()
+            .map(|p| {
+                let typ = self.typ(p.typ)?;
+                Ok(mir::Param {
+                    name: p.name,
+                    typ: typ,
+                })
+            })
+            .collect::<Result<_>>()?;
+        let ret = self.typ(def.ret)?;
+        Ok(mir::Def {
+            name: def.name,
+            ret: ret,
+            params: params,
+            body: body,
+        })
     }
 
     fn register_decl(&mut self, name: String, decl: Decl) -> Result<()> {
