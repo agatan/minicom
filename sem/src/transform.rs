@@ -1,7 +1,7 @@
 use mir;
 
 use Result;
-use typing::{Module, Node, NodeKind, Decl, DeclKind, Def};
+use typing::{Module, Node, NodeKind, Decl, DeclKind, Def, Let};
 
 #[derive(Debug)]
 pub struct Transform {
@@ -11,6 +11,10 @@ pub struct Transform {
 impl Transform {
     pub fn new() -> Self {
         Transform { program: mir::Program::new() }
+    }
+
+    fn node(&mut self, node: Node) -> Result<mir::Node> {
+        unimplemented!()
     }
 
     fn def(&mut self, def: Def) -> Result<mir::Def> {
@@ -29,7 +33,21 @@ impl Transform {
                 }
                 Ok(())
             }
-            DeclKind::Let(_let) => unimplemented!(),
+            DeclKind::Let(let_) => {
+                let l = *let_;
+                let Let {
+                    name: let_name,
+                    value,
+                    ..
+                } = l;
+                let node = self.node(value)?;
+                let l = mir::Let {
+                    name: let_name,
+                    value: node,
+                };
+                self.program.define(name, mir::Decl::Let(Box::new(l)));
+                Ok(())
+            }
         }
     }
 
