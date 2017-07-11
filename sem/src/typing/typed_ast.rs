@@ -153,6 +153,12 @@ pub struct Def {
     pub body: Node,
 }
 
+impl Def {
+    pub fn is_main(&self) -> bool {
+        self.name == "main"
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum DeclKind {
     Def(Box<Def>),

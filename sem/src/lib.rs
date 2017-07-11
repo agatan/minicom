@@ -10,6 +10,8 @@ use basis::errors::Error as BasisError;
 
 pub mod typing;
 pub mod alpha;
+mod transform;
+pub use transform::typed_ast_to_mir;
 
 use typing::{Module, Node, NodeKind, Decl, DeclKind};
 
@@ -28,16 +30,4 @@ pub fn ast_to_mir(
     let module = typing::typecheck(module_name, program)?;
     let module = alpha::transform(module);
     typed_ast_to_mir(module)
-}
-
-fn typed_decl_to_mir(_decl: Decl) -> Result<mir::Decl> {
-    unimplemented!()
-}
-
-pub fn typed_ast_to_mir(module: typing::Module) -> Result<mir::Program> {
-    let mut program = mir::Program::new();
-    for (decl_name, decl) in module.decls.into_iter() {
-        program.define(decl_name, typed_decl_to_mir(decl)?);
-    }
-    Ok(program)
 }
