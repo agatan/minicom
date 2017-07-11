@@ -29,5 +29,5 @@ pub fn ast_to_mir(
 ) -> Result<mir::Program> {
     let module = typing::typecheck(module_name, program)?;
     let module = alpha::transform(module);
-    typed_ast_to_mir(module)
+    Ok(typed_ast_to_mir(module))
 }
