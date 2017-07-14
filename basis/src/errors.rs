@@ -34,6 +34,13 @@ impl<E> Error<E> {
         Self::new(Spanned::span(span, err))
     }
 
+    pub fn assign_span(mut self, span: Span) -> Self {
+        if self.main_span.is_none() {
+            self.main_span = Some(span);
+        }
+        self
+    }
+
     pub fn note_in<S: Into<String>>(&mut self, span: Span, note: S) {
         self.notes.push(Spanned::span(Some(span), note.into()));
     }
