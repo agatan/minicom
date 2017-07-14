@@ -39,7 +39,13 @@ impl Transform {
     }
 
     fn node(&mut self, node: Node) -> Result<mir::Node> {
-        unimplemented!()
+        let Node { kind, span, typ } = node;
+        let typ = self.typ(typ).map_err(|err| err.assign_span(span))?;
+        let kind = unimplemented!();
+        Ok(mir::Node {
+            kind: kind,
+            typ: typ,
+        })
     }
 
     fn def(&mut self, def: Def) -> Result<mir::Def> {
