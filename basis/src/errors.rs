@@ -8,14 +8,24 @@ use sourcemap::{SourceMap, Span, Spanned};
 
 #[derive(Debug)]
 pub struct Error<E> {
-    main_error: Spanned<E>,
+    main_error: E,
+    main_span: Option<Span>,
     notes: Vec<Spanned<String, Option<Span>>>,
 }
 
 impl<E> Error<E> {
     pub fn new<E2: Into<E>>(err: Spanned<E2>) -> Self {
         Error {
-            main_error: err.map(|err| err.into()),
+            main_error: err.value.into(),
+            main_span: Some(err.span),
+            notes: Vec::new(),
+        }
+    }
+
+    pub fn from_error<E2: Into<E>>(err: E2) -> Self {
+        Error {
+            main_error: err.into(),
+            main_span: None,
             notes: Vec::new(),
         }
     }
@@ -81,14 +91,21 @@ thread_local! {
 
 impl<'a, E: fmt::Display> fmt::Display for ErrorWithSource<'a, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let span_with_source = format!("{}:", self.error.main_error.span.display(self.sourcemap));
-        writeln!(f,
-                 "{} {} {}",
-                 BOLD_STYLE.with(|s| s.get().paint(span_with_source)),
-                 ERROR_STYLE.with(|s| s.get().paint("error:")),
-                 BOLD_STYLE.with(|s| s.get().paint(self.error.main_error.value.to_string())))?;
-        if let Some(line) = self.sourcemap.line(self.error.main_error.span.start) {
-            writeln!(f, "    {}", line)?;
+        let span_with_source = match self.error.main_span {
+            Some(span) => format!("{}: ", span.display(self.sourcemap)),
+            None => "".to_string(),
+        };
+        writeln!(
+            f,
+            "{} {} {}",
+            BOLD_STYLE.with(|s| s.get().paint(span_with_source)),
+            ERROR_STYLE.with(|s| s.get().paint("error:")),
+            BOLD_STYLE.with(|s| s.get().paint(self.error.main_error.to_string()))
+        )?;
+        if let Some(span) = self.error.main_span {
+            if let Some(line) = self.sourcemap.line(span.start) {
+                writeln!(f, "    {}", line)?;
+            }
         }
         for note in self.error.notes.iter() {
             match note.span {
@@ -98,10 +115,12 @@ impl<'a, E: fmt::Display> fmt::Display for ErrorWithSource<'a, E> {
                 }
                 None => write!(f, "  {}", BOLD_STYLE.with(|s| s.get().paint(":")))?,
             }
-            writeln!(f,
-                     " {} {}",
-                     NOTE_STYLE.with(|s| s.get().paint("note:")),
-                     BOLD_STYLE.with(|s| s.get().paint(note.value.to_string())))?;
+            writeln!(
+                f,
+                " {} {}",
+                NOTE_STYLE.with(|s| s.get().paint("note:")),
+                BOLD_STYLE.with(|s| s.get().paint(note.value.to_string()))
+            )?;
             if let Some(span) = note.span {
                 if let Some(line) = self.sourcemap.line(span.start) {
                     writeln!(f, "    {}", line)?;
