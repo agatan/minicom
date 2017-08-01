@@ -1,5 +1,15 @@
+#[macro_use]
+extern crate minicom_basis as basis;
+extern crate minicom_sem as sem;
+extern crate minicom_mir as mir;
+
+#[macro_use]
+extern crate error_chain;
+extern crate llvm_sys;
+
 mod compiler;
 mod link;
+mod llvm;
 
 use std::env;
 use std::fs::File;

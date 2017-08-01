@@ -1,0 +1,12 @@
+[package]
+name = "minicom-codegen"
+version = "0.1.0"
+authors = ["agatan <agatan039@gmail.com>"]
+
+[dependencies]
+minicom-basis = { path = "../basis" }
+minicom-sem = { path = "../sem" }
+minicom-mir = { path = "../mir" }
+
+llvm-sys = "39"
+error-chain = "0.10"
