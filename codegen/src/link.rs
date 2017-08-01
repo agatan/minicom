@@ -21,15 +21,17 @@ fn find_linker() -> Result<String, Error> {
 static DEFAULT_LD_FLAGS: [&'static str; 4] = ["-lSystem", "-lresolv", "-lc", "-lm"];
 
 #[cfg(target_os = "linux")]
-static DEFAULT_LD_FLAGS: [&'static str; 9] = ["-ldl",
-                                              "-lrt",
-                                              "-pthread",
-                                              "-lgcc_s",
-                                              "-lc",
-                                              "-lm",
-                                              "-lrt",
-                                              "-lpthread",
-                                              "-lutil"];
+static DEFAULT_LD_FLAGS: [&'static str; 9] = [
+    "-ldl",
+    "-lrt",
+    "-pthread",
+    "-lgcc_s",
+    "-lc",
+    "-lm",
+    "-lrt",
+    "-lpthread",
+    "-lutil",
+];
 
 pub fn link(executable: &str, obj: &str) -> Result<(), Error> {
     let linker = find_linker()?;
@@ -38,10 +40,9 @@ pub fn link(executable: &str, obj: &str) -> Result<(), Error> {
     let mut args = vec!["-o", executable, obj, &runtime, "-lgc"];
     args.extend(DEFAULT_LD_FLAGS.iter());
 
-    let status = Command::new(linker)
-        .args(&args)
-        .status()
-        .chain_err(|| "failed to execute linker")?;
+    let status = Command::new(linker).args(&args).status().chain_err(
+        || "failed to execute linker",
+    )?;
 
     if !status.success() {
         bail!("linker failed with exit status {}", status.code().unwrap());

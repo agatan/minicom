@@ -23,13 +23,15 @@ pub struct TargetMachine(target_machine::LLVMTargetMachineRef);
 impl TargetMachine {
     pub fn new(triple: *mut ::libc::c_char, target: Target) -> TargetMachine {
         TargetMachine(unsafe {
-            target_machine::LLVMCreateTargetMachine(target.get(),
-                                                    triple,
-                                                    "".as_ptr() as *const _,
-                                                    "".as_ptr() as *const _,
-                                                    LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
-                                                    LLVMRelocMode::LLVMRelocDefault,
-                                                    LLVMCodeModel::LLVMCodeModelDefault)
+            target_machine::LLVMCreateTargetMachine(
+                target.get(),
+                triple,
+                "".as_ptr() as *const _,
+                "".as_ptr() as *const _,
+                LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
+                LLVMRelocMode::LLVMRelocDefault,
+                LLVMCodeModel::LLVMCodeModelDefault,
+            )
         })
     }
 
@@ -38,7 +40,9 @@ impl TargetMachine {
     }
 
     pub fn data_layout(&self) -> TargetData {
-        TargetData(unsafe { target_machine::LLVMCreateTargetDataLayout(self.get()) })
+        TargetData(unsafe {
+            target_machine::LLVMCreateTargetDataLayout(self.get())
+        })
     }
 }
 
@@ -67,9 +71,11 @@ pub fn get_target_from_triple(triple: *mut ::libc::c_char) -> Result<LLVMTargetR
     unsafe {
         let mut target: LLVMTargetRef = ::std::mem::uninitialized();
         let mut err: Message = Message::with_null();
-        let failed = target_machine::LLVMGetTargetFromTriple(triple,
-                                                             &mut target as *mut _,
-                                                             err.get_mut_ptr());
+        let failed = target_machine::LLVMGetTargetFromTriple(
+            triple,
+            &mut target as *mut _,
+            err.get_mut_ptr(),
+        );
         if failed == 0 { Ok(target) } else { Err(err) }
     }
 }

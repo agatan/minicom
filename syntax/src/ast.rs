@@ -1,13 +1,6 @@
-use basis::sourcemap::Spanned;
+use std::convert::From;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct NodeId(u32);
-
-impl NodeId {
-    pub fn new(id: u32) -> Self {
-        NodeId(id)
-    }
-}
+use basis::sourcemap::{Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ToplevelKind {
@@ -17,13 +10,16 @@ pub enum ToplevelKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Toplevel {
-    pub id: NodeId,
+    pub span: Span,
     pub kind: ToplevelKind,
 }
 
 impl Toplevel {
-    pub fn new(id: NodeId, kind: ToplevelKind) -> Self {
-        Toplevel { id: id, kind: kind }
+    pub fn new(span: Span, kind: ToplevelKind) -> Self {
+        Toplevel {
+            span: span,
+            kind: kind,
+        }
     }
 }
 
@@ -34,30 +30,42 @@ pub enum NodeKind {
     Float(f64),
     Bool(bool),
     Ident(String),
-    Call(String, Vec<Spanned<Node>>),
-    Infix(Box<Spanned<Node>>, Operator, Box<Spanned<Node>>),
-    Parens(Box<Spanned<Node>>),
-    Block(Vec<Spanned<Node>>),
-    If(Box<Spanned<Node>>, Box<Spanned<Node>>, Option<Box<Spanned<Node>>>),
-    While(Box<Spanned<Node>>, Box<Spanned<Node>>),
+    Call(String, Vec<Node>),
+    Infix(Box<Node>, Operator, Box<Node>),
+    Parens(Box<Node>),
+    Block(Vec<Node>),
+    If(Box<Node>, Box<Node>, Option<Box<Node>>),
+    While(Box<Node>, Box<Node>),
     // ref(1)
-    Ref(Box<Spanned<Node>>),
+    Ref(Box<Node>),
     // @x
-    Deref(Box<Spanned<Node>>),
+    Deref(Box<Node>),
     // x <- 1
-    Assign(Box<Spanned<Node>>, Box<Spanned<Node>>),
+    Assign(Box<Node>, Box<Node>),
     Let(Box<Let>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Node {
-    pub id: NodeId,
+    pub span: Span,
     pub kind: NodeKind,
 }
 
 impl Node {
-    pub fn new(id: NodeId, kind: NodeKind) -> Self {
-        Node { id: id, kind: kind }
+    pub fn new(span: Span, kind: NodeKind) -> Self {
+        Node {
+            span: span,
+            kind: kind,
+        }
+    }
+}
+
+impl From<Spanned<NodeKind>> for Node {
+    fn from(sn: Spanned<NodeKind>) -> Node {
+        Node {
+            span: sn.span,
+            kind: sn.value,
+        }
     }
 }
 
@@ -96,15 +104,22 @@ impl Operator {
 pub struct Let {
     pub name: String,
     pub typ: Option<Spanned<Type>>,
-    pub value: Spanned<Node>,
+    pub value: Node,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Param {
+    pub span: Span,
+    pub name: String,
+    pub typ: Type,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Def {
     pub name: String,
-    pub args: Vec<(String, Type)>,
+    pub params: Vec<Param>,
     pub ret: Option<Type>,
-    pub body: Spanned<Node>,
+    pub body: Node,
 }
 
 impl Def {

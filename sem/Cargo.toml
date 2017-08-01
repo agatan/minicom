@@ -1,0 +1,11 @@
+[package]
+name = "minicom-sem"
+version = "0.1.0"
+authors = ["agatan <agatan039@gmail.com>"]
+
+[dependencies]
+minicom-basis = { path = "../basis" }
+minicom-syntax = { path = "../syntax" }
+minicom-mir = { path = "../mir" }
+
+error-chain = "0.10"

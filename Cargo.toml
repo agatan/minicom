@@ -7,10 +7,12 @@ authors = ["agatan <agatan039@gmail.com>"]
 log = "0.3"
 env_logger = "0.4"
 error-chain = "0.10"
-llvm-sys = "39"
 
 minicom-basis = { path = "./basis" }
 minicom-syntax = { path = "./syntax" }
+minicom-mir = { path = "./mir" }
+minicom-sem = { path = "./sem" }
+minicom-codegen = { path = "./codegen" }
 
 [lib]
 name = "minicom_rt"

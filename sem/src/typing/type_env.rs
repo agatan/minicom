@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
-use sem::ir::Type;
-use sem::Error;
+use syntax::ast::Type as AstType;
+
+use super::typed_ast::Type;
+use errors::Error;
 
 #[derive(Debug)]
 pub struct TypeEnv {
@@ -27,5 +29,12 @@ impl TypeEnv {
             .get(name)
             .ok_or(format!("undefined type: {}", name).into())
             .map(Type::clone)
+    }
+
+    pub fn convert(&self, atyp: &AstType) -> Result<Type, Error> {
+        match *atyp {
+            AstType::Primary(ref name) => self.get(name),
+            AstType::Ref(ref inner) => self.convert(inner).map(Type::new_ref),
+        }
     }
 }

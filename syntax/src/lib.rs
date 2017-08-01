@@ -13,7 +13,7 @@ mod error;
 
 use std::convert::From;
 
-use basis::sourcemap::{Source, SourceMap, Spanned};
+use basis::sourcemap::{Source, SourceMap};
 use basis::errors::Error as BasisError;
 use basis::errors::ErrorWithSource;
 
@@ -21,36 +21,17 @@ use ast::Toplevel;
 use token::Tokenizer;
 
 use error::Error;
-pub struct NodeEnv {
-    next_id_: u32,
-}
 
-impl NodeEnv {
-    pub fn new() -> Self {
-        NodeEnv { next_id_: 0 }
-    }
+pub fn parse<'m>(srcmap: &'m SourceMap, source: &Source) -> Result<Vec<Toplevel>, ErrorWithSource<'m, Error>> {
+    let tokens = Tokenizer::new(source)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|err| ErrorWithSource::new(BasisError::new(err.map(Error::from)), srcmap))?;
 
-    fn next_id(&mut self) -> ast::NodeId {
-        let n = self.next_id_;
-        self.next_id_ += 1;
-        ast::NodeId::new(n)
-    }
-
-    pub fn parse(&mut self, src: &Source) -> Result<Vec<Spanned<Toplevel>>, BasisError<Error>> {
-        let tokens = Tokenizer::new(src).collect::<Result<Vec<_>, _>>().map_err(|err| BasisError::new(err.map(Error::from)))?;
-
-        grammar::parse_Program(src, self, tokens.into_iter().map(|sp| {
-            let span = sp.span;
-            (span.start, sp.value, span.end)
-        })).map_err(|lalrpop_error| BasisError::new(Error::from_lalrpop(lalrpop_error)))
-    }
-}
-
-type MutNodeEnv<'a> = &'a mut NodeEnv;
-
-pub fn parse<'m>(srcmap: &'m SourceMap, source: &Source) -> Result<Vec<Spanned<Toplevel>>, ErrorWithSource<'m, Error>> {
-    let mut env = NodeEnv::new();
-    env.parse(source).map_err(|err| ErrorWithSource::new(err, srcmap))
+    grammar::parse_Program(source, tokens.into_iter().map(|sp| {
+        let span = sp.span;
+        (span.start, sp.value, span.end)
+    })).map_err(|lalrpop_error|
+                ErrorWithSource::new(BasisError::new(Error::from_lalrpop(lalrpop_error)), srcmap))
 }
 
 #[test]
@@ -71,6 +52,6 @@ fn test_parse() {
 
         "#;
     let src = srcmap.add_dummy(input.to_string());
-    NodeEnv::new().parse(&*src).unwrap();
+    parse(&srcmap, &*src).unwrap();
 }
 
