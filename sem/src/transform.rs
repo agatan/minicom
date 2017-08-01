@@ -149,7 +149,7 @@ impl Transform {
                 let is_main = def.is_main();
                 let def = self.def(*def)?;
                 if is_main {
-                    self.program.main = Some(Box::new(def));
+                    self.program.main = Some(def.body);
                 } else {
                     self.program.define(name, mir::Decl::Def(Box::new(def)));
                 }

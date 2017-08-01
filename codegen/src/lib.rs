@@ -1,4 +1,5 @@
-#[macro_use]
+#![feature(libc)]
+
 extern crate minicom_basis as basis;
 extern crate minicom_sem as sem;
 extern crate minicom_mir as mir;
@@ -6,6 +7,7 @@ extern crate minicom_mir as mir;
 #[macro_use]
 extern crate error_chain;
 extern crate llvm_sys;
+extern crate libc;
 
 mod compiler;
 mod link;
@@ -18,7 +20,7 @@ use std::io::Write;
 use llvm::Module;
 use llvm::target::TargetMachine;
 
-use sem::ir::Program;
+use mir::Program;
 
 mod errors {
     error_chain! {

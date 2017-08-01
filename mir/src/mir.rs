@@ -3,7 +3,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct Program {
     pub decls: HashMap<String, Decl>,
-    pub main: Option<Box<Def>>,
+    pub main: Option<Node>,
 }
 
 impl Program {

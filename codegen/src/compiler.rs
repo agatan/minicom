@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use llvm::{self, Context, Module, Builder, Value, BasicBlock};
 use llvm::target;
-use sem::ir::*;
+use mir::{Program, Node, NodeKind, Type, Decl, Def};
 
 use super::{Error, ResultExt};
 
@@ -52,21 +52,20 @@ impl Compiler {
                 let inner = self.compile_type(inner);
                 inner.pointer_type()
             }
-            Type::Var(_) => unreachable!(),
         }
     }
 
-    fn declare_function(&mut self, f: &Function) -> llvm::Function {
-        let args = f.args
+    fn declare_function(&mut self, f: &Def) -> llvm::Function {
+        let params = f.params
             .iter()
-            .map(|&(_, ref ty)| self.compile_type(ty))
+            .map(|param| self.compile_type(&param.typ))
             .collect::<Vec<_>>();
-        let ret = self.compile_type(&f.ret_typ);
-        let fun_ty = self.ctx.function_type(ret, &args, false);
+        let ret = self.compile_type(&f.ret);
+        let fun_ty = self.ctx.function_type(ret, &params, false);
         self.module.add_function(&f.name, fun_ty)
     }
 
-    fn compile_function(&mut self, f: &Function) -> llvm::Function {
+    fn compile_function(&mut self, f: &Def) -> llvm::Function {
         let mut fun = self.module.get_function(&f.name).expect(
             "undeclared function",
         );
@@ -75,7 +74,7 @@ impl Compiler {
         self.builder.position_at_end(&start);
         let ret = {
             let mut fbuilder = FunBuilder::new(&alloc, self);
-            for (name, i) in f.args.iter().map(|x| &x.0).zip(0..) {
+            for (name, i) in f.params.iter().map(|x| &x.name).zip(0..) {
                 fbuilder.define_arg(name, fun.param(i));
             }
             fbuilder.compile_node(&f.body)
@@ -166,22 +165,22 @@ impl Compiler {
             self.module.add_function("gc_init", fun_ty)
         };
         // declare global variables and functions
-        for entry in program.entries.values() {
-            match *entry {
-                Entry::Var(ref var) => {
-                    let ty = self.compile_type(&var.typ);
-                    let v = self.module.add_global(&var.name, ty);
-                    v.set_initializer(self.zerovalue(&var.typ));
-                    self.globals.insert(var.name.clone(), v);
+        for decl in program.decls.values() {
+            match *decl {
+                Decl::Let(ref let_) => {
+                    let ty = self.compile_type(&let_.value.typ);
+                    let v = self.module.add_global(&let_.name, ty);
+                    v.set_initializer(self.zerovalue(&let_.value.typ));
+                    self.globals.insert(let_.name.clone(), v);
                 }
-                Entry::Function(ref f) => {
+                Decl::Def(ref f) => {
                     self.declare_function(f);
                 }
             }
         }
         // compile functions
-        for entry in program.entries.values() {
-            if let Entry::Function(ref f) = *entry {
+        for entry in program.decls.values() {
+            if let Decl::Def(ref f) = *entry {
                 self.compile_function(f);
             }
         }
@@ -194,8 +193,13 @@ impl Compiler {
             let mut fbuilder = FunBuilder::new(&entry, self);
             // call gc_init
             fbuilder.compiler.builder.call(gc_init_fun, &[], "");
-            for node in program.inits.iter() {
-                fbuilder.compile_node(node);
+            // initialize global variables
+            for node in program.decls.values() {
+                if let Decl::Let(ref let_) = *node {
+                    let to = fbuilder.compiler.module.get_global(&let_.name);
+                    let v = fbuilder.compile_node(&let_.value);
+                    fbuilder.compiler.builder.store(v, to);
+                }
             }
         }
         let ret = self.int(0);
@@ -249,7 +253,6 @@ impl Compiler {
             Type::Bool => self.bool(false),
             Type::Float => self.float(0.0),
             Type::Ref(ref inner) => self.compile_type(inner).pointer_type().const_null(),
-            Type::Var(_) => unreachable!(),
         }
     }
 }
@@ -333,45 +336,41 @@ impl<'a, 's> FunBuilder<'a, 's> {
                     .collect::<Vec<_>>();
                 self.compiler.builder.call(f, &args, "calltmp")
             }
-            NodeKind::AddInt(ref l, ref r) => {
+            NodeKind::Add(ref l, ref r) => {
                 let l = self.compile_node(l);
                 let r = self.compile_node(r);
-                self.compiler.builder.add(l, r, "addtmp")
+                if node.typ == Type::Int {
+                    self.compiler.builder.add(l, r, "addtmp")
+                } else {
+                    self.compiler.builder.fadd(l, r, "addtmp")
+                }
             }
-            NodeKind::SubInt(ref l, ref r) => {
+            NodeKind::Sub(ref l, ref r) => {
                 let l = self.compile_node(l);
                 let r = self.compile_node(r);
-                self.compiler.builder.sub(l, r, "subtmp")
+                if node.typ == Type::Int {
+                    self.compiler.builder.sub(l, r, "subtmp")
+                } else {
+                    self.compiler.builder.fsub(l, r, "subtmp")
+                }
             }
-            NodeKind::MulInt(ref l, ref r) => {
+            NodeKind::Mul(ref l, ref r) => {
                 let l = self.compile_node(l);
                 let r = self.compile_node(r);
-                self.compiler.builder.mul(l, r, "multmp")
+                if node.typ == Type::Int {
+                    self.compiler.builder.mul(l, r, "multmp")
+                } else {
+                    self.compiler.builder.fmul(l, r, "multmp")
+                }
             }
-            NodeKind::DivInt(ref l, ref r) => {
+            NodeKind::Div(ref l, ref r) => {
                 let l = self.compile_node(l);
                 let r = self.compile_node(r);
-                self.compiler.builder.div(l, r, "divtmp")
-            }
-            NodeKind::AddFloat(ref l, ref r) => {
-                let l = self.compile_node(l);
-                let r = self.compile_node(r);
-                self.compiler.builder.fadd(l, r, "addtmp")
-            }
-            NodeKind::SubFloat(ref l, ref r) => {
-                let l = self.compile_node(l);
-                let r = self.compile_node(r);
-                self.compiler.builder.fsub(l, r, "subtmp")
-            }
-            NodeKind::MulFloat(ref l, ref r) => {
-                let l = self.compile_node(l);
-                let r = self.compile_node(r);
-                self.compiler.builder.fmul(l, r, "multmp")
-            }
-            NodeKind::DivFloat(ref l, ref r) => {
-                let l = self.compile_node(l);
-                let r = self.compile_node(r);
-                self.compiler.builder.fdiv(l, r, "divtmp")
+                if node.typ == Type::Int {
+                    self.compiler.builder.div(l, r, "divtmp")
+                } else {
+                    self.compiler.builder.fdiv(l, r, "divtmp")
+                }
             }
             NodeKind::Not(ref e) => {
                 let e = self.compile_node(e);
@@ -466,7 +465,7 @@ impl<'a, 's> FunBuilder<'a, 's> {
                 let ptr = match self.getvar_opt(&let_.name) {
                     Some(ptr) => ptr,
                     None => {
-                        let typ = self.compiler.compile_type(&let_.typ);
+                        let typ = self.compiler.compile_type(&let_.value.typ);
                         let ptr = self.alloca(&let_.name, typ);
                         self.add_local(&let_.name, ptr);
                         ptr

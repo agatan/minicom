@@ -412,6 +412,12 @@ impl Module {
         Value(value)
     }
 
+    pub fn get_global(&mut self, name: &str) -> Value {
+        let name = CString::new(name).unwrap();
+        let value = unsafe { core::LLVMGetNamedGlobal(self.get(), name.as_ptr()) };
+        Value(value)
+    }
+
     pub fn verify(&self) -> Result<(), String> {
         unsafe {
             let mut msg: Message = Message::with_null();
