@@ -155,7 +155,7 @@ pub struct Def {
 
 impl Def {
     pub fn is_main(&self) -> bool {
-        self.name == "main"
+        self.name.starts_with("main$") || self.name == "main"
     }
 }
 
