@@ -4,4 +4,5 @@ services:
   - docker
 
 script:
+  - git lfs ls-files
   - docker run -ti -v $(pwd):/app -w /app agatan/minicom-dev:0.0.7 sh -c "cargo build --verbose && cargo test -p minicom-basis -p minicom-syntax -p minicom"
